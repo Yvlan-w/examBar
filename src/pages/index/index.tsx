@@ -3,7 +3,6 @@ import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
@@ -89,6 +88,8 @@ const IndexPage = () => {
     if (subjects.length === 0) return
     if (mode === 'exam') {
       Taro.navigateTo({ url: '/pages/exam/index?subjectId=' + subjects[0].id })
+    } else if (mode === 'history') {
+      Taro.navigateTo({ url: '/pages/history/index' })
     } else {
       Taro.navigateTo({ url: '/pages/practice/index?mode=' + mode + '&subjectId=' + subjects[0].id })
     }

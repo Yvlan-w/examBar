@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react-taro'
+import { CircleCheck, CircleX, Star } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -35,6 +35,7 @@ const PracticePage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [answeredCount, setAnsweredCount] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
+  const [isFavorite, setIsFavorite] = useState(false)
   const submittedRef = useRef(false)
 
   useEffect(() => {
@@ -51,9 +52,19 @@ const PracticePage = () => {
           setQuestions([res.data.data])
         }
       } else {
-        const params: Record<string, string> = { subjectId }
-        if (type) params.type = type
-        const res = await Network.request({ url: '/api/questions', data: params })
+        let url = '/api/questions'
+        const params: Record<string, string> = {}
+        if (mode === 'history') {
+          url = '/api/questions/history'
+          if (subjectId) params.subjectId = subjectId
+        } else if (mode === 'wrong') {
+          url = '/api/stats/wrong-questions'
+          if (subjectId) params.subjectId = subjectId
+        } else {
+          if (subjectId) params.subjectId = subjectId
+          if (type) params.type = type
+        }
+        const res = await Network.request({ url, data: params })
         console.log('questions list:', res.data)
         setQuestions(res.data?.data || [])
       }
@@ -61,6 +72,27 @@ const PracticePage = () => {
       console.error('loadQuestions error:', e)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkFavorite = async (qId: string) => {
+    try {
+      const res = await Network.request({ url: '/api/questions/' + qId + '/favorite' })
+      setIsFavorite(res.data?.data?.isFavorite || false)
+    } catch (e) {
+      console.error('checkFavorite error:', e)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    try {
+      const res = await Network.request({
+        url: '/api/questions/' + currentQuestion.id + '/favorite',
+        method: 'POST',
+      })
+      setIsFavorite(res.data?.data?.isFavorite || false)
+    } catch (e) {
+      console.error('toggleFavorite error:', e)
     }
   }
 
@@ -105,7 +137,13 @@ const PracticePage = () => {
       setSelectedAnswer('')
       setShortAnswer('')
       setShowResult(false)
+      setIsFavorite(false)
       submittedRef.current = false
+      setTimeout(() => {
+        if (questions[currentIndex + 1]) {
+          checkFavorite(questions[currentIndex + 1].id)
+        }
+      }, 100)
     } else {
       // 完成所有题目，跳转结果页
       Taro.redirectTo({
@@ -153,6 +191,12 @@ const PracticePage = () => {
     )
   }
 
+  useEffect(() => {
+    if (currentQuestion && !isFavorite) {
+      checkFavorite(currentQuestion.id)
+    }
+  }, [currentQuestion?.id])
+
   const progressValue = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
 
   return (
@@ -174,9 +218,17 @@ const PracticePage = () => {
       <View className="flex-1 px-4 py-4 overflow-auto">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <Text className="block text-base text-slate-800 leading-relaxed font-medium">
-              {currentQuestion.content}
-            </Text>
+            <View className="flex items-start justify-between gap-3">
+              <Text className="flex-1 text-base text-slate-800 leading-relaxed font-medium">
+                {currentQuestion.content}
+              </Text>
+              <View
+                className="flex-shrink-0 mt-1 active:opacity-70"
+                onClick={toggleFavorite}
+              >
+                <Star size={20} color={isFavorite ? '#FBBF24' : '#CBD5E1'} />
+              </View>
+            </View>
           </CardContent>
         </Card>
 
@@ -229,8 +281,8 @@ const PracticePage = () => {
                     {option.label}
                   </View>
                   <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
-                  {isAnswer && <CheckCircle size={18} color="#059669" />}
-                  {isWrong && <XCircle size={18} color="#DC2626" />}
+                  {isAnswer && <CircleCheck size={18} color="#059669" />}
+                  {isWrong && <CircleX size={18} color="#DC2626" />}
                 </View>
               )
             })}
@@ -244,9 +296,9 @@ const PracticePage = () => {
               <CardContent className="p-4">
                 <View className="flex items-center gap-2 mb-2">
                   {isCorrect ? (
-                    <CheckCircle size={18} color="#059669" />
+                    <CircleCheck size={18} color="#059669" />
                   ) : (
-                    <XCircle size={18} color="#DC2626" />
+                    <CircleX size={18} color="#DC2626" />
                   )}
                   <Text className={`block text-sm font-semibold ${isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>
                     {isCorrect ? '回答正确' : '回答错误'}

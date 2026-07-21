@@ -8,15 +8,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import {
-  Trophy,
+  CircleCheck,
   Target,
   Clock,
-  TrendingUp,
   BookOpen,
-  CheckCircle,
-  XCircle,
   Flame,
-  BarChart3,
+  ChartBar,
+  CircleAlert,
+  ChevronRight,
 } from 'lucide-react-taro'
 
 interface StatsData {
@@ -132,7 +131,7 @@ const ProfilePage = () => {
           <Card className="border-0 shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">
               <View className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <CheckCircle size={18} color="#059669" />
+                <CircleCheck size={18} color="#059669" />
               </View>
               <View>
                 <Text className="block text-lg font-bold text-slate-800">{stats?.totalCorrect || 0}</Text>
@@ -154,10 +153,56 @@ const ProfilePage = () => {
         </View>
       </View>
 
+      {/* 功能入口 */}
+      <View className="px-4 mt-4">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-0">
+            <View
+              className="flex items-center justify-between p-4 active:bg-slate-50"
+              onClick={() => Taro.navigateTo({ url: '/pages/wrong/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <View className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <CircleAlert size={18} color="#DC2626" />
+                </View>
+                <Text className="text-sm font-medium text-slate-800">错题本</Text>
+              </View>
+              <ChevronRight size={16} color="#94A3B8" />
+            </View>
+            <Separator />
+            <View
+              className="flex items-center justify-between p-4 active:bg-slate-50"
+              onClick={() => Taro.navigateTo({ url: '/pages/history/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <View className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Clock size={18} color="#D97706" />
+                </View>
+                <Text className="text-sm font-medium text-slate-800">历年真题</Text>
+              </View>
+              <ChevronRight size={16} color="#94A3B8" />
+            </View>
+            <Separator />
+            <View
+              className="flex items-center justify-between p-4 active:bg-slate-50"
+              onClick={() => Taro.navigateTo({ url: '/pages/questions/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <View className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <BookOpen size={18} color="#2563EB" />
+                </View>
+                <Text className="text-sm font-medium text-slate-800">题库</Text>
+              </View>
+              <ChevronRight size={16} color="#94A3B8" />
+            </View>
+          </CardContent>
+        </Card>
+      </View>
+
       {/* 科目统计 */}
       <View className="px-4 mt-4">
         <View className="flex items-center gap-2 mb-3">
-          <BarChart3 size={16} color="#2563EB" />
+          <ChartBar size={16} color="#2563EB" />
           <Text className="block text-base font-semibold text-slate-800">科目统计</Text>
         </View>
         {stats?.subjectStats && stats.subjectStats.length > 0 ? (

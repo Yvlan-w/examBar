@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode } from '@nestjs/common';
+import { Controller, Get, HttpCode, Query } from '@nestjs/common';
 import { StatsService } from './stats.service';
 
 @Controller('stats')
@@ -15,5 +15,11 @@ export class StatsController {
   @HttpCode(200)
   getDetail() {
     return { code: 200, msg: 'success', data: this.statsService.getDetail() };
+  }
+
+  @Get('wrong-questions')
+  @HttpCode(200)
+  getWrongQuestions(@Query('subjectId') subjectId?: string) {
+    return { code: 200, msg: 'success', data: this.statsService.getWrongQuestions(subjectId) };
   }
 }

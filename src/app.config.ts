@@ -6,6 +6,8 @@ export default defineAppConfig({
     'pages/practice/index',
     'pages/exam/index',
     'pages/result/index',
+    'pages/history/index',
+    'pages/wrong/index',
   ],
   window: {
     backgroundTextStyle: 'light',

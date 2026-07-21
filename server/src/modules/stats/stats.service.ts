@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { answerRecords, subjects } from '@/data/seed-data';
+import { answerRecords, subjects, questions } from '@/data/seed-data';
 
 @Injectable()
 export class StatsService {
@@ -94,5 +94,14 @@ export class StatsService {
       subjectStats,
       recentRecords,
     };
+  }
+
+  getWrongQuestions(subjectId?: string) {
+    const wrongQuestionIds = [...new Set(answerRecords.filter((r) => !r.isCorrect).map((r) => r.questionId))];
+    let result = questions.filter((q) => wrongQuestionIds.includes(q.id));
+    if (subjectId) {
+      result = result.filter((q) => q.subjectId === subjectId);
+    }
+    return result.map(({ answer, analysis, ...rest }) => rest);
   }
 }

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react-taro'
+import { Clock, CircleAlert } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -273,7 +273,7 @@ const ExamPage = () => {
           <DialogHeader>
             <DialogTitle>
               <View className="flex items-center gap-2">
-                <AlertCircle size={18} color="#D97706" />
+                <CircleAlert size={18} color="#D97706" />
                 <Text className="text-base">确认交卷</Text>
               </View>
             </DialogTitle>

@@ -3,9 +3,11 @@ import {
   subjects,
   questions,
   answerRecords,
+  favoriteRecords,
   type SubjectData,
   type QuestionData,
   type AnswerRecord,
+  type FavoriteRecord,
 } from '@/data/seed-data';
 
 @Injectable()
@@ -72,5 +74,47 @@ export class QuestionService {
 
   getAnswerRecords(): AnswerRecord[] {
     return answerRecords;
+  }
+
+  getHistoryQuestions(subjectId?: string, year?: string): Omit<QuestionData, 'answer' | 'analysis'>[] {
+    let result = questions.filter((q) => q.year && q.type !== 'short');
+    if (subjectId) {
+      result = result.filter((q) => q.subjectId === subjectId);
+    }
+    if (year && year !== 'all') {
+      result = result.filter((q) => q.year === parseInt(year));
+    }
+    return result.map(({ answer, analysis, ...rest }) => rest);
+  }
+
+  getYears(): number[] {
+    const years = [...new Set(questions.filter((q) => q.year).map((q) => q.year!))].sort((a, b) => b - a);
+    return years;
+  }
+
+  toggleFavorite(questionId: string): { isFavorite: boolean } {
+    const existingIndex = favoriteRecords.findIndex((f) => f.questionId === questionId);
+    if (existingIndex >= 0) {
+      favoriteRecords.splice(existingIndex, 1);
+      return { isFavorite: false };
+    } else {
+      const record: FavoriteRecord = {
+        id: 'f' + Date.now() + Math.random().toString(36).substring(2, 6),
+        questionId,
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      favoriteRecords.push(record);
+      return { isFavorite: true };
+    }
+  }
+
+  isFavorite(questionId: string): boolean {
+    return favoriteRecords.some((f) => f.questionId === questionId);
+  }
+
+  getFavoriteQuestions(): Omit<QuestionData, 'answer' | 'analysis'>[] {
+    const favoriteIds = favoriteRecords.map((f) => f.questionId);
+    const result = questions.filter((q) => favoriteIds.includes(q.id));
+    return result.map(({ answer, analysis, ...rest }) => rest);
   }
 }

@@ -1,9 +1,36 @@
+import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
+import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Trophy, Target, Clock, RotateCcw, Home, CheckCircle, XCircle } from 'lucide-react-taro'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import {Trophy,Target,Clock,
+  CircleCheck,
+  CircleX,
+  ChevronDown,
+  ChevronUp,
+  BookOpen,
+} from 'lucide-react-taro'
+
+interface QuestionDetail {
+  id: string
+  content: string
+  type: string
+  options?: { label: string; content: string }[]
+  answer: string
+  analysis: string
+  userAnswer: string
+  isCorrect: boolean
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  choice: '选择题',
+  judge: '判断题',
+  short: '简答题',
+}
 
 const ResultPage = () => {
   const router = useRouter()
@@ -14,6 +41,10 @@ const ResultPage = () => {
     mode = 'practice',
     timeUsed = '0',
   } = router.params
+
+  const [questionDetails, setQuestionDetails] = useState<QuestionDetail[]>([])
+  const [loading, setLoading] = useState(false)
+  const [expandedIds, setExpandedIds] = useState<string[]>([])
 
   const totalNum = parseInt(total) || 0
   const correctNum = parseInt(correct) || 0
@@ -29,6 +60,46 @@ const ResultPage = () => {
     return s + '秒'
   }
 
+  useEffect(() => {
+    loadQuestionDetails()
+  }, [])
+
+  const loadQuestionDetails = async () => {
+    try {
+      setLoading(true)
+      const res = await Network.request({ url: '/api/stats/detail' })
+      const recentRecords = res.data?.data?.recentRecords || []
+      const details: QuestionDetail[] = []
+      for (const record of recentRecords.slice(-totalNum)) {
+        const qRes = await Network.request({ url: '/api/questions/' + record.id })
+        if (qRes.data?.data) {
+          const question = qRes.data.data
+          details.push({
+            id: question.id,
+            content: question.content,
+            type: question.type,
+            options: question.options,
+            answer: question.answer,
+            analysis: question.analysis,
+            userAnswer: record.correct === 1 ? question.answer : '未知',
+            isCorrect: record.correct === 1,
+          })
+        }
+      }
+      setQuestionDetails(details)
+    } catch (e) {
+      console.error('loadQuestionDetails error:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
   const handleRetry = () => {
     Taro.navigateBack({ delta: 1 })
   }
@@ -37,8 +108,12 @@ const ResultPage = () => {
     Taro.switchTab({ url: '/pages/index/index' })
   }
 
+  const handleViewWrong = () => {
+    Taro.navigateTo({ url: '/pages/wrong/index' })
+  }
+
   return (
-    <View className="min-h-full bg-slate-50 flex flex-col items-center px-4 pt-8 pb-8">
+    <View className="min-h-full bg-slate-50 flex flex-col px-4 pt-8 pb-24">
       {/* 结果头部 */}
       <View className="flex flex-col items-center mb-6">
         <View className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${
@@ -54,7 +129,7 @@ const ResultPage = () => {
           {isPassed ? '恭喜通过' : '继续加油'}
         </Text>
         <Text className="block text-sm text-slate-500">
-          {mode === 'exam' ? '模拟考试' : '专项练习'}完成
+          {mode === 'exam' ? '模拟考试' : mode === 'history' ? '历年真题' : '专项练习'}完成
         </Text>
       </View>
 
@@ -115,14 +190,14 @@ const ResultPage = () => {
           <View className="space-y-3">
             <View className="flex items-center justify-between">
               <View className="flex items-center gap-2">
-                <CheckCircle size={14} color="#059669" />
+                <CircleCheck size={14} color="#059669" />
                 <Text className="text-sm text-slate-600">答对</Text>
               </View>
               <Text className="text-sm font-medium text-emerald-600">{correctNum}题</Text>
             </View>
             <View className="flex items-center justify-between">
               <View className="flex items-center gap-2">
-                <XCircle size={14} color="#DC2626" />
+                <CircleX size={14} color="#DC2626" />
                 <Text className="text-sm text-slate-600">答错</Text>
               </View>
               <Text className="text-sm font-medium text-red-600">{totalNum - correctNum}题</Text>
@@ -131,9 +206,113 @@ const ResultPage = () => {
         </CardContent>
       </Card>
 
+      {/* 题目详情列表 */}
+      <View className="w-full">
+        <View className="flex items-center gap-2 mb-3">
+          <BookOpen size={16} color="#2563EB" />
+          <Text className="block text-base font-semibold text-slate-800">答题详情</Text>
+        </View>
+        {loading ? (
+          <View className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+              </Card>
+            ))}
+          </View>
+        ) : questionDetails.length === 0 ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6 flex flex-col items-center">
+              <Text className="block text-sm text-slate-400">暂无答题详情</Text>
+            </CardContent>
+          </Card>
+        ) : (
+          <View className="space-y-3">
+            {questionDetails.map((q, index) => (
+              <Card key={q.id} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <View className="flex items-start gap-3">
+                    <View
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+                        q.isCorrect
+                          ? 'bg-emerald-100 text-emerald-600'
+                          : 'bg-red-100 text-red-600'
+                      }`}
+                    >
+                      {index + 1}
+                    </View>
+                    <View className="flex-1">
+                      <View className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {TYPE_LABELS[q.type] || q.type}
+                        </Badge>
+                        {q.isCorrect ? (
+                          <CircleCheck size={14} color="#059669" />
+                        ) : (
+                          <CircleX size={14} color="#DC2626" />
+                        )}
+                      </View>
+                      <Text className="block text-sm text-slate-700 leading-relaxed line-clamp-2">
+                        {q.content}
+                      </Text>
+                      <View className="flex items-center justify-between mt-2">
+                        <Text className="text-xs text-slate-400">
+                          你的答案：
+                          <Text className={q.isCorrect ? 'text-emerald-600' : 'text-red-600'}>
+                            {q.userAnswer || '未作答'}
+                          </Text>
+                        </Text>
+                        <Text className="text-xs text-slate-400">
+                          正确答案：<Text className="text-emerald-600">{q.answer}</Text>
+                        </Text>
+                      </View>
+                      <View
+                        className="mt-3 pt-3 border-t border-slate-100 cursor-pointer active:bg-slate-50"
+                        onClick={() => toggleExpand(q.id)}
+                      >
+                        <View className="flex items-center justify-between">
+                          <Text className="text-xs text-blue-600">查看解析</Text>
+                          {expandedIds.includes(q.id) ? (
+                            <ChevronUp size={14} color="#94A3B8" />
+                          ) : (
+                            <ChevronDown size={14} color="#94A3B8" />
+                          )}
+                        </View>
+                        {expandedIds.includes(q.id) && (
+                          <Text className="block text-sm text-slate-600 mt-2 leading-relaxed">
+                            {q.analysis}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                </CardContent>
+              </Card>
+            ))}
+          </View>
+        )}
+      </View>
+
       {/* 操作按钮 */}
-      <View className="w-full flex gap-3">
-        <View className="flex-1">
+      <View
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '12px',
+          padding: '12px 16px',
+          backgroundColor: '#fff',
+          borderTop: '1px solid #E2E8F0',
+          zIndex: 100,
+        }}
+      >
+        <View style={{ flex: 1 }}>
           <Button
             className="w-full bg-slate-100 text-slate-600 h-11 rounded-xl"
             onClick={handleGoHome}
@@ -141,7 +320,17 @@ const ResultPage = () => {
             <Text className="text-sm">返回首页</Text>
           </Button>
         </View>
-        <View className="flex-1">
+        {totalNum - correctNum > 0 && (
+          <View style={{ flex: 1 }}>
+            <Button
+              className="w-full bg-red-500 text-white h-11 rounded-xl"
+              onClick={handleViewWrong}
+            >
+              <Text className="text-sm font-medium">查看错题</Text>
+            </Button>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
           <Button
             className="w-full bg-blue-600 text-white h-11 rounded-xl"
             onClick={handleRetry}

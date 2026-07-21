@@ -38,4 +38,34 @@ export class QuestionController {
     }
     return { code: 200, msg: 'success', data: result };
   }
+
+  @Get('questions/history')
+  @HttpCode(200)
+  getHistoryQuestions(@Query('subjectId') subjectId?: string, @Query('year') year?: string) {
+    return { code: 200, msg: 'success', data: this.questionService.getHistoryQuestions(subjectId, year) };
+  }
+
+  @Get('years')
+  @HttpCode(200)
+  getYears() {
+    return { code: 200, msg: 'success', data: this.questionService.getYears() };
+  }
+
+  @Post('questions/:id/favorite')
+  @HttpCode(200)
+  toggleFavorite(@Param('id') id: string) {
+    return { code: 200, msg: 'success', data: this.questionService.toggleFavorite(id) };
+  }
+
+  @Get('questions/:id/favorite')
+  @HttpCode(200)
+  isFavorite(@Param('id') id: string) {
+    return { code: 200, msg: 'success', data: { isFavorite: this.questionService.isFavorite(id) } };
+  }
+
+  @Get('favorites')
+  @HttpCode(200)
+  getFavorites() {
+    return { code: 200, msg: 'success', data: this.questionService.getFavoriteQuestions() };
+  }
 }
