@@ -42,6 +42,12 @@ const PracticePage = () => {
     loadQuestions()
   }, [])
 
+  useEffect(() => {
+    if (currentQuestion && !isFavorite) {
+      checkFavorite(currentQuestion.id)
+    }
+  }, [currentIndex, questions.length])
+
   const loadQuestions = async () => {
     try {
       setLoading(true)
@@ -190,12 +196,6 @@ const PracticePage = () => {
       </View>
     )
   }
-
-  useEffect(() => {
-    if (currentQuestion && !isFavorite) {
-      checkFavorite(currentQuestion.id)
-    }
-  }, [currentQuestion?.id])
 
   const progressValue = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0
 
