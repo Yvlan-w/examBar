@@ -1,33 +1,258 @@
-import { View, Text, Image } from '@tarojs/components';
-import { useLoad } from '@tarojs/taro';
-import { Network } from '@/network';
-import './index.css';
+import { useState, useEffect } from 'react'
+import { View, Text } from '@tarojs/components'
+import Taro from '@tarojs/taro'
+import { Network } from '@/network'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
+import {
+  BookOpen,
+  PenTool,
+  FileText,
+  Trophy,
+  Clock,
+  Target,
+  ChevronRight,
+  Flame,
+} from 'lucide-react-taro'
 
-/**
- * 默认首页，直接覆盖本页内容
- */
+interface Subject {
+  id: string
+  name: string
+  icon: string
+  questionCount: number
+  color: string
+}
+
+interface DailyQuestion {
+  id: string
+  subjectName: string
+  content: string
+  type: string
+}
+
+interface StudyStats {
+  todayCount: number
+  totalDays: number
+  streak: number
+}
+
+const MODE_ICONS = [
+  { key: 'practice', label: '专项练习', desc: '按题型逐个击破', icon: PenTool, color: 'bg-blue-50', iconColor: '#2563EB' },
+  { key: 'exam', label: '模拟考试', desc: '全真模拟限时测试', icon: Clock, color: 'bg-amber-50', iconColor: '#D97706' },
+  { key: 'history', label: '历年真题', desc: '历年考题精选', icon: FileText, color: 'bg-emerald-50', iconColor: '#059669' },
+]
+
+const SUBJECT_COLORS = [
+  'bg-blue-50 text-blue-700',
+  'bg-emerald-50 text-emerald-700',
+  'bg-amber-50 text-amber-700',
+  'bg-purple-50 text-purple-700',
+  'bg-rose-50 text-rose-700',
+  'bg-cyan-50 text-cyan-700',
+]
+
 const IndexPage = () => {
-  useLoad(async () => {
-    const res = await Network.request({ url: '/api/hello' });
-    console.log(res.data);
-  });
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [dailyQuestion, setDailyQuestion] = useState<DailyQuestion | null>(null)
+  const [stats, setStats] = useState<StudyStats>({ todayCount: 0, totalDays: 0, streak: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const [subjectsRes, dailyRes, statsRes] = await Promise.all([
+        Network.request({ url: '/api/subjects' }),
+        Network.request({ url: '/api/questions/daily' }),
+        Network.request({ url: '/api/stats/overview' }),
+      ])
+      console.log('subjects:', subjectsRes.data)
+      console.log('daily:', dailyRes.data)
+      console.log('stats:', statsRes.data)
+      setSubjects(subjectsRes.data?.data || [])
+      setDailyQuestion(dailyRes.data?.data || null)
+      setStats(statsRes.data?.data || { todayCount: 0, totalDays: 0, streak: 0 })
+    } catch (e) {
+      console.error('loadData error:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleModeClick = (mode: string) => {
+    if (subjects.length === 0) return
+    if (mode === 'exam') {
+      Taro.navigateTo({ url: '/pages/exam/index?subjectId=' + subjects[0].id })
+    } else {
+      Taro.navigateTo({ url: '/pages/practice/index?mode=' + mode + '&subjectId=' + subjects[0].id })
+    }
+  }
+
+  const handleSubjectClick = (subjectId: string) => {
+    Taro.switchTab({ url: '/pages/questions/index' })
+    // Store selected subject for questions page
+    Taro.setStorageSync('selectedSubjectId', subjectId)
+  }
+
+  const handleDailyQuestion = () => {
+    if (!dailyQuestion) return
+    Taro.navigateTo({
+      url: '/pages/practice/index?mode=daily&questionId=' + dailyQuestion.id,
+    })
+  }
 
   return (
-    <View className="w-full h-full flex flex-col justify-center items-center gap-1">
-      <Image
-        className="w-32 h-28"
-        src="https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze-coding/icon/coze-coding.gif"
-      />
-      <View className="self-stretch flex flex-col justify-start items-start gap-2">
-        <Text className="self-stretch text-center justify-start text-base-accent-foreground text-base font-bold">
-          应用开发中
-        </Text>
-        <Text className="self-stretch text-center justify-start text-base-muted-foreground text-sm font-normal">
-          请稍候，界面即将呈现
-        </Text>
+    <View className="min-h-full bg-slate-50 pb-20">
+      {/* 顶部统计区 */}
+      <View className="bg-blue-600 px-4 pt-8 pb-12 rounded-b-3xl">
+        <View className="flex items-center justify-between mb-4">
+          <View>
+            <Text className="block text-white text-xl font-bold">职考刷题</Text>
+            <Text className="block text-blue-100 text-xs mt-1">每天进步一点点</Text>
+          </View>
+          {stats.streak > 0 && (
+            <View className="flex items-center gap-1 rounded-full px-3 py-1" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+              <Flame size={14} color="#FCD34D" />
+              <Text className="text-white text-xs font-medium">连续{stats.streak}天</Text>
+            </View>
+          )}
+        </View>
+        <View className="flex items-center justify-around rounded-2xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+          <View className="flex flex-col items-center">
+            <Text className="block text-white text-2xl font-bold">{stats.todayCount}</Text>
+            <Text className="block text-blue-100 text-xs mt-1">今日刷题</Text>
+          </View>
+          <View className="w-px h-8" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          <View className="flex flex-col items-center">
+            <Text className="block text-white text-2xl font-bold">{stats.totalDays}</Text>
+            <Text className="block text-blue-100 text-xs mt-1">学习天数</Text>
+          </View>
+          <View className="w-px h-8" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+          <View className="flex flex-col items-center">
+            <Trophy size={24} color="#FCD34D" />
+            <Text className="block text-blue-100 text-xs mt-1">坚持打卡</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 刷题模式入口 */}
+      <View className="px-4 -mt-6">
+        <Card className="shadow-sm border-0">
+          <CardContent className="p-4">
+            <Text className="block text-base font-semibold text-slate-800 mb-3">刷题模式</Text>
+            <View className="flex gap-3">
+              {MODE_ICONS.map((mode) => (
+                <View
+                  key={mode.key}
+                  className="flex-1 flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-50 active:bg-slate-100"
+                  onClick={() => handleModeClick(mode.key)}
+                >
+                  <View className={`w-10 h-10 rounded-xl ${mode.color} flex items-center justify-center`}>
+                    <mode.icon size={20} color={mode.iconColor} />
+                  </View>
+                  <Text className="block text-xs font-medium text-slate-800 text-center">{mode.label}</Text>
+                  <Text className="block text-xs text-slate-400 text-center leading-tight">{mode.desc}</Text>
+                </View>
+              ))}
+            </View>
+          </CardContent>
+        </Card>
+      </View>
+
+      {/* 每日推荐 */}
+      <View className="px-4 mt-4">
+        <View className="flex items-center justify-between mb-3">
+          <View className="flex items-center gap-2">
+            <Target size={16} color="#D97706" />
+            <Text className="block text-base font-semibold text-slate-800">每日推荐</Text>
+          </View>
+          {dailyQuestion && (
+            <View className="flex items-center gap-1" onClick={handleDailyQuestion}>
+              <Text className="text-xs text-blue-600">去刷题</Text>
+              <ChevronRight size={14} color="#2563EB" />
+            </View>
+          )}
+        </View>
+        {loading ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4">
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        ) : dailyQuestion ? (
+          <Card className="border-0 shadow-sm active:bg-slate-50" onClick={handleDailyQuestion}>
+            <CardContent className="p-4">
+              <View className="flex items-center gap-2 mb-2">
+                <Badge variant="secondary" className="text-xs">
+                  {dailyQuestion.type === 'choice' ? '选择题' : dailyQuestion.type === 'judge' ? '判断题' : '简答题'}
+                </Badge>
+                <Text className="text-xs text-slate-400">{dailyQuestion.subjectName}</Text>
+              </View>
+              <Text className="block text-sm text-slate-700 leading-relaxed">{dailyQuestion.content}</Text>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-6 flex flex-col items-center">
+              <Text className="block text-sm text-slate-400">暂无推荐题目</Text>
+            </CardContent>
+          </Card>
+        )}
+      </View>
+
+      {/* 我的科目 */}
+      <View className="px-4 mt-4">
+        <View className="flex items-center justify-between mb-3">
+          <View className="flex items-center gap-2">
+            <BookOpen size={16} color="#2563EB" />
+            <Text className="block text-base font-semibold text-slate-800">考试科目</Text>
+          </View>
+        </View>
+        {loading ? (
+          <View className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <Skeleton className="h-8 w-8 rounded-lg mb-2" />
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-3 w-16" />
+                </CardContent>
+              </Card>
+            ))}
+          </View>
+        ) : (
+          <View className="grid grid-cols-2 gap-3">
+            {subjects.map((subject, index) => (
+              <Card
+                key={subject.id}
+                className="border-0 shadow-sm active:bg-slate-50"
+                onClick={() => handleSubjectClick(subject.id)}
+              >
+                <CardContent className="p-4">
+                  <View className={`w-8 h-8 rounded-lg ${SUBJECT_COLORS[index % SUBJECT_COLORS.length]} flex items-center justify-center mb-2`}>
+                    <BookOpen size={16} color="#2563EB" />
+                  </View>
+                  <Text className="block text-sm font-medium text-slate-800 mb-1">{subject.name}</Text>
+                  <View className="flex items-center gap-1">
+                    <Text className="text-xs text-slate-400">{subject.questionCount}题</Text>
+                  </View>
+                  <Progress value={Math.min(100, Math.round((subject.questionCount > 0 ? 35 : 0)))} className="mt-2 h-1" />
+                </CardContent>
+              </Card>
+            ))}
+          </View>
+        )}
       </View>
     </View>
-  );
-};
+  )
+}
 
-export default IndexPage;
+export default IndexPage
