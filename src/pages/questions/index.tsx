@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BookOpen, ChevronRight } from 'lucide-react-taro'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { useUserStore } from '@/store/user'
+import { requireLogin } from '@/utils/auth'
+import { BookOpen, ChevronRight, User } from 'lucide-react-taro'
 
 interface Subject {
   id: string
@@ -49,9 +52,12 @@ const QuestionsPage = () => {
   const [selectedType, setSelectedType] = useState('all')
   const [loading, setLoading] = useState(true)
   const [questionsLoading, setQuestionsLoading] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const { isLoggedIn } = useUserStore()
 
   useEffect(() => {
-    loadSubjects()
+    initPage()
   }, [])
 
   useEffect(() => {
@@ -69,6 +75,33 @@ const QuestionsPage = () => {
       loadQuestions()
     }
   }, [selectedSubject, selectedType])
+
+  const initPage = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadSubjects()
+    }
+  }
+
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    try {
+      const success = await requireLogin()
+      if (success) {
+        setShowLoginDialog(false)
+        loadSubjects()
+      }
+    } catch (e) {
+      console.error('login error:', e)
+      Taro.showToast({
+        title: '登录失败，请重试',
+        icon: 'none',
+      })
+    } finally {
+      setLoginLoading(false)
+    }
+  }
 
   const loadSubjects = async () => {
     try {
@@ -113,9 +146,38 @@ const QuestionsPage = () => {
     })
   }
 
+  if (showLoginDialog) {
+    return (
+      <View className="min-h-full bg-slate-100 flex items-center justify-center">
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <View className="flex flex-col items-center">
+                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                  <User size={32} color="#2563EB" />
+                </View>
+                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
+                <DialogDescription className="text-center mt-2">
+                  需要登录后才能查看题库
+                </DialogDescription>
+              </View>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-3">
+              <Button className="w-full bg-blue-600" onClick={handleLogin} loading={loginLoading}>
+                <Text>微信登录</Text>
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
+                <Text>返回</Text>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </View>
+    )
+  }
+
   return (
     <View className="min-h-full bg-slate-50 pb-20">
-      {/* 科目选择 */}
       <View className="bg-white px-4 pt-4 pb-2">
         <Text className="block text-base font-semibold text-slate-800 mb-3">选择科目</Text>
         {loading ? (
@@ -143,7 +205,6 @@ const QuestionsPage = () => {
         )}
       </View>
 
-      {/* 题型筛选 */}
       <View className="bg-white px-4 py-3 mt-2">
         <Tabs value={selectedType} onValueChange={setSelectedType}>
           <TabsList className="w-full bg-slate-100 h-10 rounded-lg p-1">
@@ -155,7 +216,6 @@ const QuestionsPage = () => {
         </Tabs>
       </View>
 
-      {/* 开始练习按钮 */}
       <View className="px-4 mt-3">
         <Button
           className="w-full bg-blue-600 text-white h-10 rounded-xl"
@@ -165,7 +225,6 @@ const QuestionsPage = () => {
         </Button>
       </View>
 
-      {/* 题目列表 */}
       <View className="px-4 mt-4">
         <View className="flex items-center justify-between mb-3">
           <Text className="block text-sm font-medium text-slate-800">题目列表</Text>

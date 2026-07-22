@@ -8,7 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { CircleCheck, CircleX, Star } from 'lucide-react-taro'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { useUserStore } from '@/store/user'
+import { requireLogin } from '@/utils/auth'
+import { CircleCheck, CircleX, Star, User } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -36,10 +39,13 @@ const PracticePage = () => {
   const [answeredCount, setAnsweredCount] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const { isLoggedIn } = useUserStore()
   const submittedRef = useRef(false)
 
   useEffect(() => {
-    loadQuestions()
+    initPage()
   }, [])
 
   useEffect(() => {
@@ -47,6 +53,14 @@ const PracticePage = () => {
       checkFavorite(currentQuestion.id)
     }
   }, [currentIndex, questions.length])
+
+  const initPage = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadQuestions()
+    }
+  }
 
   const loadQuestions = async () => {
     try {
@@ -81,6 +95,25 @@ const PracticePage = () => {
     }
   }
 
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    try {
+      const success = await requireLogin()
+      if (success) {
+        setShowLoginDialog(false)
+        loadQuestions()
+      }
+    } catch (e) {
+      console.error('login error:', e)
+      Taro.showToast({
+        title: '登录失败，请重试',
+        icon: 'none',
+      })
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
   const checkFavorite = async (qId: string) => {
     try {
       const res = await Network.request({ url: '/api/questions/' + qId + '/favorite' })
@@ -91,6 +124,10 @@ const PracticePage = () => {
   }
 
   const toggleFavorite = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     try {
       const res = await Network.request({
         url: '/api/questions/' + currentQuestion.id + '/favorite',
@@ -105,6 +142,10 @@ const PracticePage = () => {
   const currentQuestion = questions[currentIndex]
 
   const handleSubmit = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     if (!currentQuestion || submitting) return
 
     const userAnswer = currentQuestion.type === 'short' ? shortAnswer : selectedAnswer
@@ -151,7 +192,6 @@ const PracticePage = () => {
         }
       }, 100)
     } else {
-      // 完成所有题目，跳转结果页
       Taro.redirectTo({
         url: '/pages/result/index?total=' + questions.length +
           '&correct=' + correctCount +
@@ -171,6 +211,36 @@ const PracticePage = () => {
         '&correct=' + correctCount +
         '&mode=' + mode,
     })
+  }
+
+  if (showLoginDialog) {
+    return (
+      <View className="min-h-full bg-slate-100 flex items-center justify-center">
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <View className="flex flex-col items-center">
+                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                  <User size={32} color="#2563EB" />
+                </View>
+                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
+                <DialogDescription className="text-center mt-2">
+                  需要登录后才能进行刷题
+                </DialogDescription>
+              </View>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-3">
+              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
+                <Text>返回</Text>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </View>
+    )
   }
 
   if (loading) {
@@ -201,7 +271,6 @@ const PracticePage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
-      {/* 顶部进度 */}
       <View className="bg-white px-4 py-3 shadow-sm">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-xs text-slate-500">
@@ -214,7 +283,6 @@ const PracticePage = () => {
         <Progress value={progressValue} className="h-2" />
       </View>
 
-      {/* 题目内容 */}
       <View className="flex-1 px-4 py-4 overflow-auto">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
@@ -232,7 +300,6 @@ const PracticePage = () => {
           </CardContent>
         </Card>
 
-        {/* 选项区域 */}
         {currentQuestion.type === 'short' ? (
           <View className="mt-4">
             <View className="bg-white rounded-xl p-4">
@@ -289,7 +356,6 @@ const PracticePage = () => {
           </View>
         )}
 
-        {/* 解析区域 */}
         {showResult && (
           <View className="mt-4">
             <Card className={`border-0 ${isCorrect ? 'bg-emerald-50' : 'bg-red-50'}`}>
@@ -316,7 +382,6 @@ const PracticePage = () => {
         )}
       </View>
 
-      {/* 底部操作栏 */}
       <View
         style={{
           position: 'fixed',

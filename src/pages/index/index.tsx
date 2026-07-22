@@ -6,6 +6,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { useUserStore } from '@/store/user'
+import { requireLogin } from '@/utils/auth'
 import {
   BookOpen,
   PenTool,
@@ -15,6 +19,7 @@ import {
   Target,
   ChevronRight,
   Flame,
+  User,
 } from 'lucide-react-taro'
 
 interface Subject {
@@ -58,10 +63,31 @@ const IndexPage = () => {
   const [dailyQuestion, setDailyQuestion] = useState<DailyQuestion | null>(null)
   const [stats, setStats] = useState<StudyStats>({ todayCount: 0, totalDays: 0, streak: 0 })
   const [loading, setLoading] = useState(true)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const { isLoggedIn, login } = useUserStore()
 
   useEffect(() => {
-    loadData()
+    initApp()
   }, [])
+
+  const initApp = async () => {
+    const storedUser = Taro.getStorageSync('examBar_user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        login(userData)
+      } catch (e) {
+        console.error('parse user data error:', e)
+      }
+    }
+
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    }
+
+    loadData()
+  }
 
   const loadData = async () => {
     try {
@@ -84,7 +110,34 @@ const IndexPage = () => {
     }
   }
 
-  const handleModeClick = (mode: string) => {
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    try {
+      const success = await requireLogin()
+      if (success) {
+        setShowLoginDialog(false)
+        loadData()
+        Taro.showToast({
+          title: '登录成功',
+          icon: 'success',
+        })
+      }
+    } catch (e) {
+      console.error('login error:', e)
+      Taro.showToast({
+        title: '登录失败，请重试',
+        icon: 'none',
+      })
+    } finally {
+      setLoginLoading(false)
+    }
+  }
+
+  const handleModeClick = async (mode: string) => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     if (subjects.length === 0) return
     if (mode === 'exam') {
       Taro.navigateTo({ url: '/pages/exam/index?subjectId=' + subjects[0].id })
@@ -95,17 +148,28 @@ const IndexPage = () => {
     }
   }
 
-  const handleSubjectClick = (subjectId: string) => {
+  const handleSubjectClick = async (subjectId: string) => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     Taro.switchTab({ url: '/pages/questions/index' })
-    // Store selected subject for questions page
     Taro.setStorageSync('selectedSubjectId', subjectId)
   }
 
-  const handleDailyQuestion = () => {
+  const handleDailyQuestion = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     if (!dailyQuestion) return
     Taro.navigateTo({
       url: '/pages/practice/index?mode=daily&questionId=' + dailyQuestion.id,
     })
+  }
+
+  const handleSkipLogin = () => {
+    setShowLoginDialog(false)
   }
 
   return (
@@ -252,6 +316,31 @@ const IndexPage = () => {
           </View>
         )}
       </View>
+
+      {/* 登录弹窗 */}
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <View className="flex flex-col items-center">
+              <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                <User size={32} color="#2563EB" />
+              </View>
+              <DialogTitle className="text-lg font-bold text-center">欢迎使用职考刷题</DialogTitle>
+              <DialogDescription className="text-center mt-2">
+                登录后可以保存您的学习进度和做题记录
+              </DialogDescription>
+            </View>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-3">
+            <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
+            </Button>
+            <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
+              <Text>暂不登录</Text>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </View>
   )
 }

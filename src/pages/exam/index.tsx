@@ -6,9 +6,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Clock, CircleAlert } from 'lucide-react-taro'
+import { useUserStore } from '@/store/user'
+import { requireLogin } from '@/utils/auth'
+import { Clock, CircleAlert, User } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -17,7 +19,7 @@ interface Question {
   options?: { label: string; content: string }[]
 }
 
-const EXAM_DURATION = 30 * 60 // 30 minutes in seconds
+const EXAM_DURATION = 30 * 60
 
 const ExamPage = () => {
   const router = useRouter()
@@ -29,11 +31,14 @@ const ExamPage = () => {
   const [timeLeft, setTimeLeft] = useState(EXAM_DURATION)
   const [loading, setLoading] = useState(true)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const { isLoggedIn } = useUserStore()
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    loadExamQuestions()
+    initPage()
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
@@ -56,6 +61,33 @@ const ExamPage = () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [loading, questions])
+
+  const initPage = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadExamQuestions()
+    }
+  }
+
+  const handleLogin = async () => {
+    setLoginLoading(true)
+    try {
+      const success = await requireLogin()
+      if (success) {
+        setShowLoginDialog(false)
+        loadExamQuestions()
+      }
+    } catch (e) {
+      console.error('login error:', e)
+      Taro.showToast({
+        title: '登录失败，请重试',
+        icon: 'none',
+      })
+    } finally {
+      setLoginLoading(false)
+    }
+  }
 
   const loadExamQuestions = async () => {
     try {
@@ -88,6 +120,10 @@ const ExamPage = () => {
   }
 
   const handleSubmitExam = useCallback(async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     if (submitting) return
     setSubmitting(true)
     if (timerRef.current) clearInterval(timerRef.current)
@@ -118,12 +154,42 @@ const ExamPage = () => {
       console.error('submit exam error:', e)
       setSubmitting(false)
     }
-  }, [answers, timeLeft, questions, subjectId, submitting])
+  }, [answers, timeLeft, questions, subjectId, submitting, isLoggedIn])
 
   const currentQuestion = questions[currentIndex]
   const answeredCount = Object.keys(answers).length
   const progressValue = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0
   const isTimeWarning = timeLeft < 5 * 60
+
+  if (showLoginDialog) {
+    return (
+      <View className="min-h-full bg-slate-100 flex items-center justify-center">
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <View className="flex flex-col items-center">
+                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                  <User size={32} color="#2563EB" />
+                </View>
+                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
+                <DialogDescription className="text-center mt-2">
+                  需要登录后才能进行模拟考试
+                </DialogDescription>
+              </View>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-3">
+              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
+                <Text>返回</Text>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </View>
+    )
+  }
 
   if (loading) {
     return (
@@ -140,7 +206,6 @@ const ExamPage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
-      {/* 顶部信息栏 */}
       <View className={`px-4 py-3 shadow-sm ${isTimeWarning ? 'bg-red-50' : 'bg-white'}`}>
         <View className="flex items-center justify-between mb-2">
           <View className={`flex items-center gap-1 ${isTimeWarning ? 'text-red-600' : 'text-slate-600'}`}>
@@ -155,7 +220,6 @@ const ExamPage = () => {
         <Progress value={progressValue} className="h-1" />
       </View>
 
-      {/* 答题卡导航 */}
       <View className="bg-white px-4 py-2 border-b border-slate-100">
         <View className="flex gap-1.5 flex-wrap">
           {questions.map((q, index) => {
@@ -178,7 +242,6 @@ const ExamPage = () => {
         </View>
       </View>
 
-      {/* 题目内容 */}
       <View className="flex-1 px-4 py-4 overflow-auto pb-24">
         {currentQuestion && (
           <>
@@ -223,7 +286,6 @@ const ExamPage = () => {
         )}
       </View>
 
-      {/* 底部操作栏 */}
       <View style={{
         position: 'fixed',
         bottom: 0,
@@ -267,7 +329,6 @@ const ExamPage = () => {
         )}
       </View>
 
-      {/* 交卷确认弹窗 */}
       <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <DialogContent>
           <DialogHeader>
