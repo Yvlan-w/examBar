@@ -60,6 +60,41 @@ export const getUserId = (): number | null => {
   return null
 }
 
+export const getUserProfile = async (): Promise<{ nickName?: string; avatarUrl?: string } | null> => {
+  try {
+    console.log('Getting user profile...')
+    const res = await Taro.getUserProfile({
+      desc: '用于完善会员资料',
+    })
+    console.log('getUserProfile result:', res)
+    return {
+      nickName: res.userInfo?.nickName,
+      avatarUrl: res.userInfo?.avatarUrl,
+    }
+  } catch (e) {
+    console.warn('getUserProfile failed:', e)
+    return null
+  }
+}
+
+export const updateUserProfile = async (userId: number, nickName: string, avatarUrl: string): Promise<boolean> => {
+  try {
+    const result = await Network.request({
+      url: '/api/users/profile',
+      method: 'PUT',
+      data: {
+        id: userId,
+        nickName,
+        avatarUrl,
+      },
+    })
+    return result.data?.success === true
+  } catch (e) {
+    console.error('updateUserProfile error:', e)
+    return false
+  }
+}
+
 export const loginWithWechat = async (): Promise<LoginResult> => {
   try {
     console.log('Starting wechat login...')
@@ -85,8 +120,19 @@ export const loginWithWechat = async (): Promise<LoginResult> => {
     const responseData = result.data
     
     if (responseData && responseData.success && responseData.data) {
-      const user = responseData.data.user
+      let user = responseData.data.user
       console.log('Login success, user:', user)
+      
+      const profile = await getUserProfile()
+      if (profile && (profile.nickName || profile.avatarUrl)) {
+        console.log('Got profile:', profile)
+        const updateSuccess = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
+        if (updateSuccess) {
+          user = { ...user, ...profile }
+          console.log('Updated user profile:', user)
+        }
+      }
+      
       saveUserInfo(user)
       useUserStore.getState().login(user)
       return { success: true, user }

@@ -210,6 +210,14 @@ export class UserService {
     }).from(questions).where(or(...favoriteIds.map((id) => eq(questions.id, id))));
   }
 
+  async updateProfile(userId: number, nickName?: string, avatarUrl?: string) {
+    const result = await db.update(users).set({
+      nickName: nickName || null,
+      avatarUrl: avatarUrl || null,
+    }).where(eq(users.id, userId)).returning();
+    return result[0];
+  }
+
   async deleteUser(userId: number) {
     await db.delete(users).where(eq(users.id, userId));
     await db.delete(userStats).where(eq(userStats.userId, userId));

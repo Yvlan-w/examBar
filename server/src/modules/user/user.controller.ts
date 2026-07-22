@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Put } from '@nestjs/common';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -44,5 +44,11 @@ export class UserController {
   async getFavorites(@Query('userId') userId: string) {
     const questions = await this.userService.getFavoriteQuestions(parseInt(userId));
     return { success: true, data: questions };
+  }
+
+  @Put('profile')
+  async updateProfile(@Body() body: { id: number; nickName?: string; avatarUrl?: string }) {
+    const user = await this.userService.updateProfile(body.id, body.nickName, body.avatarUrl);
+    return { success: true, data: user };
   }
 }

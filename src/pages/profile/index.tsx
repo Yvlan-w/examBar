@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { useUserStore } from '@/store/user'
+import { requireLogin, getUserProfile, updateUserProfile } from '@/utils/auth'
 import {
   CircleCheck,
   Target,
@@ -16,6 +19,7 @@ import {
   ChartBar,
   CircleAlert,
   ChevronRight,
+  User,
 } from 'lucide-react-taro'
 
 interface StatsData {
@@ -53,10 +57,28 @@ const MODE_LABELS: Record<string, string> = {
 const ProfilePage = () => {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const { user, isLoggedIn } = useUserStore()
 
   useEffect(() => {
-    loadStats()
+    initPage()
   }, [])
+
+  const initPage = async () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadStats()
+    }
+  }
+
+  const handleLogin = async () => {
+    const success = await requireLogin()
+    if (success) {
+      setShowLoginDialog(false)
+      loadStats()
+    }
+  }
 
   const loadStats = async () => {
     try {
@@ -69,6 +91,46 @@ const ProfilePage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!user) return
+    
+    const profile = await getUserProfile()
+    if (profile && (profile.nickName || profile.avatarUrl)) {
+      const success = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
+      if (success) {
+        useUserStore.getState().updateUserInfo(profile)
+        Taro.showToast({
+          title: '资料更新成功',
+          icon: 'success',
+        })
+      }
+    }
+  }
+
+  if (showLoginDialog) {
+    return (
+      <View className="min-h-full bg-slate-100 flex items-center justify-center">
+        <Card className="sm:max-w-md w-full mx-4">
+          <CardContent className="p-6">
+            <View className="flex flex-col items-center">
+              <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                <User size={32} color="#2563EB" />
+              </View>
+              <Text className="block text-lg font-bold text-center mb-2">请先登录</Text>
+              <Text className="block text-sm text-slate-400 text-center mb-4">登录后可以保存您的学习进度</Text>
+              <Button
+                className="w-full bg-blue-600 text-white h-11 rounded-xl"
+                onClick={handleLogin}
+              >
+                <Text>微信登录</Text>
+              </Button>
+            </View>
+          </CardContent>
+        </Card>
+      </View>
+    )
   }
 
   if (loading) {
@@ -89,14 +151,20 @@ const ProfilePage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 pb-20">
-      {/* 用户信息头部 */}
       <View className="bg-blue-600 px-4 pt-8 pb-8 rounded-b-3xl">
         <View className="flex items-center gap-4 mb-4">
-          <View className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-            <BookOpen size={24} color="#FFFFFF" />
+          <View
+            className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden"
+            onClick={handleUpdateProfile}
+          >
+            {user?.avatarUrl ? (
+              <Image src={user.avatarUrl} mode="aspectFill" className="w-full h-full" />
+            ) : (
+              <User size={24} color="#FFFFFF" />
+            )}
           </View>
           <View>
-            <Text className="block text-white text-lg font-bold">考生</Text>
+            <Text className="block text-white text-lg font-bold">{user?.nickName || '考生'}</Text>
             <Text className="block text-blue-100 text-xs mt-1">
               已坚持学习 {stats?.totalDays || 0} 天
             </Text>
@@ -125,7 +193,6 @@ const ProfilePage = () => {
         </View>
       </View>
 
-      {/* 学习数据卡片 */}
       <View className="px-4 -mt-4">
         <View className="grid grid-cols-2 gap-3">
           <Card className="border-0 shadow-sm">
@@ -153,7 +220,6 @@ const ProfilePage = () => {
         </View>
       </View>
 
-      {/* 功能入口 */}
       <View className="px-4 mt-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
@@ -199,7 +265,6 @@ const ProfilePage = () => {
         </Card>
       </View>
 
-      {/* 科目统计 */}
       <View className="px-4 mt-4">
         <View className="flex items-center gap-2 mb-3">
           <ChartBar size={16} color="#2563EB" />
@@ -230,7 +295,6 @@ const ProfilePage = () => {
         )}
       </View>
 
-      {/* 最近记录 */}
       <View className="px-4 mt-4">
         <View className="flex items-center gap-2 mb-3">
           <Clock size={16} color="#2563EB" />
