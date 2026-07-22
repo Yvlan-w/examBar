@@ -7,32 +7,36 @@ export class QuestionController {
 
   @Get('subjects')
   @HttpCode(200)
-  getSubjects() {
-    return { code: 200, msg: 'success', data: this.questionService.getSubjects() };
+  async getSubjects() {
+    const data = await this.questionService.getSubjects();
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('questions')
   @HttpCode(200)
-  getQuestions(@Query('subjectId') subjectId?: string, @Query('type') type?: string) {
-    return { code: 200, msg: 'success', data: this.questionService.getQuestions(subjectId, type) };
+  async getQuestions(@Query('subjectId') subjectId?: string, @Query('type') type?: string) {
+    const data = await this.questionService.getQuestions(subjectId, type);
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('questions/daily')
   @HttpCode(200)
-  getDailyQuestion() {
-    return { code: 200, msg: 'success', data: this.questionService.getDailyQuestion() };
+  async getDailyQuestion() {
+    const data = await this.questionService.getDailyQuestion();
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('questions/:id')
   @HttpCode(200)
-  getQuestionById(@Param('id') id: string) {
-    return { code: 200, msg: 'success', data: this.questionService.getQuestionById(id) };
+  async getQuestionById(@Param('id') id: string) {
+    const data = await this.questionService.getQuestionById(id);
+    return { code: 200, msg: 'success', data };
   }
 
   @Post('answers')
   @HttpCode(200)
-  submitAnswer(@Body() body: { questionId: string; answer: string; mode: string }) {
-    const result = this.questionService.submitAnswer(body.questionId, body.answer, body.mode);
+  async submitAnswer(@Body() body: { questionId: string; answer: string; mode: string }) {
+    const result = await this.questionService.submitAnswer(body.questionId, body.answer, body.mode);
     if (!result) {
       return { code: 404, msg: '题目不存在', data: null };
     }
@@ -41,31 +45,36 @@ export class QuestionController {
 
   @Get('questions/history')
   @HttpCode(200)
-  getHistoryQuestions(@Query('subjectId') subjectId?: string, @Query('year') year?: string) {
-    return { code: 200, msg: 'success', data: this.questionService.getHistoryQuestions(subjectId, year) };
+  async getHistoryQuestions(@Query('subjectId') subjectId?: string, @Query('year') year?: string) {
+    const data = await this.questionService.getHistoryQuestions(subjectId, year);
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('years')
   @HttpCode(200)
-  getYears() {
-    return { code: 200, msg: 'success', data: this.questionService.getYears() };
+  async getYears() {
+    const data = await this.questionService.getYears();
+    return { code: 200, msg: 'success', data };
   }
 
   @Post('questions/:id/favorite')
   @HttpCode(200)
-  toggleFavorite(@Param('id') id: string) {
-    return { code: 200, msg: 'success', data: this.questionService.toggleFavorite(id) };
+  async toggleFavorite(@Param('id') id: string) {
+    const data = await this.questionService.toggleFavorite(id);
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('questions/:id/favorite')
   @HttpCode(200)
-  isFavorite(@Param('id') id: string) {
-    return { code: 200, msg: 'success', data: { isFavorite: this.questionService.isFavorite(id) } };
+  async isFavorite(@Param('id') id: string) {
+    const isFavorite = await this.questionService.isFavorite(id);
+    return { code: 200, msg: 'success', data: { isFavorite } };
   }
 
   @Get('favorites')
   @HttpCode(200)
-  getFavorites() {
-    return { code: 200, msg: 'success', data: this.questionService.getFavoriteQuestions() };
+  async getFavorites() {
+    const data = await this.questionService.getFavoriteQuestions();
+    return { code: 200, msg: 'success', data };
   }
 }
