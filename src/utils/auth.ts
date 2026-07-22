@@ -71,8 +71,8 @@ export const getUserProfile = async (): Promise<{ nickName?: string; avatarUrl?:
       nickName: res.userInfo?.nickName,
       avatarUrl: res.userInfo?.avatarUrl,
     }
-  } catch (e) {
-    console.warn('getUserProfile failed:', e)
+  } catch (e: any) {
+    console.warn('getUserProfile failed:', e?.message || e)
     return null
   }
 }
@@ -120,18 +120,8 @@ export const loginWithWechat = async (): Promise<LoginResult> => {
     const responseData = result.data
     
     if (responseData && responseData.success && responseData.data) {
-      let user = responseData.data.user
+      const user = responseData.data.user
       console.log('Login success, user:', user)
-      
-      const profile = await getUserProfile()
-      if (profile && (profile.nickName || profile.avatarUrl)) {
-        console.log('Got profile:', profile)
-        const updateSuccess = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
-        if (updateSuccess) {
-          user = { ...user, ...profile }
-          console.log('Updated user profile:', user)
-        }
-      }
       
       saveUserInfo(user)
       useUserStore.getState().login(user)
@@ -238,5 +228,53 @@ export const requireLogin = async (callback?: () => void): Promise<boolean> => {
       icon: 'none',
     })
     return false
+  }
+}
+
+export const loginWithProfile = async (): Promise<LoginResult> => {
+  try {
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    
+    if (!isWeapp) {
+      return await loginWithWechatH5()
+    }
+
+    const profile = await getUserProfile()
+    if (!profile) {
+      return { success: false, message: '获取用户信息失败' }
+    }
+
+    const loginRes = await Taro.login()
+    if (!loginRes.code) {
+      return { success: false, message: '获取登录凭证失败' }
+    }
+
+    const result = await Network.request({
+      url: '/api/auth/login',
+      method: 'POST',
+      data: { code: loginRes.code },
+    })
+
+    const responseData = result.data
+    
+    if (responseData && responseData.success && responseData.data) {
+      let user = responseData.data.user
+      
+      if (profile.nickName || profile.avatarUrl) {
+        const updateSuccess = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
+        if (updateSuccess) {
+          user = { ...user, ...profile }
+        }
+      }
+      
+      saveUserInfo(user)
+      useUserStore.getState().login(user)
+      return { success: true, user }
+    }
+
+    return { success: false, message: responseData?.message || '登录失败' }
+  } catch (error: any) {
+    console.error('loginWithProfile error:', error)
+    return { success: false, message: error?.message || '登录异常，请重试' }
   }
 }

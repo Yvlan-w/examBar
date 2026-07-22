@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { requireLogin } from '@/utils/auth'
+import { requireLogin, loginWithProfile } from '@/utils/auth'
 import { CircleAlert, BookOpen, ChevronRight, User } from 'lucide-react-taro'
 
 interface Subject {
@@ -75,10 +75,15 @@ const WrongPage = () => {
   const handleLogin = async () => {
     setLoginLoading(true)
     try {
-      const success = await requireLogin()
-      if (success) {
+      const result = await loginWithProfile()
+      if (result.success) {
         setShowLoginDialog(false)
         loadSubjects()
+      } else {
+        Taro.showToast({
+          title: result.message || '登录失败',
+          icon: 'none',
+        })
       }
     } catch (e) {
       console.error('login error:', e)

@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { requireLogin } from '@/utils/auth'
+import { requireLogin, loginWithProfile } from '@/utils/auth'
 import { Calendar, BookOpen, ChevronRight, User } from 'lucide-react-taro'
 
 interface Subject {
@@ -79,10 +79,15 @@ const HistoryPage = () => {
   const handleLogin = async () => {
     setLoginLoading(true)
     try {
-      const success = await requireLogin()
-      if (success) {
+      const result = await loginWithProfile()
+      if (result.success) {
         setShowLoginDialog(false)
         loadData()
+      } else {
+        Taro.showToast({
+          title: result.message || '登录失败',
+          icon: 'none',
+        })
       }
     } catch (e) {
       console.error('login error:', e)
