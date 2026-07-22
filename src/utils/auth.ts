@@ -62,44 +62,66 @@ export const getUserId = (): number | null => {
 
 export const loginWithWechat = async (): Promise<LoginResult> => {
   try {
-    const loginRes = await Taro.login({
-      success: (res) => {
-        console.log('login success:', res)
-      },
-      fail: (err) => {
-        console.error('login fail:', err)
-      },
-    })
-
+    console.log('Starting wechat login...')
+    
+    const loginRes = await Taro.login()
+    console.log('Taro.login result:', loginRes)
+    
     if (!loginRes.code) {
+      console.error('Failed to get login code')
       return { success: false, message: '获取登录凭证失败' }
     }
 
+    console.log('Got code, calling backend...')
+    
     const result = await Network.request({
       url: '/api/auth/login',
       method: 'POST',
       data: { code: loginRes.code },
     })
-
-    if (result?.data?.success && result.data.data) {
-      const user = result.data.data.user
+    
+    console.log('Backend response:', result)
+    
+    const responseData = result.data
+    
+    if (responseData && responseData.success && responseData.data) {
+      const user = responseData.data.user
+      console.log('Login success, user:', user)
       saveUserInfo(user)
       useUserStore.getState().login(user)
       return { success: true, user }
     }
 
-    return { success: false, message: '登录失败' }
-  } catch (error) {
+    console.error('Login failed, response:', responseData)
+    return { success: false, message: responseData?.message || '登录失败' }
+  } catch (error: any) {
     console.error('loginWithWechat error:', error)
-    return { success: false, message: '登录异常，请重试' }
+    return { success: false, message: error?.message || '登录异常，请重试' }
   }
 }
 
 export const loginWithWechatH5 = async (): Promise<LoginResult> => {
   try {
-    const res = await Taro.getUserProfile({
-      desc: '用于登录并获取您的基本信息',
-    })
+    console.log('Starting H5 login...')
+    
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    
+    if (isWeapp) {
+      return await loginWithWechat()
+    }
+    
+    let nickName = ''
+    let avatarUrl = ''
+    
+    try {
+      const res = await Taro.getUserProfile({
+        desc: '用于登录并获取您的基本信息',
+      })
+      nickName = res.userInfo?.nickName || ''
+      avatarUrl = res.userInfo?.avatarUrl || ''
+    } catch (e) {
+      console.warn('getUserProfile failed, using anonymous login')
+    }
 
     const openid = 'h5_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8)
 
@@ -108,34 +130,41 @@ export const loginWithWechatH5 = async (): Promise<LoginResult> => {
       method: 'POST',
       data: {
         openid,
-        nickName: res.userInfo?.nickName,
-        avatarUrl: res.userInfo?.avatarUrl,
+        nickName,
+        avatarUrl,
       },
     })
-
-    if (result?.data?.success && result.data.data) {
-      const user = result.data.data
+    
+    console.log('H5 login response:', result)
+    
+    const responseData = result.data
+    
+    if (responseData && responseData.success && responseData.data) {
+      const user = responseData.data
+      console.log('H5 login success, user:', user)
       saveUserInfo(user)
       useUserStore.getState().login(user)
       return { success: true, user }
     }
 
-    return { success: false, message: '登录失败' }
-  } catch (error) {
+    return { success: false, message: responseData?.message || '登录失败' }
+  } catch (error: any) {
     console.error('loginWithWechatH5 error:', error)
-    return { success: false, message: '登录异常，请重试' }
+    return { success: false, message: error?.message || '登录异常，请重试' }
   }
 }
 
 export const requireLogin = async (callback?: () => void): Promise<boolean> => {
   const user = getUserInfo()
   if (user) {
+    console.log('Already logged in:', user)
     useUserStore.getState().login(user)
     if (callback) callback()
     return true
   }
 
   const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+  console.log('Not logged in, env:', isWeapp ? 'weapp' : 'h5')
 
   try {
     let result: LoginResult
@@ -145,8 +174,15 @@ export const requireLogin = async (callback?: () => void): Promise<boolean> => {
       result = await loginWithWechatH5()
     }
 
-    if (result.success && callback) {
-      callback()
+    if (result.success) {
+      console.log('Login successful')
+      if (callback) callback()
+    } else {
+      console.error('Login failed:', result.message)
+      Taro.showToast({
+        title: result.message || '登录失败，请重试',
+        icon: 'none',
+      })
     }
     return result.success
   } catch (error) {

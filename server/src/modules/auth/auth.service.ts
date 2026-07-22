@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import * as https from 'https';
 import { db } from '@/db/db.module';
@@ -13,11 +13,19 @@ export class AuthService {
     const appId = process.env.WX_APP_ID;
     const secret = process.env.WX_APP_SECRET;
 
+    console.log('WX_APP_ID:', appId ? 'configured' : 'not configured');
+    console.log('WX_APP_SECRET:', secret ? 'configured' : 'not configured');
+
     if (!appId || !secret) {
-      throw new UnauthorizedException('微信小程序配置未完成');
+      console.error('Wechat app config missing');
+      return {
+        success: false,
+        message: '微信小程序配置未完成，请联系管理员',
+      };
     }
 
     const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+    console.log('Calling wechat API:', url);
 
     return new Promise<any>((resolve, reject) => {
       https.get(url, (res) => {
@@ -28,59 +36,114 @@ export class AuthService {
         res.on('end', () => {
           try {
             const result = JSON.parse(data);
+            console.log('Wechat API response:', result);
+            
             if (result.errcode) {
-              reject(new UnauthorizedException(`微信登录失败: ${result.errmsg}`));
+              console.error('Wechat API error:', result.errmsg);
+              resolve({
+                success: false,
+                message: `微信登录失败: ${result.errmsg}`,
+                errcode: result.errcode,
+              });
             } else {
-              resolve(result);
+              resolve({
+                success: true,
+                data: result,
+              });
             }
           } catch (error) {
-            reject(new UnauthorizedException('微信登录失败，请重试'));
+            console.error('Parse wechat response error:', error);
+            resolve({
+              success: false,
+              message: '微信登录失败，请重试',
+            });
           }
         });
-      }).on('error', () => {
-        reject(new UnauthorizedException('微信登录失败，请重试'));
+      }).on('error', (err) => {
+        console.error('Wechat API request error:', err);
+        resolve({
+          success: false,
+          message: '微信登录失败，请重试',
+        });
       });
     });
   }
 
   async login(code: string) {
+    console.log('Login with code:', code);
+    
     const sessionData = await this.code2Session(code);
-    const { openid, unionid, session_key } = sessionData;
-
-    let user = await db.select().from(users).where(eq(users.openid, openid)).limit(1);
-
-    if (user.length === 0) {
-      const result = await db.insert(users).values({
-        openid,
-      }).returning();
-      user = result;
+    
+    if (!sessionData.success) {
+      return {
+        success: false,
+        message: sessionData.message,
+      };
     }
 
-    return {
-      user: user[0],
-      sessionKey: session_key,
-      unionid,
-    };
+    const { openid, unionid, session_key } = sessionData.data;
+    console.log('Got openid:', openid);
+
+    try {
+      let user = await db.select().from(users).where(eq(users.openid, openid)).limit(1);
+
+      if (user.length === 0) {
+        console.log('Creating new user for openid:', openid);
+        const result = await db.insert(users).values({
+          openid,
+        }).returning();
+        user = result;
+      }
+
+      return {
+        success: true,
+        data: {
+          user: user[0],
+          sessionKey: session_key,
+          unionid,
+        },
+      };
+    } catch (error) {
+      console.error('Database error during login:', error);
+      return {
+        success: false,
+        message: '登录失败，请重试',
+      };
+    }
   }
 
   async loginH5(openid: string, nickName?: string, avatarUrl?: string) {
-    let user = await db.select().from(users).where(eq(users.openid, openid)).limit(1);
+    console.log('H5 login with openid:', openid);
+    
+    try {
+      let user = await db.select().from(users).where(eq(users.openid, openid)).limit(1);
 
-    if (user.length === 0) {
-      const result = await db.insert(users).values({
-        openid,
-        nickName: nickName || null,
-        avatarUrl: avatarUrl || null,
-      }).returning();
-      user = result;
-    } else if (nickName || avatarUrl) {
-      const result = await db.update(users).set({
-        nickName: nickName || user[0].nickName,
-        avatarUrl: avatarUrl || user[0].avatarUrl,
-      }).where(eq(users.openid, openid)).returning();
-      user = result;
+      if (user.length === 0) {
+        console.log('Creating new H5 user:', openid);
+        const result = await db.insert(users).values({
+          openid,
+          nickName: nickName || null,
+          avatarUrl: avatarUrl || null,
+        }).returning();
+        user = result;
+      } else if (nickName || avatarUrl) {
+        const result = await db.update(users).set({
+          nickName: nickName || user[0].nickName,
+          avatarUrl: avatarUrl || user[0].avatarUrl,
+        }).where(eq(users.openid, openid)).returning();
+        user = result;
+      }
+
+      return {
+        success: true,
+        data: user[0],
+      };
+    } catch (error) {
+      console.error('Database error during H5 login:', error);
+      return {
+        success: false,
+        message: '登录失败，请重试',
+      };
     }
-
-    return user[0];
   }
 }
