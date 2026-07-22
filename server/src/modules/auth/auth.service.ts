@@ -72,17 +72,29 @@ export class AuthService {
   async login(code: string) {
     console.log('Login with code:', code);
     
-    const sessionData = await this.code2Session(code);
+    let openid: string;
+    let unionid: string | undefined;
+    let session_key: string | undefined;
     
-    if (!sessionData.success) {
-      return {
-        success: false,
-        message: sessionData.message,
-      };
-    }
+    if (code === 'h5_login') {
+      openid = 'h5_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+      console.log('H5 anonymous login, generated openid:', openid);
+    } else {
+      const sessionData = await this.code2Session(code);
+      
+      if (!sessionData.success) {
+        return {
+          success: false,
+          message: sessionData.message,
+        };
+      }
 
-    const { openid, unionid, session_key } = sessionData.data;
-    console.log('Got openid:', openid);
+      const { openid: wxOpenid, unionid: wxUnionid, session_key: wxSessionKey } = sessionData.data;
+      openid = wxOpenid;
+      unionid = wxUnionid;
+      session_key = wxSessionKey;
+      console.log('Got openid:', openid);
+    }
 
     try {
       let user = await db.select().from(users).where(eq(users.openid, openid)).limit(1);

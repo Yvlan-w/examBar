@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Button as TaroButton, Input, Image } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -65,6 +65,8 @@ const IndexPage = () => {
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
+  const [nickName, setNickName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
   const { isLoggedIn, login } = useUserStore()
 
   useEffect(() => {
@@ -113,8 +115,34 @@ const IndexPage = () => {
   const handleLogin = async () => {
     setLoginLoading(true)
     try {
-      const result = await loginWithProfile()
-      if (result.success) {
+      const result = await Network.request({
+        url: '/api/auth/login',
+        method: 'POST',
+        data: { code: 'h5_login' },
+      })
+      console.log('login result:', result.data)
+      
+      if (result.data?.success && result.data.data) {
+        const user = result.data.data.user
+        console.log('login success:', user)
+        
+        if (nickName || avatarUrl) {
+          await Network.request({
+            url: '/api/users/profile',
+            method: 'PUT',
+            data: {
+              id: user.id,
+              nickName: nickName || '',
+              avatarUrl: avatarUrl || '',
+            },
+          })
+          user.nickName = nickName
+          user.avatarUrl = avatarUrl
+        }
+        
+        Taro.setStorageSync('examBar_user', JSON.stringify(user))
+        login(user)
+        
         setShowLoginDialog(false)
         loadData()
         Taro.showToast({
@@ -123,7 +151,7 @@ const IndexPage = () => {
         })
       } else {
         Taro.showToast({
-          title: result.message || '登录失败',
+          title: result.data?.message || '登录失败',
           icon: 'none',
         })
       }
@@ -136,6 +164,17 @@ const IndexPage = () => {
     } finally {
       setLoginLoading(false)
     }
+  }
+
+  const onChooseAvatar = (e: any) => {
+    console.log('choose avatar:', e)
+    const { avatarUrl } = e.detail
+    setAvatarUrl(avatarUrl)
+  }
+
+  const onNickNameInput = (e: any) => {
+    console.log('nickname input:', e)
+    setNickName(e.detail.value)
   }
 
   const handleModeClick = async (mode: string) => {
@@ -327,18 +366,40 @@ const IndexPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <View className="flex flex-col items-center">
-              <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                <User size={32} color="#2563EB" />
-              </View>
               <DialogTitle className="text-lg font-bold text-center">欢迎使用职考刷题</DialogTitle>
               <DialogDescription className="text-center mt-2">
-                登录后可以保存您的学习进度和做题记录
+                请登录以保存您的学习进度
               </DialogDescription>
             </View>
           </DialogHeader>
+          <View className="p-4">
+            <View className="flex flex-col items-center gap-4">
+              <TaroButton
+                openType="chooseAvatar"
+                onChooseAvatar={onChooseAvatar}
+                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              >
+                {avatarUrl ? (
+                  <Text>
+                    <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
+                  </Text>
+                ) : (
+                  <User size={32} color="#94A3B8" />
+                )}
+              </TaroButton>
+              <Text className="text-sm text-gray-500">点击选择头像</Text>
+              <Input
+                type="nickname"
+                className="w-full bg-gray-50 rounded-xl px-4 py-3"
+                placeholder="请输入昵称"
+                value={nickName}
+                onInput={onNickNameInput}
+              />
+            </View>
+          </View>
           <DialogFooter className="flex flex-col gap-3">
             <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
+              <Text>{loginLoading ? '登录中...' : '登录'}</Text>
             </Button>
             <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
               <Text>暂不登录</Text>
