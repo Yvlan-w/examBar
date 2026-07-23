@@ -74,7 +74,7 @@ const IndexPage = () => {
   }, [])
 
   useEffect(() => {
-    if (showLoginDialog && isLoggedIn) {
+    if (showLoginDialog) {
       const storedUser = Taro.getStorageSync('examBar_user')
       if (storedUser) {
         try {
@@ -82,7 +82,7 @@ const IndexPage = () => {
           if (userData.nickName) {
             setNickName(userData.nickName)
           }
-          if (userData.avatarUrl) {
+          if (userData.avatarUrl && userData.avatarUrl.startsWith('http')) {
             setAvatarUrl(userData.avatarUrl)
           }
         } catch (e) {
@@ -90,7 +90,7 @@ const IndexPage = () => {
         }
       }
     }
-  }, [showLoginDialog, isLoggedIn])
+  }, [showLoginDialog])
 
   const initApp = async () => {
     const storedUser = Taro.getStorageSync('examBar_user')
@@ -432,7 +432,7 @@ const IndexPage = () => {
                 onChooseAvatar={onChooseAvatar}
                 className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
               >
-                {avatarUrl && !avatarUrl.startsWith('wxfile://') ? (
+                {avatarUrl ? (
                   <Text>
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
                   </Text>
