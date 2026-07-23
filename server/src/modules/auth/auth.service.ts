@@ -161,14 +161,27 @@ export class AuthService {
           } catch (error) {
             console.error('Failed to upload random avatar:', error);
           }
-        } else if (avatarUrl && avatarUrl.startsWith('wxfile://')) {
+        } else {
           try {
-            console.log('Downloading wechat temp avatar:', avatarUrl);
-            const avatarBuffer = await this.downloadImage(avatarUrl);
-            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.png`, 'image/png');
-            console.log('Uploaded wechat avatar to storage:', finalAvatarUrl);
+            let avatarBuffer: Buffer;
+            if (avatarUrl.startsWith('wxfile://')) {
+              console.log('Downloading wechat temp avatar:', avatarUrl);
+              avatarBuffer = await this.downloadImage(avatarUrl);
+            } else if (avatarUrl.startsWith('data:image/')) {
+              console.log('Parsing base64 avatar:', avatarUrl.substring(0, 50) + '...');
+              const base64Data = avatarUrl.split(',')[1];
+              avatarBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+              console.log('Downloading avatar from URL:', avatarUrl);
+              avatarBuffer = await this.downloadImage(avatarUrl);
+            }
+            
+            const ext = avatarUrl.includes('svg') ? 'svg' : 'png';
+            const contentType = ext === 'svg' ? 'image/svg+xml' : 'image/png';
+            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.${ext}`, contentType);
+            console.log('Uploaded avatar to storage:', finalAvatarUrl);
           } catch (error) {
-            console.error('Failed to upload wechat avatar:', error);
+            console.error('Failed to upload avatar:', error);
             const avatarBuffer = this.generateRandomAvatar();
             finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.svg`, 'image/svg+xml');
           }
@@ -189,22 +202,32 @@ export class AuthService {
         }
         
         if (avatarUrl) {
-          if (avatarUrl.startsWith('wxfile://')) {
-            try {
+          try {
+            let avatarBuffer: Buffer;
+            if (avatarUrl.startsWith('wxfile://')) {
               console.log('Downloading wechat temp avatar for existing user:', avatarUrl);
-              const avatarBuffer = await this.downloadImage(avatarUrl);
-              const newAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.png`, 'image/png');
-              updateData.avatarUrl = newAvatarUrl;
-              console.log('Uploaded wechat avatar to storage:', newAvatarUrl);
-            } catch (error) {
-              console.error('Failed to upload wechat avatar:', error);
+              avatarBuffer = await this.downloadImage(avatarUrl);
+            } else if (avatarUrl.startsWith('data:image/')) {
+              console.log('Parsing base64 avatar for existing user:', avatarUrl.substring(0, 50) + '...');
+              const base64Data = avatarUrl.split(',')[1];
+              avatarBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+              console.log('Downloading avatar from URL for existing user:', avatarUrl);
+              avatarBuffer = await this.downloadImage(avatarUrl);
             }
-          } else {
-            updateData.avatarUrl = avatarUrl;
+            
+            const ext = avatarUrl.includes('svg') ? 'svg' : 'png';
+            const contentType = ext === 'svg' ? 'image/svg+xml' : 'image/png';
+            const newAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.${ext}`, contentType);
+            updateData.avatarUrl = newAvatarUrl;
+            console.log('Uploaded avatar to storage:', newAvatarUrl);
+          } catch (error) {
+            console.error('Failed to upload avatar:', error);
           }
         }
         
         if (Object.keys(updateData).length > 0) {
+          updateData.updatedAt = new Date();
           const result = await db.update(users).set(updateData).where(eq(users.openid, openid)).returning();
           user = result;
         }
@@ -258,19 +281,27 @@ export class AuthService {
         const updateData: any = {};
         if (nickName) updateData.nickName = nickName;
         if (avatarUrl) {
-          if (avatarUrl.startsWith('wxfile://')) {
-            try {
-              const avatarBuffer = await this.downloadImage(avatarUrl);
-              updateData.avatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.png`, 'image/png');
-            } catch (error) {
-              console.error('Failed to upload avatar:', error);
+          try {
+            let avatarBuffer: Buffer;
+            if (avatarUrl.startsWith('wxfile://')) {
+              avatarBuffer = await this.downloadImage(avatarUrl);
+            } else if (avatarUrl.startsWith('data:image/')) {
+              const base64Data = avatarUrl.split(',')[1];
+              avatarBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+              avatarBuffer = await this.downloadImage(avatarUrl);
             }
-          } else {
-            updateData.avatarUrl = avatarUrl;
+            
+            const ext = avatarUrl.includes('svg') ? 'svg' : 'png';
+            const contentType = ext === 'svg' ? 'image/svg+xml' : 'image/png';
+            updateData.avatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.${ext}`, contentType);
+          } catch (error) {
+            console.error('Failed to upload avatar:', error);
           }
         }
         
         if (Object.keys(updateData).length > 0) {
+          updateData.updatedAt = new Date();
           const result = await db.update(users).set(updateData).where(eq(users.openid, openid)).returning();
           user = result;
         }
