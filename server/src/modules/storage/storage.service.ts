@@ -23,17 +23,12 @@ export class StorageService implements OnModuleInit {
     try {
       const key = `avatars/${Date.now()}_${fileName}`;
       
-      const result = await this.storage.uploadFile({
+      const url = await this.storage.uploadFile({
         fileContent: fileBuffer,
         fileName: key,
         contentType,
       });
-      console.log('Upload result:', result);
-      
-      const url = await this.storage.generatePresignedUrl({
-        key,
-        expireTime: 60 * 60 * 24 * 365,
-      });
+      console.log('Upload result URL:', url);
       return url;
     } catch (error) {
       console.error('Upload file error:', error);
@@ -56,15 +51,11 @@ export class StorageService implements OnModuleInit {
 
   async uploadFromUrl(url: string): Promise<string> {
     try {
-      const key = `avatars/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
-      await this.storage.uploadFromUrl({
+      const result = await this.storage.uploadFromUrl({
         url,
       });
-      const presignedUrl = await this.storage.generatePresignedUrl({
-        key,
-        expireTime: 60 * 60 * 24 * 365,
-      });
-      return presignedUrl;
+      console.log('uploadFromUrl result:', result);
+      return result;
     } catch (error) {
       console.error('Upload from URL error:', error);
       throw new Error('从URL上传文件失败');

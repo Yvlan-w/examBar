@@ -165,7 +165,10 @@ const IndexPage = () => {
         console.log('Upload result:', uploadResult)
         
         if (uploadResult.statusCode === 200) {
-          const data = JSON.parse(uploadResult.data)
+          const data = typeof uploadResult.data === 'string' 
+            ? JSON.parse(uploadResult.data) 
+            : uploadResult.data
+          console.log('Parsed upload data:', data)
           if (data.success && data.data?.url) {
             finalAvatarUrl = data.data.url
             console.log('Avatar uploaded successfully:', finalAvatarUrl)
