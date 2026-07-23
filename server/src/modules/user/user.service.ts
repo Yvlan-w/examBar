@@ -2,8 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
 import { users, answerRecords, userStats, subjectStats, favoriteRecords, questions } from '@/db/schema';
 import { eq, and, count, desc, or, isNotNull } from 'drizzle-orm';
-import * as https from 'https';
-import { StorageService } from '../storage/storage.service';
 
 export interface UserCreateDto {
   openid?: string;
@@ -31,19 +29,6 @@ export interface SubjectStatDto {
 
 @Injectable()
 export class UserService {
-  constructor(private storageService: StorageService) {}
-
-  private async downloadImage(url: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      https.get(url, (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk) => chunks.push(chunk));
-        res.on('end', () => resolve(Buffer.concat(chunks)));
-        res.on('error', reject);
-      }).on('error', reject);
-    });
-  }
-
   async createUser(data: UserCreateDto) {
     if (data.openid) {
       const existing = await db.select().from(users).where(eq(users.openid, data.openid)).limit(1);
@@ -226,45 +211,11 @@ export class UserService {
   }
 
   async updateProfile(userId: number, nickName?: string, avatarUrl?: string) {
-    const updateData: any = {};
-    
-    if (nickName) {
-      updateData.nickName = nickName;
-    }
-    
-    if (avatarUrl) {
-      try {
-        let avatarBuffer: Buffer;
-        if (avatarUrl.startsWith('wxfile://')) {
-          avatarBuffer = await this.downloadImage(avatarUrl);
-        } else if (avatarUrl.startsWith('data:image/')) {
-          const base64Data = avatarUrl.split(',')[1];
-          avatarBuffer = Buffer.from(base64Data, 'base64');
-        } else {
-          avatarBuffer = await this.downloadImage(avatarUrl);
-        }
-        
-        const ext = avatarUrl.includes('svg') ? 'svg' : 'png';
-        const contentType = ext === 'svg' ? 'image/svg+xml' : 'image/png';
-        
-        const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        const openid = user[0]?.openid || `user_${userId}`;
-        
-        const newAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.${ext}`, contentType);
-        updateData.avatarUrl = newAvatarUrl;
-      } catch (error) {
-        console.error('Failed to upload avatar:', error);
-      }
-    }
-    
-    if (Object.keys(updateData).length > 0) {
-      updateData.updatedAt = new Date();
-      const result = await db.update(users).set(updateData).where(eq(users.id, userId)).returning();
-      return result[0];
-    }
-    
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    return user[0];
+    const result = await db.update(users).set({
+      nickName: nickName || null,
+      avatarUrl: avatarUrl || null,
+    }).where(eq(users.id, userId)).returning();
+    return result[0];
   }
 
   async deleteUser(userId: number) {
