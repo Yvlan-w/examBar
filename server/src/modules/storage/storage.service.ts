@@ -30,8 +30,11 @@ export class StorageService implements OnModuleInit {
       });
       console.log('Upload result:', uploadResult);
       
+      const actualKey = typeof uploadResult === 'string' ? uploadResult : key;
+      console.log('Actual key for generating URL:', actualKey);
+      
       const presignedUrl = await this.storage.generatePresignedUrl({
-        key,
+        key: actualKey,
         expireTime: 60 * 60 * 24 * 365,
       });
       console.log('Generated presigned URL:', presignedUrl);
@@ -57,14 +60,17 @@ export class StorageService implements OnModuleInit {
 
   async uploadFromUrl(url: string): Promise<string> {
     try {
-      const key = `avatars/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
       const uploadResult = await this.storage.uploadFromUrl({
         url,
       });
       console.log('uploadFromUrl result:', uploadResult);
       
+      if (typeof uploadResult !== 'string') {
+        throw new Error('Upload from URL failed: no key returned');
+      }
+      
       const presignedUrl = await this.storage.generatePresignedUrl({
-        key,
+        key: uploadResult,
         expireTime: 60 * 60 * 24 * 365,
       });
       console.log('Generated presigned URL:', presignedUrl);
