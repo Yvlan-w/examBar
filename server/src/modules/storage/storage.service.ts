@@ -23,13 +23,19 @@ export class StorageService implements OnModuleInit {
     try {
       const key = `avatars/${Date.now()}_${fileName}`;
       
-      const url = await this.storage.uploadFile({
+      const uploadResult = await this.storage.uploadFile({
         fileContent: fileBuffer,
         fileName: key,
         contentType,
       });
-      console.log('Upload result URL:', url);
-      return url;
+      console.log('Upload result:', uploadResult);
+      
+      const presignedUrl = await this.storage.generatePresignedUrl({
+        key,
+        expireTime: 60 * 60 * 24 * 365,
+      });
+      console.log('Generated presigned URL:', presignedUrl);
+      return presignedUrl;
     } catch (error) {
       console.error('Upload file error:', error);
       throw new Error('文件上传失败');
@@ -51,11 +57,18 @@ export class StorageService implements OnModuleInit {
 
   async uploadFromUrl(url: string): Promise<string> {
     try {
-      const result = await this.storage.uploadFromUrl({
+      const key = `avatars/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
+      const uploadResult = await this.storage.uploadFromUrl({
         url,
       });
-      console.log('uploadFromUrl result:', result);
-      return result;
+      console.log('uploadFromUrl result:', uploadResult);
+      
+      const presignedUrl = await this.storage.generatePresignedUrl({
+        key,
+        expireTime: 60 * 60 * 24 * 365,
+      });
+      console.log('Generated presigned URL:', presignedUrl);
+      return presignedUrl;
     } catch (error) {
       console.error('Upload from URL error:', error);
       throw new Error('从URL上传文件失败');
