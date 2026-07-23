@@ -73,12 +73,37 @@ const IndexPage = () => {
     initApp()
   }, [])
 
+  useEffect(() => {
+    if (showLoginDialog && isLoggedIn) {
+      const storedUser = Taro.getStorageSync('examBar_user')
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          if (userData.nickName) {
+            setNickName(userData.nickName)
+          }
+          if (userData.avatarUrl) {
+            setAvatarUrl(userData.avatarUrl)
+          }
+        } catch (e) {
+          console.error('parse user data error:', e)
+        }
+      }
+    }
+  }, [showLoginDialog, isLoggedIn])
+
   const initApp = async () => {
     const storedUser = Taro.getStorageSync('examBar_user')
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser)
         login(userData)
+        if (userData.nickName) {
+          setNickName(userData.nickName)
+        }
+        if (userData.avatarUrl) {
+          setAvatarUrl(userData.avatarUrl)
+        }
       } catch (e) {
         console.error('parse user data error:', e)
       }

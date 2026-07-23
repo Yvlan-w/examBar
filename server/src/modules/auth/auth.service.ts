@@ -4,11 +4,26 @@ import * as https from 'https';
 import { db } from '@/db/db.module';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { StorageService } from '../storage/storage.service';
 
 dotenv.config();
 
+const adjectives = [
+    "勤奋", "笃行", "善思", "明悟", "致远", "逐光", "向上", "笃志", "敏学", "慎思",
+    "博学", "观澜", "知微", "登高", "清研", "潜修", "砺学", "启知", "思远", "精进",
+    "恒持", "求真", "拾知", "探微", "观理", "澄心", "博闻", "凝思", "沐知", "向学",
+    "耘思", "初晓", "温知", "静研", "溯理", "寻知", "观书", "睿见", "修学", "拓知",
+    "勤思", "怀远", "凝悟", "昭学", "安研", "思笃", "知途", "悟恒", "砺行", "怀瑾"
+  ];
+const nouns = [
+    "学子", "书生", "行者", "学者", "习者", "少年", "墨客", "悟者", "研者",
+    "追光者", "求索者", "寻路人", "赶考人", "耕读人", "明理人", "静思者", "览书人"
+];
+
 @Injectable()
 export class AuthService {
+  constructor(private storageService: StorageService) {}
+
   async code2Session(code: string) {
     const appId = process.env.WX_APP_ID;
     const secret = process.env.WX_APP_SECRET;
@@ -69,6 +84,39 @@ export class AuthService {
     });
   }
 
+  generateRandomNickname(): string {
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num = Math.floor(Math.random() * 10000);
+    return `${adj}的${noun}${num}`;
+  }
+
+  generateRandomAvatar(): Buffer {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+    const bgColor = colors[Math.floor(Math.random() * colors.length)];
+    const textColor = '#FFFFFF';
+    
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="60" fill="${bgColor}"/>
+      <text x="60" y="72" font-size="48" font-family="sans-serif" fill="${textColor}" text-anchor="middle">
+        ${adjectives[Math.floor(Math.random() * adjectives.length)][0]}
+      </text>
+    </svg>`;
+    
+    return Buffer.from(svg, 'utf-8');
+  }
+
+  async downloadImage(url: string): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      https.get(url, (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+        res.on('error', reject);
+      }).on('error', reject);
+    });
+  }
+
   async login(code: string, nickName?: string, avatarUrl?: string) {
     console.log('Login with code:', code, 'nickName:', nickName, 'avatarUrl:', avatarUrl);
     
@@ -101,18 +149,62 @@ export class AuthService {
 
       if (user.length === 0) {
         console.log('Creating new user for openid:', openid);
+        
+        let finalNickName = nickName || this.generateRandomNickname();
+        let finalAvatarUrl = avatarUrl || null;
+        
+        if (!avatarUrl) {
+          try {
+            const avatarBuffer = this.generateRandomAvatar();
+            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.svg`, 'image/svg+xml');
+            console.log('Generated and uploaded random avatar:', finalAvatarUrl);
+          } catch (error) {
+            console.error('Failed to upload random avatar:', error);
+          }
+        } else if (avatarUrl && avatarUrl.startsWith('wxfile://')) {
+          try {
+            console.log('Downloading wechat temp avatar:', avatarUrl);
+            const avatarBuffer = await this.downloadImage(avatarUrl);
+            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.png`, 'image/png');
+            console.log('Uploaded wechat avatar to storage:', finalAvatarUrl);
+          } catch (error) {
+            console.error('Failed to upload wechat avatar:', error);
+            const avatarBuffer = this.generateRandomAvatar();
+            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.svg`, 'image/svg+xml');
+          }
+        }
+        
         const result = await db.insert(users).values({
           openid,
-          nickName: nickName || null,
-          avatarUrl: avatarUrl || null,
+          nickName: finalNickName,
+          avatarUrl: finalAvatarUrl || null,
         }).returning();
         user = result;
       } else {
         console.log('User exists, updating profile:', openid);
-        if (nickName || avatarUrl) {
-          const updateData: any = {};
-          if (nickName) updateData.nickName = nickName;
-          if (avatarUrl) updateData.avatarUrl = avatarUrl;
+        
+        let updateData: any = {};
+        if (nickName) {
+          updateData.nickName = nickName;
+        }
+        
+        if (avatarUrl) {
+          if (avatarUrl.startsWith('wxfile://')) {
+            try {
+              console.log('Downloading wechat temp avatar for existing user:', avatarUrl);
+              const avatarBuffer = await this.downloadImage(avatarUrl);
+              const newAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.png`, 'image/png');
+              updateData.avatarUrl = newAvatarUrl;
+              console.log('Uploaded wechat avatar to storage:', newAvatarUrl);
+            } catch (error) {
+              console.error('Failed to upload wechat avatar:', error);
+            }
+          } else {
+            updateData.avatarUrl = avatarUrl;
+          }
+        }
+        
+        if (Object.keys(updateData).length > 0) {
           const result = await db.update(users).set(updateData).where(eq(users.openid, openid)).returning();
           user = result;
         }
@@ -143,18 +235,45 @@ export class AuthService {
 
       if (user.length === 0) {
         console.log('Creating new H5 user:', openid);
+        
+        let finalNickName = nickName || this.generateRandomNickname();
+        let finalAvatarUrl = avatarUrl || null;
+        
+        if (!avatarUrl) {
+          try {
+            const avatarBuffer = this.generateRandomAvatar();
+            finalAvatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}.svg`, 'image/svg+xml');
+          } catch (error) {
+            console.error('Failed to upload random avatar:', error);
+          }
+        }
+        
         const result = await db.insert(users).values({
           openid,
-          nickName: nickName || null,
-          avatarUrl: avatarUrl || null,
+          nickName: finalNickName,
+          avatarUrl: finalAvatarUrl || null,
         }).returning();
         user = result;
       } else if (nickName || avatarUrl) {
-        const result = await db.update(users).set({
-          nickName: nickName || user[0].nickName,
-          avatarUrl: avatarUrl || user[0].avatarUrl,
-        }).where(eq(users.openid, openid)).returning();
-        user = result;
+        const updateData: any = {};
+        if (nickName) updateData.nickName = nickName;
+        if (avatarUrl) {
+          if (avatarUrl.startsWith('wxfile://')) {
+            try {
+              const avatarBuffer = await this.downloadImage(avatarUrl);
+              updateData.avatarUrl = await this.storageService.uploadFile(avatarBuffer, `avatar_${openid}_${Date.now()}.png`, 'image/png');
+            } catch (error) {
+              console.error('Failed to upload avatar:', error);
+            }
+          } else {
+            updateData.avatarUrl = avatarUrl;
+          }
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          const result = await db.update(users).set(updateData).where(eq(users.openid, openid)).returning();
+          user = result;
+        }
       }
 
       return {
