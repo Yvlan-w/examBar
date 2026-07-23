@@ -131,27 +131,13 @@ const IndexPage = () => {
       const result = await Network.request({
         url: '/api/auth/login',
         method: 'POST',
-        data: { code: loginCode },
+        data: { code: loginCode, nickName: nickName || '', avatarUrl: avatarUrl || '' },
       })
       console.log('login result:', result.data)
       
       if (result.data?.success && result.data.data) {
         const user = result.data.data.user
         console.log('login success:', user)
-        
-        if (nickName || avatarUrl) {
-          await Network.request({
-            url: '/api/users/profile',
-            method: 'PUT',
-            data: {
-              id: user.id,
-              nickName: nickName || '',
-              avatarUrl: avatarUrl || '',
-            },
-          })
-          user.nickName = nickName
-          user.avatarUrl = avatarUrl
-        }
         
         Taro.setStorageSync('examBar_user', JSON.stringify(user))
         login(user)

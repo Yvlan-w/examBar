@@ -69,8 +69,8 @@ export class AuthService {
     });
   }
 
-  async login(code: string) {
-    console.log('Login with code:', code);
+  async login(code: string, nickName?: string, avatarUrl?: string) {
+    console.log('Login with code:', code, 'nickName:', nickName, 'avatarUrl:', avatarUrl);
     
     let openid: string;
     let unionid: string | undefined;
@@ -103,8 +103,19 @@ export class AuthService {
         console.log('Creating new user for openid:', openid);
         const result = await db.insert(users).values({
           openid,
+          nickName: nickName || null,
+          avatarUrl: avatarUrl || null,
         }).returning();
         user = result;
+      } else {
+        console.log('User exists, updating profile:', openid);
+        if (nickName || avatarUrl) {
+          const updateData: any = {};
+          if (nickName) updateData.nickName = nickName;
+          if (avatarUrl) updateData.avatarUrl = avatarUrl;
+          const result = await db.update(users).set(updateData).where(eq(users.openid, openid)).returning();
+          user = result;
+        }
       }
 
       return {
