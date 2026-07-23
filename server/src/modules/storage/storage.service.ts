@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { S3Storage, S3Config } from 'coze-coding-dev-sdk';
 
 @Injectable()
-export class StorageService {
+export class StorageService implements OnModuleInit {
   private storage: S3Storage;
 
-  constructor() {
-    this.initStorage();
+  async onModuleInit() {
+    await this.initStorage();
   }
 
   private async initStorage() {

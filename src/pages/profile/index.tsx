@@ -96,17 +96,10 @@ const ProfilePage = () => {
   const handleUpdateProfile = async () => {
     if (!user) return
     
-    const profile = await getUserProfile()
-    if (profile && (profile.nickName || profile.avatarUrl)) {
-      const success = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
-      if (success) {
-        useUserStore.getState().updateUserInfo(profile)
-        Taro.showToast({
-          title: '资料更新成功',
-          icon: 'success',
-        })
-      }
-    }
+    Taro.showToast({
+      title: '请在登录时更新资料',
+      icon: 'none',
+    })
   }
 
   if (showLoginDialog) {
