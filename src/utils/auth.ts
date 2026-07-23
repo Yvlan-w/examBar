@@ -231,28 +231,25 @@ export const requireLogin = async (callback?: () => void): Promise<boolean> => {
   }
 }
 
-export const loginWithProfile = async (): Promise<LoginResult> => {
+export const loginWithProfile = async (profile?: { nickName?: string; avatarUrl?: string }): Promise<LoginResult> => {
   try {
     const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    console.log('loginWithProfile env:', isWeapp ? 'weapp' : 'h5')
     
-    if (!isWeapp) {
-      return await loginWithWechatH5()
-    }
-
-    const profile = await getUserProfile()
-    if (!profile) {
-      return { success: false, message: '获取用户信息失败' }
-    }
-
-    const loginRes = await Taro.login()
-    if (!loginRes.code) {
-      return { success: false, message: '获取登录凭证失败' }
+    let loginCode = 'h5_login'
+    
+    if (isWeapp) {
+      const loginRes = await Taro.login()
+      console.log('Taro.login result:', loginRes)
+      if (loginRes.code) {
+        loginCode = loginRes.code
+      }
     }
 
     const result = await Network.request({
       url: '/api/auth/login',
       method: 'POST',
-      data: { code: loginRes.code },
+      data: { code: loginCode },
     })
 
     const responseData = result.data
@@ -260,7 +257,7 @@ export const loginWithProfile = async (): Promise<LoginResult> => {
     if (responseData && responseData.success && responseData.data) {
       let user = responseData.data.user
       
-      if (profile.nickName || profile.avatarUrl) {
+      if (profile && (profile.nickName || profile.avatarUrl)) {
         const updateSuccess = await updateUserProfile(user.id, profile.nickName || '', profile.avatarUrl || '')
         if (updateSuccess) {
           user = { ...user, ...profile }

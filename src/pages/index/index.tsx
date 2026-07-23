@@ -115,10 +115,23 @@ const IndexPage = () => {
   const handleLogin = async () => {
     setLoginLoading(true)
     try {
+      const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+      console.log('login env:', isWeapp ? 'weapp' : 'h5')
+      
+      let loginCode = 'h5_login'
+      
+      if (isWeapp) {
+        const loginRes = await Taro.login()
+        console.log('Taro.login result:', loginRes)
+        if (loginRes.code) {
+          loginCode = loginRes.code
+        }
+      }
+      
       const result = await Network.request({
         url: '/api/auth/login',
         method: 'POST',
-        data: { code: 'h5_login' },
+        data: { code: loginCode },
       })
       console.log('login result:', result.data)
       
