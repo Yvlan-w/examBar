@@ -153,10 +153,36 @@ const IndexPage = () => {
         }
       }
       
+      let finalAvatarUrl = avatarUrl
+      
+      if (avatarUrl && avatarUrl.startsWith('wxfile://')) {
+        console.log('Uploading wechat temp avatar:', avatarUrl)
+        const uploadResult = await Network.uploadFile({
+          url: '/api/auth/upload-avatar',
+          filePath: avatarUrl,
+          name: 'file',
+        })
+        console.log('Upload result:', uploadResult)
+        
+        if (uploadResult.statusCode === 200) {
+          const data = JSON.parse(uploadResult.data)
+          if (data.success && data.data?.url) {
+            finalAvatarUrl = data.data.url
+            console.log('Avatar uploaded successfully:', finalAvatarUrl)
+          } else {
+            console.error('Avatar upload failed:', data.message)
+            finalAvatarUrl = ''
+          }
+        } else {
+          console.error('Avatar upload HTTP error:', uploadResult.statusCode)
+          finalAvatarUrl = ''
+        }
+      }
+      
       const result = await Network.request({
         url: '/api/auth/login',
         method: 'POST',
-        data: { code: loginCode, nickName: nickName || '', avatarUrl: avatarUrl || '' },
+        data: { code: loginCode, nickName: nickName || '', avatarUrl: finalAvatarUrl || '' },
       })
       console.log('login result:', result.data)
       
