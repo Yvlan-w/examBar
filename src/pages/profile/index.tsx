@@ -157,7 +157,7 @@ const ProfilePage = () => {
             className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden"
             onClick={handleUpdateProfile}
           >
-            {user?.avatarUrl ? (
+            {user?.avatarUrl && user.avatarUrl.startsWith('http') ? (
               <Image src={user.avatarUrl} mode="aspectFill" className="w-full h-full" />
             ) : (
               <User size={24} color="#FFFFFF" />

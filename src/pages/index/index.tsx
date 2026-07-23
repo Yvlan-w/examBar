@@ -429,7 +429,7 @@ const IndexPage = () => {
                 onChooseAvatar={onChooseAvatar}
                 className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
               >
-                {avatarUrl ? (
+                {avatarUrl && !avatarUrl.startsWith('wxfile://') ? (
                   <Text>
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
                   </Text>
