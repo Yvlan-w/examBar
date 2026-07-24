@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { requireLogin, loginWithProfile } from '@/utils/auth'
+import { loginWithProfile } from '@/utils/auth'
 import { Calendar, BookOpen, ChevronRight, User } from 'lucide-react-taro'
 
 interface Subject {

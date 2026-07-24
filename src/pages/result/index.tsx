@@ -118,7 +118,8 @@ const ResultPage = () => {
       <View className="flex flex-col items-center mb-6">
         <View className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${
           isPassed ? 'bg-emerald-100' : 'bg-red-100'
-        }`}>
+        }`}
+        >
           {isPassed ? (
             <Trophy size={36} color="#059669" />
           ) : (

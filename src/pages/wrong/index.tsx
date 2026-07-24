@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { requireLogin, loginWithProfile } from '@/utils/auth'
+import { loginWithProfile } from '@/utils/auth'
 import { CircleAlert, BookOpen, ChevronRight, User } from 'lucide-react-taro'
 
 interface Subject {

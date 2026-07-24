@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -62,6 +62,12 @@ const ProfilePage = () => {
   useEffect(() => {
     initPage()
   }, [])
+
+  useDidShow(() => {
+    if (isLoggedIn) {
+      loadStats()
+    }
+  })
 
   const initPage = async () => {
     if (!isLoggedIn) {
@@ -128,7 +134,7 @@ const ProfilePage = () => {
       <View className="bg-blue-600 px-4 pt-8 pb-8 rounded-b-3xl">
         <View className="flex items-center gap-4 mb-4">
           <View
-            className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden"
+            className="w-14 h-14 rounded-full bg-white bg-opacity-20 flex items-center justify-center overflow-hidden"
             onClick={handleUpdateProfile}
           >
             {user?.avatarUrl && user.avatarUrl.startsWith('http') ? (
@@ -144,19 +150,19 @@ const ProfilePage = () => {
             </Text>
           </View>
         </View>
-        <View className="flex items-center justify-around bg-white/10 rounded-2xl p-4">
+        <View className="flex items-center justify-around bg-white bg-opacity-10 rounded-2xl p-4">
           <View className="flex flex-col items-center">
             <Text className="block text-white text-xl font-bold">{stats?.totalQuestions || 0}</Text>
             <Text className="block text-blue-100 text-xs mt-1">总刷题量</Text>
           </View>
-          <View className="w-px h-8 bg-white/20" />
+          <View className="w-px h-8 bg-white bg-opacity-20" />
           <View className="flex flex-col items-center">
             <Text className={`block text-xl font-bold ${accuracyColor === 'text-emerald-600' ? 'text-white' : accuracyColor}`}>
               {accuracy}%
             </Text>
             <Text className="block text-blue-100 text-xs mt-1">正确率</Text>
           </View>
-          <View className="w-px h-8 bg-white/20" />
+          <View className="w-px h-8 bg-white bg-opacity-20" />
           <View className="flex flex-col items-center">
             <View className="flex items-center gap-1">
               <Flame size={16} color="#FCD34D" />
@@ -253,7 +259,7 @@ const ProfilePage = () => {
                     <Text className="text-sm font-medium text-slate-800">{subject.subjectName}</Text>
                     <Text className="text-xs text-slate-400">{subject.correct}/{subject.total}</Text>
                   </View>
-                  <Progress value={subject.accuracy} className="h-1.5 mb-1" />
+                  <Progress value={subject.accuracy} className="h-2 mb-1" />
                   <Text className="text-xs text-slate-400">正确率 {subject.accuracy}%</Text>
                 </CardContent>
               </Card>

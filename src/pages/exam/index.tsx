@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUserStore } from '@/store/user'
-import { requireLogin, loginWithProfile } from '@/utils/auth'
+import { loginWithProfile } from '@/utils/auth'
 import { Clock, CircleAlert, User } from 'lucide-react-taro'
 
 interface Question {
@@ -282,7 +282,8 @@ const ExamPage = () => {
                   >
                     <View className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 ${
                       isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
-                    }`}>
+                    }`}
+                    >
                       {option.label}
                     </View>
                     <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
@@ -307,7 +308,8 @@ const ExamPage = () => {
         backgroundColor: '#fff',
         borderTop: '1px solid #E2E8F0',
         zIndex: 100,
-      }}>
+      }}
+      >
         <View style={{ flex: 1 }}>
           <Button
             className="w-full bg-slate-100 text-slate-600 h-11 rounded-xl"

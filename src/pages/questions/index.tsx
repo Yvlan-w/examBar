@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,6 +57,12 @@ const QuestionsPage = () => {
   useEffect(() => {
     initPage()
   }, [])
+
+  useDidShow(() => {
+    if (isLoggedIn && selectedSubject) {
+      loadQuestions()
+    }
+  })
 
   useEffect(() => {
     const storedId = Taro.getStorageSync('selectedSubjectId')

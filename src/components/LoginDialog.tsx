@@ -50,16 +50,16 @@ export const LoginDialog = ({
   }, [open])
 
   const onChooseAvatar = async (e: any) => {
-    const avatarUrl = e.detail?.avatarUrl || e.avatarUrl
+    const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl
     
-    if (!avatarUrl) return
+    if (!newAvatarUrl) return
     
-    if (avatarUrl.startsWith('wxfile://')) {
+    if (newAvatarUrl.startsWith('wxfile://')) {
       Taro.showLoading({ title: '上传头像中...' })
       try {
         const uploadResult = await Network.uploadFile({
           url: '/api/auth/upload-avatar',
-          filePath: avatarUrl,
+          filePath: newAvatarUrl,
           name: 'file',
         })
         
@@ -73,12 +73,12 @@ export const LoginDialog = ({
         }
       } catch (error) {
         console.error('Upload avatar error:', error)
-        setAvatarUrl(avatarUrl)
+        setAvatarUrl(newAvatarUrl)
       } finally {
         Taro.hideLoading()
       }
     } else {
-      setAvatarUrl(avatarUrl)
+      setAvatarUrl(newAvatarUrl)
     }
   }
 
@@ -152,10 +152,10 @@ export const LoginDialog = ({
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
             <TaroButton
-                openType="chooseAvatar"
-                onChooseAvatar={onChooseAvatar}
-                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-              >
+              openType="chooseAvatar"
+              onChooseAvatar={onChooseAvatar}
+              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+            >
                 {avatarUrl ? (
                   
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />

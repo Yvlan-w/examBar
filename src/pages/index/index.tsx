@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -67,6 +67,10 @@ const IndexPage = () => {
   useEffect(() => {
     initApp()
   }, [])
+
+  useDidShow(() => {
+    loadData()
+  })
 
   const initApp = async () => {
     const storedUser = Taro.getStorageSync('examBar_user')
@@ -290,10 +294,10 @@ const IndexPage = () => {
       </View>
 
      <LoginDialog
-        open={showLoginDialog}
-        onOpenChange={setShowLoginDialog}
-        onLoginSuccess={loadData}
-      />
+       open={showLoginDialog}
+       onOpenChange={setShowLoginDialog}
+       onLoginSuccess={loadData}
+     />
     </View>
   )
 }
