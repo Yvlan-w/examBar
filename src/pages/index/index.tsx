@@ -79,6 +79,7 @@ const IndexPage = () => {
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser)
+          console.log('userData:', userData)
           if (userData.nickName) {
             setNickName(userData.nickName)
           }
@@ -438,12 +439,13 @@ const IndexPage = () => {
                 className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
               >
                 {avatarUrl ? (
-                  <Text>
+                  
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-                  </Text>
+                  
                 ) : (
                   <User size={32} color="#94A3B8" />
                 )}
+                
               </TaroButton>
               <Text className="text-sm text-gray-500">点击选择头像</Text>
               <Input
