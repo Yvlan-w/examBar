@@ -68,10 +68,12 @@ const IndexPage = () => {
   const [nickName, setNickName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const { isLoggedIn, login, user } = useUserStore()
-  console.log(isLoggedIn, login, user)
+  
 
   useEffect(() => {
+    
     initApp()
+    
   }, [])
 
   useEffect(() => {
@@ -96,6 +98,9 @@ const IndexPage = () => {
 
   const initApp = async () => {
     const storedUser = Taro.getStorageSync('examBar_user')
+    console.log("isloggedin:",isLoggedIn)
+    console.log("storedUser:",storedUser)
+
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser)

@@ -55,6 +55,7 @@ const PracticePage = () => {
   }, [currentIndex, questions.length])
 
   const initPage = async () => {
+    console.log("isloggedin:",isLoggedIn)
     if (!isLoggedIn) {
       setShowLoginDialog(true)
     } else {
