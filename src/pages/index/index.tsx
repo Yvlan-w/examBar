@@ -67,7 +67,7 @@ const IndexPage = () => {
   const [loginLoading, setLoginLoading] = useState(false)
   const [nickName, setNickName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
-  const { isLoggedIn, login } = useUserStore()
+  const { isLoggedIn, login, user } = useUserStore()
 
   useEffect(() => {
     initApp()
@@ -123,7 +123,7 @@ const IndexPage = () => {
       const [subjectsRes, dailyRes, statsRes] = await Promise.all([
         Network.request({ url: '/api/subjects' }),
         Network.request({ url: '/api/questions/daily' }),
-        Network.request({ url: '/api/stats/overview' }),
+        Network.request({ url: '/api/stats/overview', data: { userId: user?.id } }),
       ])
       console.log('subjects:', subjectsRes.data)
       console.log('daily:', dailyRes.data)

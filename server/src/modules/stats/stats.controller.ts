@@ -7,8 +7,9 @@ export class StatsController {
 
   @Get('overview')
   @HttpCode(200)
-  getOverview() {
-    return { code: 200, msg: 'success', data: this.statsService.getOverview() };
+  async getOverview(@Query('userId') userId?: number) {
+    const data = await this.statsService.getOverview(userId);
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('detail')

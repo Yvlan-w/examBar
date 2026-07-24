@@ -35,8 +35,8 @@ export class QuestionController {
 
   @Post('answers')
   @HttpCode(200)
-  async submitAnswer(@Body() body: { questionId: string; answer: string; mode: string }) {
-    const result = await this.questionService.submitAnswer(body.questionId, body.answer, body.mode);
+  async submitAnswer(@Body() body: { questionId: string; answer: string; mode: string; userId?: number }) {
+    const result = await this.questionService.submitAnswer(body.questionId, body.answer, body.mode, body.userId);
     if (!result) {
       return { code: 404, msg: '题目不存在', data: null };
     }
@@ -59,22 +59,22 @@ export class QuestionController {
 
   @Post('questions/:id/favorite')
   @HttpCode(200)
-  async toggleFavorite(@Param('id') id: string) {
-    const data = await this.questionService.toggleFavorite(id);
+  async toggleFavorite(@Param('id') id: string, @Body() body: { userId?: number }) {
+    const data = await this.questionService.toggleFavorite(id, body.userId);
     return { code: 200, msg: 'success', data };
   }
 
   @Get('questions/:id/favorite')
   @HttpCode(200)
-  async isFavorite(@Param('id') id: string) {
-    const isFavorite = await this.questionService.isFavorite(id);
+  async isFavorite(@Param('id') id: string, @Query('userId') userId?: number) {
+    const isFavorite = await this.questionService.isFavorite(id, userId);
     return { code: 200, msg: 'success', data: { isFavorite } };
   }
 
   @Get('favorites')
   @HttpCode(200)
-  async getFavorites() {
-    const data = await this.questionService.getFavoriteQuestions();
+  async getFavorites(@Query('userId') userId?: number) {
+    const data = await this.questionService.getFavoriteQuestions(userId);
     return { code: 200, msg: 'success', data };
   }
 }

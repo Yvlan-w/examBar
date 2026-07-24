@@ -41,7 +41,7 @@ const PracticePage = () => {
   const [isFavorite, setIsFavorite] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
-  const { isLoggedIn } = useUserStore()
+  const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
   useEffect(() => {
@@ -120,8 +120,9 @@ const PracticePage = () => {
   }
 
   const checkFavorite = async (qId: string) => {
+    if (!user?.id) return
     try {
-      const res = await Network.request({ url: '/api/questions/' + qId + '/favorite' })
+      const res = await Network.request({ url: '/api/questions/' + qId + '/favorite?userId=' + user.id })
       setIsFavorite(res.data?.data?.isFavorite || false)
     } catch (e) {
       console.error('checkFavorite error:', e)
@@ -137,6 +138,7 @@ const PracticePage = () => {
       const res = await Network.request({
         url: '/api/questions/' + currentQuestion.id + '/favorite',
         method: 'POST',
+        data: { userId: user?.id },
       })
       setIsFavorite(res.data?.data?.isFavorite || false)
     } catch (e) {
@@ -167,6 +169,7 @@ const PracticePage = () => {
           questionId: currentQuestion.id,
           answer: userAnswer,
           mode,
+          userId: user?.id,
         },
       })
       console.log('submit answer:', res.data)
