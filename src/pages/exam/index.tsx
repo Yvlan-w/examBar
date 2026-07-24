@@ -211,6 +211,7 @@ const ExamPage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
+      {/* 顶部信息栏 */}
       <View className={`px-4 py-3 shadow-sm ${isTimeWarning ? 'bg-red-50' : 'bg-white'}`}>
         <View className="flex items-center justify-between mb-2">
           <View className={`flex items-center gap-1 ${isTimeWarning ? 'text-red-600' : 'text-slate-600'}`}>
@@ -225,6 +226,7 @@ const ExamPage = () => {
         <Progress value={progressValue} className="h-1" />
       </View>
 
+      {/* 答题卡导航 */}
       <View className="bg-white px-4 py-2 border-b border-slate-100">
         <View className="flex gap-1.5 flex-wrap">
           {questions.map((q, index) => {
@@ -247,6 +249,7 @@ const ExamPage = () => {
         </View>
       </View>
 
+      {/* 题目内容 */}
       <View className="flex-1 px-4 py-4 overflow-auto pb-24">
         {currentQuestion && (
           <>
@@ -291,6 +294,7 @@ const ExamPage = () => {
         )}
       </View>
 
+      {/* 底部操作栏 */}
       <View style={{
         position: 'fixed',
         bottom: 0,
@@ -334,6 +338,7 @@ const ExamPage = () => {
         )}
       </View>
 
+      {/* 交卷确认弹窗 */}
       <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <DialogContent>
           <DialogHeader>

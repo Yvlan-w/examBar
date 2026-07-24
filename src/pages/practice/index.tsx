@@ -55,18 +55,19 @@ const PracticePage = () => {
   }, [currentIndex, questions.length])
 
   const initPage = async () => {
-    if (!isLoggedIn) {
-      setShowLoginDialog(true)
-    } else {
-      loadQuestions()
+    const storedUser = Taro.getStorageSync('examBar_user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        useUserStore.getState().login(userData)
+        loadQuestions()
+        return
+      } catch (e) {
+        console.error('parse user data error:', e)
+      }
     }
+    setShowLoginDialog(true)
   }
-
-  useEffect(() => {
-    if (!isLoggedIn && !showLoginDialog) {
-      setShowLoginDialog(true)
-    }
-  }, [isLoggedIn, showLoginDialog])
 
   const loadQuestions = async () => {
     try {
@@ -144,7 +145,7 @@ const PracticePage = () => {
       const res = await Network.request({
         url: '/api/questions/' + currentQuestion.id + '/favorite',
         method: 'POST',
-        data: user?.id ? { userId: user.id } : {},
+        data: { userId: user?.id },
       })
       setIsFavorite(res.data?.data?.isFavorite || false)
     } catch (e) {
@@ -175,7 +176,7 @@ const PracticePage = () => {
           questionId: currentQuestion.id,
           answer: userAnswer,
           mode,
-          ...(user?.id ? { userId: user.id } : {}),
+          userId: user?.id,
         },
       })
       console.log('submit answer:', res.data)
@@ -206,6 +207,7 @@ const PracticePage = () => {
         }
       }, 100)
     } else {
+      // 完成所有题目，跳转结果页
       Taro.redirectTo({
         url: '/pages/result/index?total=' + questions.length +
           '&correct=' + correctCount +
@@ -247,6 +249,9 @@ const PracticePage = () => {
               <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
                 <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
               </Button>
+              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
+                <Text>返回</Text>
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -282,6 +287,7 @@ const PracticePage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
+      {/* 顶部进度 */}
       <View className="bg-white px-4 py-3 shadow-sm">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-xs text-slate-500">
@@ -294,6 +300,7 @@ const PracticePage = () => {
         <Progress value={progressValue} className="h-2" />
       </View>
 
+      {/* 题目内容 */}
       <View className="flex-1 px-4 py-4 overflow-auto">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
@@ -311,6 +318,7 @@ const PracticePage = () => {
           </CardContent>
         </Card>
 
+        {/* 选项区域 */}
         {currentQuestion.type === 'short' ? (
           <View className="mt-4">
             <View className="bg-white rounded-xl p-4">
@@ -367,6 +375,7 @@ const PracticePage = () => {
           </View>
         )}
 
+        {/* 解析区域 */}
         {showResult && (
           <View className="mt-4">
             <Card className={`border-0 ${isCorrect ? 'bg-emerald-50' : 'bg-red-50'}`}>
@@ -393,6 +402,7 @@ const PracticePage = () => {
         )}
       </View>
 
+      {/* 底部操作栏 */}
       <View
         style={{
           position: 'fixed',

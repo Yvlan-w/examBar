@@ -77,18 +77,19 @@ const QuestionsPage = () => {
   }, [selectedSubject, selectedType])
 
   const initPage = async () => {
-    if (!isLoggedIn) {
-      setShowLoginDialog(true)
-    } else {
-      loadSubjects()
+    const storedUser = Taro.getStorageSync('examBar_user')
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser)
+        useUserStore.getState().login(userData)
+        loadSubjects()
+        return
+      } catch (e) {
+        console.error('parse user data error:', e)
+      }
     }
+    setShowLoginDialog(true)
   }
-
-  useEffect(() => {
-    if (!isLoggedIn && !showLoginDialog) {
-      setShowLoginDialog(true)
-    }
-  }, [isLoggedIn, showLoginDialog])
 
   const handleLogin = async () => {
     setLoginLoading(true)
@@ -177,6 +178,9 @@ const QuestionsPage = () => {
               <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
                 <Text>微信登录</Text>
               </Button>
+              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
+                <Text>返回</Text>
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -186,6 +190,7 @@ const QuestionsPage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 pb-20">
+      {/* 科目选择 */}
       <View className="bg-white px-4 pt-4 pb-2">
         <Text className="block text-base font-semibold text-slate-800 mb-3">选择科目</Text>
         {loading ? (
@@ -213,6 +218,7 @@ const QuestionsPage = () => {
         )}
       </View>
 
+      {/* 题型筛选 */}
       <View className="bg-white px-4 py-3 mt-2">
         <Tabs value={selectedType} onValueChange={setSelectedType}>
           <TabsList className="w-full bg-slate-100 h-10 rounded-lg p-1">
@@ -224,6 +230,7 @@ const QuestionsPage = () => {
         </Tabs>
       </View>
 
+      {/* 开始练习按钮 */}
       <View className="px-4 mt-3">
         <Button
           className="w-full bg-blue-600 text-white h-10 rounded-xl"
@@ -233,6 +240,7 @@ const QuestionsPage = () => {
         </Button>
       </View>
 
+      {/* 题目列表 */}
       <View className="px-4 mt-4">
         <View className="flex items-center justify-between mb-3">
           <Text className="block text-sm font-medium text-slate-800">题目列表</Text>
