@@ -153,39 +153,10 @@ const IndexPage = () => {
         }
       }
       
-      let finalAvatarUrl = avatarUrl
-      
-      if (avatarUrl && avatarUrl.startsWith('wxfile://')) {
-        console.log('Uploading wechat temp avatar:', avatarUrl)
-        const uploadResult = await Network.uploadFile({
-          url: '/api/auth/upload-avatar',
-          filePath: avatarUrl,
-          name: 'file',
-        })
-        console.log('Upload result:', uploadResult)
-        
-        if (uploadResult.statusCode === 200) {
-          const data = typeof uploadResult.data === 'string' 
-            ? JSON.parse(uploadResult.data) 
-            : uploadResult.data
-          console.log('Parsed upload data:', data)
-          if (data.success && data.data?.url) {
-            finalAvatarUrl = data.data.url
-            console.log('Avatar uploaded successfully:', finalAvatarUrl)
-          } else {
-            console.error('Avatar upload failed:', data.message)
-            finalAvatarUrl = ''
-          }
-        } else {
-          console.error('Avatar upload HTTP error:', uploadResult.statusCode)
-          finalAvatarUrl = ''
-        }
-      }
-      
       const result = await Network.request({
         url: '/api/auth/login',
         method: 'POST',
-        data: { code: loginCode, nickName: nickName || '', avatarUrl: finalAvatarUrl || '' },
+        data: { code: loginCode, nickName: nickName || '', avatarUrl: avatarUrl || '' },
       })
       console.log('login result:', result.data)
       
@@ -219,10 +190,44 @@ const IndexPage = () => {
     }
   }
 
-  const onChooseAvatar = (e: any) => {
+  const onChooseAvatar = async (e: any) => {
     console.log('choose avatar:', e)
-    const { avatarUrl } = e.detail
-    setAvatarUrl(avatarUrl)
+    const avatarUrl = e.detail?.avatarUrl || e.avatarUrl
+    console.log('avatarUrl:', avatarUrl)
+    
+    if (!avatarUrl) {
+      return
+    }
+    
+    if (avatarUrl.startsWith('wxfile://')) {
+      Taro.showLoading({ title: '上传头像中...' })
+      try {
+        const uploadResult = await Network.uploadFile({
+          url: '/api/auth/upload-avatar',
+          filePath: avatarUrl,
+          name: 'file',
+        })
+        console.log('Upload result:', uploadResult)
+        
+        if (uploadResult.statusCode === 200) {
+          const data = typeof uploadResult.data === 'string' 
+            ? JSON.parse(uploadResult.data) 
+            : uploadResult.data
+          console.log('Parsed upload data:', data)
+          if (data.success && data.data?.url) {
+            setAvatarUrl(data.data.url)
+            console.log('Avatar uploaded successfully:', data.data.url)
+          }
+        }
+      } catch (error) {
+        console.error('Upload avatar error:', error)
+        setAvatarUrl(avatarUrl)
+      } finally {
+        Taro.hideLoading()
+      }
+    } else {
+      setAvatarUrl(avatarUrl)
+    }
   }
 
   const onNickNameInput = (e: any) => {
