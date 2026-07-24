@@ -1,104 +1,177 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { answerRecords, subjects, questions } from '@/db/schema';
+import { answerRecords, subjects, questions, userStats, subjectStats } from '@/db/schema';
 import { eq, count, desc, and, or } from 'drizzle-orm';
 
 @Injectable()
 export class StatsService {
-  async getOverview(userId?: number) {
+  async updateStats(userId: number, subjectId: string, isCorrect: boolean) {
     const today = new Date().toISOString().split('T')[0];
-    
-    const conditions: any[] = [];
-    if (userId) conditions.push(eq(answerRecords.userId, userId));
-    conditions.push(eq(answerRecords.createdAt, today));
-    
-    const todayResult = await db.select({ count: count() }).from(answerRecords).where(and(...conditions));
-    const todayCount = todayResult[0].count || 0;
 
-    const dateConditions = userId ? [eq(answerRecords.userId, userId)] : [];
-    const dateResult = await db.select({ createdAt: answerRecords.createdAt }).from(answerRecords).where(and(...dateConditions));
-    const uniqueDays = [...new Set(dateResult.map((r) => r.createdAt))].sort().reverse();
+    const existingUserStats = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
     
-    let streak = 0;
-    const now = new Date();
-    for (let i = 0; i < uniqueDays.length; i++) {
-      const expected = new Date(now);
-      expected.setDate(expected.getDate() - i);
-      const expectedStr = expected.toISOString().split('T')[0];
-      if (uniqueDays[i] === expectedStr) {
-        streak++;
-      } else {
-        break;
+    if (existingUserStats.length === 0) {
+      await db.insert(userStats).values({
+        userId,
+        todayCount: 1,
+        totalQuestions: 1,
+        totalCorrect: isCorrect ? 1 : 0,
+        streak: 1,
+        totalDays: 1,
+        lastStudyDate: today,
+      });
+    } else {
+      const current = existingUserStats[0];
+      const isNewDay = current.lastStudyDate !== today;
+      
+      let newTodayCount = (current.todayCount || 0) + 1;
+      let newTotalDays = current.totalDays || 0;
+      let newStreak = current.streak || 0;
+      
+      if (isNewDay) {
+        newTodayCount = 1;
+        
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (current.lastStudyDate === yesterdayStr) {
+          newStreak = (current.streak || 0) + 1;
+        } else {
+          newStreak = 1;
+        }
+        
+        newTotalDays = (current.totalDays || 0) + 1;
       }
+      
+      await db.update(userStats)
+        .set({
+          todayCount: newTodayCount,
+          totalQuestions: (current.totalQuestions || 0) + 1,
+          totalCorrect: (current.totalCorrect || 0) + (isCorrect ? 1 : 0),
+          streak: newStreak,
+          totalDays: newTotalDays,
+          lastStudyDate: today,
+        })
+        .where(eq(userStats.userId, userId));
     }
 
-    const totalDays = uniqueDays.length;
+    const existingSubjectStats = await db.select()
+      .from(subjectStats)
+      .where(and(eq(subjectStats.userId, userId), eq(subjectStats.subjectId, subjectId)))
+      .limit(1);
+    
+    if (existingSubjectStats.length === 0) {
+      await db.insert(subjectStats).values({
+        userId,
+        subjectId,
+        total: 1,
+        correct: isCorrect ? 1 : 0,
+        accuracy: isCorrect ? 100 : 0,
+      });
+    } else {
+      const current = existingSubjectStats[0];
+      const newTotal = (current.total || 0) + 1;
+      const newCorrect = (current.correct || 0) + (isCorrect ? 1 : 0);
+      const newAccuracy = Math.round((newCorrect / newTotal) * 100);
+      
+      await db.update(subjectStats)
+        .set({
+          total: newTotal,
+          correct: newCorrect,
+          accuracy: newAccuracy,
+        })
+        .where(and(eq(subjectStats.userId, userId), eq(subjectStats.subjectId, subjectId)));
+    }
+  }
 
+  async getOverview(userId?: number) {
+    if (!userId) {
+      return {
+        todayCount: 0,
+        totalDays: 0,
+        streak: 0,
+      };
+    }
+
+    const result = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+    
+    if (result.length === 0) {
+      return {
+        todayCount: 0,
+        totalDays: 0,
+        streak: 0,
+      };
+    }
+
+    const stats = result[0];
     return {
-      todayCount,
-      totalDays,
-      streak,
+      todayCount: stats.todayCount || 0,
+      totalDays: stats.totalDays || 0,
+      streak: stats.streak || 0,
     };
   }
 
   async getDetail(userId?: number) {
-    const conditions = userId ? [eq(answerRecords.userId, userId)] : [];
-    
-    const totalResult = await db.select({ count: count() }).from(answerRecords).where(and(...conditions));
-    const totalQuestions = totalResult[0].count || 0;
-    
-    const correctConditions = [...conditions, eq(answerRecords.isCorrect, true)];
-    const correctResult = await db.select({ count: count() }).from(answerRecords).where(and(...correctConditions));
-    const totalCorrect = correctResult[0].count || 0;
-    
-    const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-
-    const today = new Date().toISOString().split('T')[0];
-    const todayConditions = [...conditions, eq(answerRecords.createdAt, today)];
-    const todayResult = await db.select({ count: count() }).from(answerRecords).where(and(...todayConditions));
-    const todayCount = todayResult[0].count || 0;
-
-    const dateResult = await db.select({ createdAt: answerRecords.createdAt }).from(answerRecords).where(and(...conditions));
-    const uniqueDays = [...new Set(dateResult.map((r) => r.createdAt))].sort().reverse();
-    
-    let streak = 0;
-    const now = new Date();
-    for (let i = 0; i < uniqueDays.length; i++) {
-      const expected = new Date(now);
-      expected.setDate(expected.getDate() - i);
-      const expectedStr = expected.toISOString().split('T')[0];
-      if (uniqueDays[i] === expectedStr) {
-        streak++;
-      } else {
-        break;
-      }
+    if (!userId) {
+      return {
+        totalQuestions: 0,
+        totalCorrect: 0,
+        accuracy: 0,
+        todayCount: 0,
+        streak: 0,
+        totalDays: 0,
+        subjectStats: [],
+        recentRecords: [],
+      };
     }
-    const totalDays = uniqueDays.length;
+
+    const userResult = await db.select().from(userStats).where(eq(userStats.userId, userId)).limit(1);
+    
+    let totalQuestions = 0;
+    let totalCorrect = 0;
+    let accuracy = 0;
+    let todayCount = 0;
+    let streak = 0;
+    let totalDays = 0;
+    
+    if (userResult.length > 0) {
+      const stats = userResult[0];
+      totalQuestions = stats.totalQuestions || 0;
+      totalCorrect = stats.totalCorrect || 0;
+      accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+      todayCount = stats.todayCount || 0;
+      streak = stats.streak || 0;
+      totalDays = stats.totalDays || 0;
+    }
 
     const subjectList = await db.select().from(subjects);
-    const subjectStats: Array<{
+    const userSubjectStats = await db.select().from(subjectStats).where(eq(subjectStats.userId, userId));
+    
+    const subjectStatsMap = new Map<string, typeof userSubjectStats[0]>();
+    for (const stats of userSubjectStats) {
+      if (stats.subjectId) {
+        subjectStatsMap.set(stats.subjectId, stats);
+      }
+    }
+    
+    const subjectStatsList: Array<{
       subjectId: string;
       subjectName: string;
       total: number;
       correct: number;
       accuracy: number;
     }> = [];
+    
     for (const s of subjectList) {
-      const subjectConditions = [...conditions, eq(answerRecords.subjectId, s.id)];
-      const subjectResult = await db.select({ count: count() }).from(answerRecords).where(and(...subjectConditions));
-      const subjectTotal = subjectResult[0].count || 0;
-      
-      if (subjectTotal > 0) {
-        const subjectCorrectConditions = [...conditions, eq(answerRecords.subjectId, s.id), eq(answerRecords.isCorrect, true)];
-        const subjectCorrectResult = await db.select({ count: count() }).from(answerRecords).where(and(...subjectCorrectConditions));
-        const subjectCorrect = subjectCorrectResult[0].count || 0;
-        
-        subjectStats.push({
+      const stats = subjectStatsMap.get(s.id);
+      if (stats && (stats.total || 0) > 0) {
+        subjectStatsList.push({
           subjectId: s.id,
           subjectName: s.name,
-          total: subjectTotal,
-          correct: subjectCorrect,
-          accuracy: Math.round((subjectCorrect / subjectTotal) * 100),
+          total: stats.total || 0,
+          correct: stats.correct || 0,
+          accuracy: stats.accuracy || 0,
         });
       }
     }
@@ -109,7 +182,7 @@ export class StatsService {
       mode: answerRecords.mode,
       isCorrect: answerRecords.isCorrect,
       createdAt: answerRecords.createdAt,
-    }).from(answerRecords).where(and(...conditions)).orderBy(desc(answerRecords.createdAt)).limit(10);
+    }).from(answerRecords).where(eq(answerRecords.userId, userId)).orderBy(desc(answerRecords.createdAt)).limit(10);
 
     return {
       totalQuestions,
@@ -118,7 +191,7 @@ export class StatsService {
       todayCount,
       streak,
       totalDays,
-      subjectStats,
+      subjectStats: subjectStatsList,
       recentRecords: recentRecords.map((r) => ({
         id: r.id,
         subjectName: r.subjectName,

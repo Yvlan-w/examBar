@@ -6,6 +6,7 @@ import {
   subjects as seedSubjects,
   questions as seedQuestions,
 } from '@/data/seed-data';
+import { StatsService } from '../stats/stats.service';
 
 export interface AnswerRecord {
   id: string;
@@ -21,6 +22,8 @@ export interface AnswerRecord {
 
 @Injectable()
 export class QuestionService implements OnModuleInit {
+  constructor(private readonly statsService: StatsService) {}
+
   async onModuleInit() {
     await this.seedData();
   }
@@ -119,6 +122,10 @@ export class QuestionService implements OnModuleInit {
       subjectName: question.subjectName,
       createdAt,
     });
+
+    if (userId) {
+      await this.statsService.updateStats(userId, question.subjectId, isCorrect);
+    }
 
     return {
       isCorrect,

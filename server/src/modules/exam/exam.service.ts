@@ -2,9 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
 import { questions, answerRecords } from '@/db/schema';
 import { eq, and, count } from 'drizzle-orm';
+import { StatsService } from '../stats/stats.service';
 
 @Injectable()
 export class ExamService {
+  constructor(private readonly statsService: StatsService) {}
   async startExam(subjectId: string, duration: number, questionCount: number = 20) {
     const conditions: any[] = [];
     if (subjectId) conditions.push(eq(questions.subjectId, subjectId));
@@ -84,6 +86,10 @@ export class ExamService {
         subjectName: question.subjectName,
         createdAt,
       });
+
+      if (userId) {
+        await this.statsService.updateStats(userId, question.subjectId, isCorrect);
+      }
     }
 
     const totalQuestions = total > 0 ? total : 0;
