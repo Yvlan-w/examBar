@@ -52,7 +52,7 @@ const WrongPage = () => {
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
-  const { isLoggedIn } = useUserStore()
+  const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
     initPage()
@@ -115,6 +115,7 @@ const WrongPage = () => {
     try {
       setQuestionsLoading(true)
       const params: Record<string, string> = { subjectId: selectedSubject }
+      if (user?.id) params.userId = String(user.id)
       const res = await Network.request({ url: '/api/stats/wrong-questions', data: params })
       setQuestions(res.data?.data || [])
     } catch (e) {

@@ -25,7 +25,7 @@ interface Question {
 
 const PracticePage = () => {
   const router = useRouter()
-  const { mode = 'practice', subjectId = '', questionId = '', type = '' } = router.params
+  const { mode = 'practice', subjectId = '', questionId = '', type = '', difficulty = '' } = router.params
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -82,6 +82,7 @@ const PracticePage = () => {
         } else {
           if (subjectId) params.subjectId = subjectId
           if (type) params.type = type
+          if (difficulty) params.difficulty = difficulty
         }
         const res = await Network.request({ url, data: params })
         console.log('questions list:', res.data)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
+import { useUserStore } from '@/store/user'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -42,6 +43,7 @@ const ResultPage = () => {
     timeUsed = '0',
   } = router.params
 
+  const { user } = useUserStore()
   const [questionDetails, setQuestionDetails] = useState<QuestionDetail[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<string[]>([])
@@ -67,7 +69,7 @@ const ResultPage = () => {
   const loadQuestionDetails = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/stats/detail' })
+      const res = await Network.request({ url: '/api/stats/detail', data: { userId: user?.id } })
       const recentRecords = res.data?.data?.recentRecords || []
       const details: QuestionDetail[] = []
       for (const record of recentRecords.slice(-totalNum)) {

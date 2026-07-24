@@ -136,6 +136,7 @@ export const LoginDialog = ({
 
   const handleSkipLogin = () => {
     onOpenChange(false)
+    Taro.setStorageSync('examBar_skip_login', Date.now().toString())
   }
 
   return (

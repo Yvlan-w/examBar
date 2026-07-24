@@ -14,8 +14,8 @@ export class QuestionController {
 
   @Get('questions')
   @HttpCode(200)
-  async getQuestions(@Query('subjectId') subjectId?: string, @Query('type') type?: string) {
-    const data = await this.questionService.getQuestions(subjectId, type);
+  async getQuestions(@Query('subjectId') subjectId?: string, @Query('type') type?: string, @Query('difficulty') difficulty?: string) {
+    const data = await this.questionService.getQuestions(subjectId, type, difficulty);
     return { code: 200, msg: 'success', data };
   }
 

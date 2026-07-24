@@ -7,21 +7,22 @@ export class ExamController {
 
   @Post('start')
   @HttpCode(200)
-  startExam(@Body() body: { subjectId: string; duration: number }) {
-    const result = this.examService.startExam(body.subjectId, body.duration);
+  async startExam(@Body() body: { subjectId: string; duration: number; questionCount?: number }) {
+    const result = await this.examService.startExam(body.subjectId, body.duration, body.questionCount || 20);
     return { code: 200, msg: 'success', data: result };
   }
 
   @Post('submit')
   @HttpCode(200)
-  submitExam(
+  async submitExam(
     @Body() body: {
       subjectId: string;
       answers: { questionId: string; answer: string }[];
       timeUsed: number;
+      userId?: number;
     },
   ) {
-    const result = this.examService.submitExam(body.subjectId, body.answers, body.timeUsed);
+    const result = await this.examService.submitExam(body.subjectId, body.answers, body.timeUsed, body.userId);
     return { code: 200, msg: 'success', data: result };
   }
 }

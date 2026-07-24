@@ -82,7 +82,7 @@ const ProfilePage = () => {
   const loadStats = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/stats/detail' })
+      const res = await Network.request({ url: '/api/stats/detail', data: { userId: user?.id } })
       console.log('stats detail:', res.data)
       setStats(res.data?.data || null)
     } catch (e) {

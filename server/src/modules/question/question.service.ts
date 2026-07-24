@@ -42,10 +42,11 @@ export class QuestionService implements OnModuleInit {
     return result;
   }
 
-  async getQuestions(subjectId?: string, type?: string) {
+  async getQuestions(subjectId?: string, type?: string, difficulty?: string) {
     const conditions: any[] = [];
     if (subjectId) conditions.push(eq(questions.subjectId, subjectId));
     if (type && type !== 'all') conditions.push(eq(questions.type, type));
+    if (difficulty && difficulty !== 'all') conditions.push(eq(questions.difficulty, difficulty));
 
     const query = conditions.length > 0
       ? db.select({

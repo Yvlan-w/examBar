@@ -1,5 +1,5 @@
 export default typeof definePageConfig === 'function'
   ? definePageConfig({
-      navigationBarTitleText: '职考刷题',
+      navigationBarTitleText: 'examBar智能刷题助手',
     })
-  : { navigationBarTitleText: '职考刷题' }
+  : { navigationBarTitleText: 'examBar智能刷题助手' }

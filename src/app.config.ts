@@ -4,7 +4,9 @@ export default defineAppConfig({
     'pages/questions/index',
     'pages/profile/index',
     'pages/practice/index',
+    'pages/practice-select/index',
     'pages/exam/index',
+    'pages/exam-select/index',
     'pages/result/index',
     'pages/history/index',
     'pages/wrong/index',
@@ -12,7 +14,7 @@ export default defineAppConfig({
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#fff',
-    navigationBarTitleText: '职考刷题',
+    navigationBarTitleText: 'examBar智能刷题助手',
     navigationBarTextStyle: 'black',
   },
   tabBar: {

@@ -84,7 +84,11 @@ const IndexPage = () => {
     }
 
     if (!isLoggedIn) {
-      setShowLoginDialog(true)
+      const lastSkipTime = Taro.getStorageSync('examBar_skip_login')
+      const skipDuration = lastSkipTime ? Date.now() - parseInt(lastSkipTime) : Infinity
+      if (skipDuration > 30 * 60 * 1000) {
+        setShowLoginDialog(true)
+      }
     }
 
     loadData()
@@ -118,13 +122,12 @@ const IndexPage = () => {
       setShowLoginDialog(true)
       return
     }
-    if (subjects.length === 0) return
     if (mode === 'exam') {
-      Taro.navigateTo({ url: '/pages/exam/index?subjectId=' + subjects[0].id })
+      Taro.navigateTo({ url: '/pages/exam-select/index' })
     } else if (mode === 'history') {
       Taro.navigateTo({ url: '/pages/history/index' })
     } else {
-      Taro.navigateTo({ url: '/pages/practice/index?mode=' + mode + '&subjectId=' + subjects[0].id })
+      Taro.navigateTo({ url: '/pages/practice-select/index' })
     }
   }
 
@@ -154,7 +157,7 @@ const IndexPage = () => {
       <View className="bg-blue-600 px-4 pt-8 pb-12 rounded-b-3xl">
         <View className="flex items-center justify-between mb-4">
           <View>
-            <Text className="block text-white text-xl font-bold">职考刷题</Text>
+            <Text className="block text-white text-xl font-bold">examBar智能刷题助手</Text>
             <Text className="block text-blue-100 text-xs mt-1">每天进步一点点</Text>
           </View>
           {stats.streak > 0 && (

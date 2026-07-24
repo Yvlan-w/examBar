@@ -23,7 +23,7 @@ const EXAM_DURATION = 30 * 60
 
 const ExamPage = () => {
   const router = useRouter()
-  const { subjectId = '' } = router.params
+  const { subjectId = '', count = '20' } = router.params
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -34,7 +34,7 @@ const ExamPage = () => {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const { isLoggedIn } = useUserStore()
+  const { isLoggedIn, user } = useUserStore()
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -100,7 +100,7 @@ const ExamPage = () => {
       const res = await Network.request({
         url: '/api/exam/start',
         method: 'POST',
-        data: { subjectId, duration: EXAM_DURATION },
+        data: { subjectId, duration: EXAM_DURATION, questionCount: parseInt(count) },
       })
       console.log('exam start:', res.data)
       const examData = res.data?.data
@@ -144,6 +144,7 @@ const ExamPage = () => {
             answer,
           })),
           timeUsed: EXAM_DURATION - timeLeft,
+          userId: user?.id,
         },
       })
       console.log('exam submit:', res.data)

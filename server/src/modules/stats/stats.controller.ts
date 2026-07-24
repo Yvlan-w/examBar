@@ -14,13 +14,15 @@ export class StatsController {
 
   @Get('detail')
   @HttpCode(200)
-  getDetail() {
-    return { code: 200, msg: 'success', data: this.statsService.getDetail() };
+  async getDetail(@Query('userId') userId?: number) {
+    const data = await this.statsService.getDetail(userId);
+    return { code: 200, msg: 'success', data };
   }
 
   @Get('wrong-questions')
   @HttpCode(200)
-  getWrongQuestions(@Query('subjectId') subjectId?: string) {
-    return { code: 200, msg: 'success', data: this.statsService.getWrongQuestions(subjectId) };
+  async getWrongQuestions(@Query('subjectId') subjectId?: string, @Query('userId') userId?: number) {
+    const data = await this.statsService.getWrongQuestions(subjectId, userId);
+    return { code: 200, msg: 'success', data };
   }
 }
