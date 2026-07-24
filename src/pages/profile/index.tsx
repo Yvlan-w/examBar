@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { useUserStore } from '@/store/user'
-import { requireLogin, getUserProfile, updateUserProfile } from '@/utils/auth'
+import { LoginDialog } from '@/components/LoginDialog'
 import {
   CircleCheck,
   Target,
@@ -72,13 +72,7 @@ const ProfilePage = () => {
     }
   }
 
-  const handleLogin = async () => {
-    const success = await requireLogin()
-    if (success) {
-      setShowLoginDialog(false)
-      loadStats()
-    }
-  }
+  
 
   const loadStats = async () => {
     try {
@@ -105,23 +99,11 @@ const ProfilePage = () => {
   if (showLoginDialog) {
     return (
       <View className="min-h-full bg-slate-100 flex items-center justify-center">
-        <Card className="sm:max-w-md w-full mx-4">
-          <CardContent className="p-6">
-            <View className="flex flex-col items-center">
-              <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                <User size={32} color="#2563EB" />
-              </View>
-              <Text className="block text-lg font-bold text-center mb-2">请先登录</Text>
-              <Text className="block text-sm text-slate-400 text-center mb-4">登录后可以保存您的学习进度</Text>
-              <Button
-                className="w-full bg-blue-600 text-white h-11 rounded-xl"
-                onClick={handleLogin}
-              >
-                <Text>微信登录</Text>
-              </Button>
-            </View>
-          </CardContent>
-        </Card>
+        <LoginDialog
+          open={showLoginDialog}
+          onOpenChange={setShowLoginDialog}
+          onLoginSuccess={loadStats}
+        />
       </View>
     )
   }

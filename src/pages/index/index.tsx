@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Button as TaroButton, Input, Image } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/store/user'
-import { requireLogin, loginWithProfile } from '@/utils/auth'
+import { LoginDialog } from '@/components/LoginDialog'
 import {
   BookOpen,
   PenTool,
@@ -19,7 +18,6 @@ import {
   Target,
   ChevronRight,
   Flame,
-  User,
 } from 'lucide-react-taro'
 
 interface Subject {
@@ -64,53 +62,19 @@ const IndexPage = () => {
   const [stats, setStats] = useState<StudyStats>({ todayCount: 0, totalDays: 0, streak: 0 })
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [nickName, setNickName] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
   const { isLoggedIn, login, user } = useUserStore()
   
 
   useEffect(() => {
-    
     initApp()
-    
   }, [])
-
-  useEffect(() => {
-    if (showLoginDialog) {
-      const storedUser = Taro.getStorageSync('examBar_user')
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser)
-          console.log('userData:', userData)
-          if (userData.nickName) {
-            setNickName(userData.nickName)
-          }
-          if (userData.avatarUrl && userData.avatarUrl.startsWith('http')) {
-            setAvatarUrl(userData.avatarUrl)
-          }
-        } catch (e) {
-          console.error('parse user data error:', e)
-        }
-      }
-    }
-  }, [showLoginDialog])
 
   const initApp = async () => {
     const storedUser = Taro.getStorageSync('examBar_user')
-    console.log("isloggedin:",isLoggedIn)
-    console.log("storedUser:",storedUser)
-
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser)
         login(userData)
-        if (userData.nickName) {
-          setNickName(userData.nickName)
-        }
-        if (userData.avatarUrl) {
-          setAvatarUrl(userData.avatarUrl)
-        }
       } catch (e) {
         console.error('parse user data error:', e)
       }
@@ -144,103 +108,7 @@ const IndexPage = () => {
     }
   }
 
-  const handleLogin = async () => {
-    setLoginLoading(true)
-    try {
-      const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
-      console.log('login env:', isWeapp ? 'weapp' : 'h5')
-      
-      let loginCode = 'h5_login'
-      
-      if (isWeapp) {
-        const loginRes = await Taro.login()
-        console.log('Taro.login result:', loginRes)
-        if (loginRes.code) {
-          loginCode = loginRes.code
-        }
-      }
-      
-      const result = await Network.request({
-        url: '/api/auth/login',
-        method: 'POST',
-        data: { code: loginCode, nickName: nickName || '', avatarUrl: avatarUrl || '' },
-      })
-      console.log('login result:', result.data)
-      
-      if (result.data?.success && result.data.data) {
-        const user = result.data.data.user
-        console.log('login success:', user)
-        
-        Taro.setStorageSync('examBar_user', JSON.stringify(user))
-        login(user)
-        
-        setShowLoginDialog(false)
-        loadData()
-        Taro.showToast({
-          title: '登录成功',
-          icon: 'success',
-        })
-      } else {
-        Taro.showToast({
-          title: result.data?.message || '登录失败',
-          icon: 'none',
-        })
-      }
-    } catch (e) {
-      console.error('login error:', e)
-      Taro.showToast({
-        title: '登录失败，请重试',
-        icon: 'none',
-      })
-    } finally {
-      setLoginLoading(false)
-    }
-  }
-
-  const onChooseAvatar = async (e: any) => {
-    console.log('choose avatar:', e)
-    const avatarUrl = e.detail?.avatarUrl || e.avatarUrl
-    console.log('avatarUrl:', avatarUrl)
-    
-    if (!avatarUrl) {
-      return
-    }
-    
-    if (avatarUrl.startsWith('wxfile://')) {
-      Taro.showLoading({ title: '上传头像中...' })
-      try {
-        const uploadResult = await Network.uploadFile({
-          url: '/api/auth/upload-avatar',
-          filePath: avatarUrl,
-          name: 'file',
-        })
-        console.log('Upload result:', uploadResult)
-        
-        if (uploadResult.statusCode === 200) {
-          const data = typeof uploadResult.data === 'string' 
-            ? JSON.parse(uploadResult.data) 
-            : uploadResult.data
-          console.log('Parsed upload data:', data)
-          if (data.success && data.data?.url) {
-            setAvatarUrl(data.data.url)
-            console.log('Avatar uploaded successfully:', data.data.url)
-          }
-        }
-      } catch (error) {
-        console.error('Upload avatar error:', error)
-        setAvatarUrl(avatarUrl)
-      } finally {
-        Taro.hideLoading()
-      }
-    } else {
-      setAvatarUrl(avatarUrl)
-    }
-  }
-
-  const onNickNameInput = (e: any) => {
-    console.log('nickname input:', e)
-    setNickName(e.detail.value)
-  }
+  
 
   const handleModeClick = async (mode: string) => {
     if (!isLoggedIn) {
@@ -275,10 +143,6 @@ const IndexPage = () => {
     Taro.navigateTo({
       url: '/pages/practice/index?mode=daily&questionId=' + dailyQuestion.id,
     })
-  }
-
-  const handleSkipLogin = () => {
-    setShowLoginDialog(false)
   }
 
   return (
@@ -426,53 +290,11 @@ const IndexPage = () => {
         )}
       </View>
 
-      {/* 登录弹窗 */}
-      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <View className="flex flex-col items-center">
-              <DialogTitle className="text-lg font-bold text-center">欢迎使用职考刷题</DialogTitle>
-              <DialogDescription className="text-center mt-2">
-                请登录以保存您的学习进度
-              </DialogDescription>
-            </View>
-          </DialogHeader>
-          <View className="p-4">
-            <View className="flex flex-col items-center gap-4">
-              <TaroButton
-                openType="chooseAvatar"
-                onChooseAvatar={onChooseAvatar}
-                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-              >
-                {avatarUrl ? (
-                  
-                    <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-                  
-                ) : (
-                  <User size={32} color="#94A3B8" />
-                )}
-                
-              </TaroButton>
-              <Text className="text-sm text-gray-500">点击选择头像</Text>
-              <Input
-                type="nickname"
-                className="w-full bg-gray-50 rounded-xl px-4 py-3"
-                placeholder="请输入昵称"
-                value={nickName}
-                onInput={onNickNameInput}
-              />
-            </View>
-          </View>
-          <DialogFooter className="flex flex-col gap-3">
-            <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-              <Text>{loginLoading ? '登录中...' : '登录'}</Text>
-            </Button>
-            <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
-              <Text>暂不登录</Text>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+     <LoginDialog
+        open={showLoginDialog}
+        onOpenChange={setShowLoginDialog}
+        onLoginSuccess={loadData}
+      />
     </View>
   )
 }

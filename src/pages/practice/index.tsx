@@ -8,10 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { requireLogin, loginWithProfile } from '@/utils/auth'
-import { CircleCheck, CircleX, Star, User } from 'lucide-react-taro'
+import { LoginDialog } from '@/components/LoginDialog'
+import { CircleCheck, CircleX, Star } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -40,7 +39,6 @@ const PracticePage = () => {
   const [correctCount, setCorrectCount] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
@@ -96,29 +94,7 @@ const PracticePage = () => {
     }
   }
 
-  const handleLogin = async () => {
-    setLoginLoading(true)
-    try {
-      const result = await loginWithProfile()
-      if (result.success) {
-        setShowLoginDialog(false)
-        loadQuestions()
-      } else {
-        Taro.showToast({
-          title: result.message || '登录失败',
-          icon: 'none',
-        })
-      }
-    } catch (e) {
-      console.error('login error:', e)
-      Taro.showToast({
-        title: '登录失败，请重试',
-        icon: 'none',
-      })
-    } finally {
-      setLoginLoading(false)
-    }
-  }
+  
 
   const checkFavorite = async (qId: string) => {
     if (!user?.id) return
@@ -226,29 +202,14 @@ const PracticePage = () => {
   if (showLoginDialog) {
     return (
       <View className="min-h-full bg-slate-100 flex items-center justify-center">
-        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <View className="flex flex-col items-center">
-                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                  <User size={32} color="#2563EB" />
-                </View>
-                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
-                <DialogDescription className="text-center mt-2">
-                  需要登录后才能进行刷题
-                </DialogDescription>
-              </View>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col gap-3">
-              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
-                <Text>返回</Text>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <LoginDialog
+          open={showLoginDialog}
+          onOpenChange={setShowLoginDialog}
+          title="请先登录"
+          description="需要登录后才能进行刷题"
+          allowSkip={false}
+          onLoginSuccess={loadQuestions}
+        />
       </View>
     )
   }
