@@ -84,6 +84,12 @@ const QuestionsPage = () => {
     }
   }
 
+  useEffect(() => {
+    if (!isLoggedIn && !showLoginDialog) {
+      setShowLoginDialog(true)
+    }
+  }, [isLoggedIn, showLoginDialog])
+
   const handleLogin = async () => {
     setLoginLoading(true)
     try {
@@ -170,9 +176,6 @@ const QuestionsPage = () => {
             <DialogFooter className="flex flex-col gap-3">
               <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
                 <Text>微信登录</Text>
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
-                <Text>返回</Text>
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -62,6 +62,12 @@ const PracticePage = () => {
     }
   }
 
+  useEffect(() => {
+    if (!isLoggedIn && !showLoginDialog) {
+      setShowLoginDialog(true)
+    }
+  }, [isLoggedIn, showLoginDialog])
+
   const loadQuestions = async () => {
     try {
       setLoading(true)
@@ -138,7 +144,7 @@ const PracticePage = () => {
       const res = await Network.request({
         url: '/api/questions/' + currentQuestion.id + '/favorite',
         method: 'POST',
-        data: { userId: user?.id },
+        data: user?.id ? { userId: user.id } : {},
       })
       setIsFavorite(res.data?.data?.isFavorite || false)
     } catch (e) {
@@ -169,7 +175,7 @@ const PracticePage = () => {
           questionId: currentQuestion.id,
           answer: userAnswer,
           mode,
-          userId: user?.id,
+          ...(user?.id ? { userId: user.id } : {}),
         },
       })
       console.log('submit answer:', res.data)
@@ -240,9 +246,6 @@ const PracticePage = () => {
             <DialogFooter className="flex flex-col gap-3">
               <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
                 <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
-                <Text>返回</Text>
               </Button>
             </DialogFooter>
           </DialogContent>

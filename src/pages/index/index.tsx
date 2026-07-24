@@ -123,7 +123,7 @@ const IndexPage = () => {
       const [subjectsRes, dailyRes, statsRes] = await Promise.all([
         Network.request({ url: '/api/subjects' }),
         Network.request({ url: '/api/questions/daily' }),
-        Network.request({ url: '/api/stats/overview', data: { userId: user?.id } }),
+        Network.request({ url: '/api/stats/overview', data: user?.id ? { userId: user.id } : {} }),
       ])
       console.log('subjects:', subjectsRes.data)
       console.log('daily:', dailyRes.data)
