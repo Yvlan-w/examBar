@@ -65,18 +65,11 @@ const ProfilePage = () => {
   }, [])
 
   const initPage = async () => {
-    const storedUser = Taro.getStorageSync('examBar_user')
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        useUserStore.getState().login(userData)
-        loadStats()
-        return
-      } catch (e) {
-        console.error('parse user data error:', e)
-      }
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadStats()
     }
-    setShowLoginDialog(true)
   }
 
   const handleLogin = async () => {

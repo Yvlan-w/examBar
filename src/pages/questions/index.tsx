@@ -77,18 +77,11 @@ const QuestionsPage = () => {
   }, [selectedSubject, selectedType])
 
   const initPage = async () => {
-    const storedUser = Taro.getStorageSync('examBar_user')
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        useUserStore.getState().login(userData)
-        loadSubjects()
-        return
-      } catch (e) {
-        console.error('parse user data error:', e)
-      }
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+    } else {
+      loadSubjects()
     }
-    setShowLoginDialog(true)
   }
 
   const handleLogin = async () => {

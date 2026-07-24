@@ -68,6 +68,7 @@ const IndexPage = () => {
   const [nickName, setNickName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const { isLoggedIn, login, user } = useUserStore()
+  console.log(isLoggedIn, login, user)
 
   useEffect(() => {
     initApp()
@@ -421,56 +422,52 @@ const IndexPage = () => {
       </View>
 
       {/* 登录弹窗 */}
-      {showLoginDialog && (
-        <View className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <View className="flex flex-col items-center">
-                  <DialogTitle className="text-lg font-bold text-center">欢迎使用职考刷题</DialogTitle>
-                  <DialogDescription className="text-center mt-2">
-                    请登录以保存您的学习进度
-                  </DialogDescription>
-                </View>
-              </DialogHeader>
-              <View className="p-4">
-                <View className="flex flex-col items-center gap-4">
-                  <TaroButton
-                    openType="chooseAvatar"
-                    onChooseAvatar={onChooseAvatar}
-                    className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-                  >
-                    {avatarUrl ? (
-                      
-                        <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-                      
-                    ) : (
-                      <User size={32} color="#94A3B8" />
-                    )}
-                    
-                  </TaroButton>
-                  <Text className="text-sm text-gray-500">点击选择头像</Text>
-                  <Input
-                    type="nickname"
-                    className="w-full bg-gray-50 rounded-xl px-4 py-3"
-                    placeholder="请输入昵称"
-                    value={nickName}
-                    onInput={onNickNameInput}
-                  />
-                </View>
-              </View>
-              <DialogFooter className="flex flex-col gap-3">
-                <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                  <Text>{loginLoading ? '登录中...' : '登录'}</Text>
-                </Button>
-                <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
-                  <Text>暂不登录</Text>
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </View>
-      )}
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <View className="flex flex-col items-center">
+              <DialogTitle className="text-lg font-bold text-center">欢迎使用职考刷题</DialogTitle>
+              <DialogDescription className="text-center mt-2">
+                请登录以保存您的学习进度
+              </DialogDescription>
+            </View>
+          </DialogHeader>
+          <View className="p-4">
+            <View className="flex flex-col items-center gap-4">
+              <TaroButton
+                openType="chooseAvatar"
+                onChooseAvatar={onChooseAvatar}
+                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              >
+                {avatarUrl ? (
+                  
+                    <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
+                  
+                ) : (
+                  <User size={32} color="#94A3B8" />
+                )}
+                
+              </TaroButton>
+              <Text className="text-sm text-gray-500">点击选择头像</Text>
+              <Input
+                type="nickname"
+                className="w-full bg-gray-50 rounded-xl px-4 py-3"
+                placeholder="请输入昵称"
+                value={nickName}
+                onInput={onNickNameInput}
+              />
+            </View>
+          </View>
+          <DialogFooter className="flex flex-col gap-3">
+            <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+              <Text>{loginLoading ? '登录中...' : '登录'}</Text>
+            </Button>
+            <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
+              <Text>暂不登录</Text>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </View>
   )
 }
