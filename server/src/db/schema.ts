@@ -83,3 +83,14 @@ export const subjectStats = pgTable('subject_stats', {
 }, (table) => ({
   pk: primaryKey({ columns: [table.userId, table.subjectId] }),
 }));
+
+export const customSubjects = pgTable('custom_subjects', {
+  id: varchar('id', { length: 32 }).primaryKey(),
+  userId: integer('user_id').references(() => users.id),
+  name: varchar('name', { length: 128 }).notNull(),
+  isPublic: boolean('is_public').default(false),
+  icon: varchar('icon', { length: 64 }),
+  color: varchar('color', { length: 32 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

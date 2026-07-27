@@ -17,6 +17,8 @@ import {
   Target,
   ChevronRight,
   Flame,
+  Star,
+  Plus,
 } from 'lucide-react-taro'
 
 interface Subject {
@@ -44,6 +46,8 @@ const MODE_ICONS = [
   { key: 'practice', label: '专项练习', desc: '按题型逐个击破', icon: PenTool, color: 'bg-blue-50', iconColor: '#2563EB' },
   { key: 'exam', label: '模拟考试', desc: '全真模拟限时测试', icon: Clock, color: 'bg-amber-50', iconColor: '#D97706' },
   { key: 'history', label: '历年真题', desc: '历年考题精选', icon: FileText, color: 'bg-emerald-50', iconColor: '#059669' },
+  { key: 'favorites', label: '我的收藏', desc: '收藏的题目', icon: Star, color: 'bg-purple-50', iconColor: '#7C3AED' },
+  { key: 'create-subject', label: '创建题库', desc: '自定义题库', icon: Plus, color: 'bg-rose-50', iconColor: '#DC2626' },
 ]
 
 const SUBJECT_COLORS = [
@@ -126,6 +130,10 @@ const IndexPage = () => {
       Taro.navigateTo({ url: '/pages/exam-select/index' })
     } else if (mode === 'history') {
       Taro.navigateTo({ url: '/pages/history/index' })
+    } else if (mode === 'favorites') {
+      Taro.navigateTo({ url: '/pages/favorites/index' })
+    } else if (mode === 'create-subject') {
+      Taro.navigateTo({ url: '/pages/create-subject/index' })
     } else {
       Taro.navigateTo({ url: '/pages/practice-select/index' })
     }
@@ -190,11 +198,11 @@ const IndexPage = () => {
         <Card className="shadow-sm border-0">
           <CardContent className="p-4">
             <Text className="block text-base font-semibold text-slate-800 mb-3">刷题模式</Text>
-            <View className="flex gap-3">
+            <View className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
               {MODE_ICONS.map((mode) => (
                 <View
                   key={mode.key}
-                  className="flex-1 flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-50 active:bg-slate-100"
+                  className="flex-shrink-0 w-24 flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-50 active:bg-slate-100"
                   onClick={() => handleModeClick(mode.key)}
                 >
                   <View className={`w-10 h-10 rounded-xl ${mode.color} flex items-center justify-center`}>

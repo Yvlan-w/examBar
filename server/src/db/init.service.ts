@@ -97,6 +97,19 @@ export class DbInitService implements OnModuleInit {
           PRIMARY KEY (user_id, subject_id)
         )`,
       },
+      {
+        name: 'custom_subjects',
+        sql: `CREATE TABLE IF NOT EXISTS custom_subjects (
+          id VARCHAR(32) PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          name VARCHAR(128) NOT NULL,
+          is_public BOOLEAN DEFAULT FALSE,
+          icon VARCHAR(64),
+          color VARCHAR(32),
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )`,
+      },
     ];
 
     for (const table of tables) {

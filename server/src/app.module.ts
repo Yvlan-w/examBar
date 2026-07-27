@@ -10,6 +10,7 @@ import { UserModule } from '@/modules/user/user.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { DbModule } from '@/db/db.module';
 import { StorageModule } from '@/modules/storage/storage.module';
+import { CustomSubjectModule } from '@/modules/custom-subject/custom-subject.module';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ dotenv.config();
     UserModule,
     AuthModule,
     StorageModule,
+    CustomSubjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],

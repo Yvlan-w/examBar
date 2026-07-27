@@ -19,16 +19,16 @@ interface Question {
   options?: { label: string; content: string }[]
 }
 
-const EXAM_DURATION = 30 * 60
-
 const ExamPage = () => {
   const router = useRouter()
-  const { subjectId = '', count = '20' } = router.params
+  const { subjectId = '', count = '20', duration = '30' } = router.params
+
+  const initialDuration = parseInt(duration) * 60
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION)
+  const [timeLeft, setTimeLeft] = useState(initialDuration)
   const [loading, setLoading] = useState(true)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -100,7 +100,7 @@ const ExamPage = () => {
       const res = await Network.request({
         url: '/api/exam/start',
         method: 'POST',
-        data: { subjectId, duration: EXAM_DURATION, questionCount: parseInt(count) },
+        data: { subjectId, duration: parseInt(duration) * 60, questionCount: parseInt(count) },
       })
       console.log('exam start:', res.data)
       const examData = res.data?.data
@@ -143,7 +143,7 @@ const ExamPage = () => {
             questionId,
             answer,
           })),
-          timeUsed: EXAM_DURATION - timeLeft,
+          timeUsed: initialDuration - timeLeft,
           userId: user?.id,
         },
       })
@@ -154,7 +154,7 @@ const ExamPage = () => {
           '&correct=' + (result?.correct || 0) +
           '&score=' + (result?.score || 0) +
           '&mode=exam' +
-          '&timeUsed=' + (result?.timeUsed || EXAM_DURATION - timeLeft),
+          '&timeUsed=' + (result?.timeUsed || initialDuration - timeLeft),
       })
     } catch (e) {
       console.error('submit exam error:', e)

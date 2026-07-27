@@ -10,6 +10,8 @@ export default defineAppConfig({
     'pages/result/index',
     'pages/history/index',
     'pages/wrong/index',
+    'pages/favorites/index',
+    'pages/create-subject/index',
   ],
   window: {
     backgroundTextStyle: 'light',

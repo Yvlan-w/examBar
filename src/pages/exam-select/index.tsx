@@ -19,6 +19,7 @@ const ExamSelectPage = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [selectedSubject, setSelectedSubject] = useState('')
   const [questionCount, setQuestionCount] = useState(20)
+  const [duration, setDuration] = useState(30)
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const { isLoggedIn } = useUserStore()
@@ -57,7 +58,7 @@ const ExamSelectPage = () => {
       return
     }
     Taro.navigateTo({
-      url: `/pages/exam/index?subjectId=${selectedSubject}&count=${questionCount}`,
+      url: `/pages/exam/index?subjectId=${selectedSubject}&count=${questionCount}&duration=${duration}`,
     })
   }
 
@@ -134,6 +135,29 @@ const ExamSelectPage = () => {
                   onClick={() => setQuestionCount(count)}
                 >
                   <Text>{count}题</Text>
+                </Button>
+              ))}
+            </View>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm mt-4">
+          <CardContent className="p-4">
+            <View className="flex items-center gap-2 mb-3">
+              <Clock size={16} color="#D97706" />
+              <Text className="block text-sm font-semibold text-slate-800">考试时长</Text>
+            </View>
+            <View className="flex gap-2">
+              {[15, 30, 45, 60].map((time) => (
+                <Button
+                  key={time}
+                  variant={duration === time ? 'default' : 'outline'}
+                  className={`flex-1 h-10 rounded-lg text-sm ${
+                    duration === time ? 'bg-amber-600 text-white' : 'bg-white text-slate-600'
+                  }`}
+                  onClick={() => setDuration(time)}
+                >
+                  <Text>{time}分钟</Text>
                 </Button>
               ))}
             </View>
