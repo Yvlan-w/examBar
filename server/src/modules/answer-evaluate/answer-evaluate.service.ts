@@ -12,7 +12,6 @@ export class AnswerEvaluateService {
   async evaluateShortAnswer(question: string, userAnswer: string, correctAnswer: string): Promise<{
     score: number;
     aiAnalysis: string;
-    gapAnalysis: string;
   }> {
     try {
       const messages = [
@@ -22,14 +21,13 @@ export class AnswerEvaluateService {
 
 评估要求：
 1. 根据标准答案对用户答案进行打分（0-100分）
-2. 分析用户答案与标准答案之间的差距
-3. 提供详细的AI解析，帮助用户理解正确答案
+2. 分析用户答案与标准答案之间的差异，指出用户回答中的优点和不足
+3. 提供详细的AI解析，帮助用户理解正确答案并提升答题能力
 
 输出格式（JSON）：
 {
   "score": 分数（0-100）,
-  "aiAnalysis": "详细的AI解析",
-  "gapAnalysis": "用户答案与标准答案的差距分析"
+  "aiAnalysis": "详细的AI解析，包括差距分析、优点、不足和改进建议"
 }`,
         },
         {
@@ -48,16 +46,17 @@ export class AnswerEvaluateService {
 
       const content = response.content || '';
 
-      let result: { score: number; aiAnalysis: string; gapAnalysis: string } = {
+      let result: { score: number; aiAnalysis: string } = {
         score: 0,
         aiAnalysis: '解析失败',
-        gapAnalysis: '无法分析差距',
       };
 
       try {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          result = JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(jsonMatch[0]);
+          result.score = parsed.score || 0;
+          result.aiAnalysis = parsed.aiAnalysis || parsed.gapAnalysis || parsed.analysis || content;
         } else {
           result.aiAnalysis = content;
         }
@@ -71,7 +70,6 @@ export class AnswerEvaluateService {
       return {
         score: 0,
         aiAnalysis: 'AI解析服务暂时不可用',
-        gapAnalysis: '无法分析差距',
       };
     }
   }

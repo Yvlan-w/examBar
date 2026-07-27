@@ -119,7 +119,6 @@ export class QuestionService implements OnModuleInit {
 
     let isCorrect = answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
     let aiAnalysis = '';
-    let gapAnalysis = '';
     let score = 0;
 
     if (question.type === 'short') {
@@ -129,7 +128,6 @@ export class QuestionService implements OnModuleInit {
         question.answer,
       );
       aiAnalysis = evaluation.aiAnalysis;
-      gapAnalysis = evaluation.gapAnalysis;
       score = evaluation.score;
       isCorrect = score >= 60;
     }
@@ -158,7 +156,6 @@ export class QuestionService implements OnModuleInit {
       correctAnswer: question.answer,
       analysis: question.analysis || '',
       aiAnalysis,
-      gapAnalysis,
       score,
       record: {
         id: recordId,
