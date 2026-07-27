@@ -1,8 +1,10 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { client } from './db.module';
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
+import { Client } from 'pg';
 
 @Injectable()
 export class DbInitService implements OnModuleInit {
+  constructor(@Inject('DB_CLIENT') private readonly client: Client) {}
+
   async onModuleInit() {
     await this.createTablesIfNotExist();
   }
@@ -99,7 +101,7 @@ export class DbInitService implements OnModuleInit {
 
     for (const table of tables) {
       try {
-        await client.query(table.sql);
+        await this.client.query(table.sql);
         console.log(`Table "${table.name}" checked/created successfully`);
       } catch (error) {
         console.error(`Error creating table "${table.name}":`, error);

@@ -13,12 +13,6 @@ export const client = new Client({
   connectionString: DATABASE_URL,
 });
 
-client.connect().then(() => {
-  console.log('PostgreSQL connected successfully');
-}).catch((err) => {
-  console.error('PostgreSQL connection failed:', err);
-});
-
 export const db = drizzle(client, { schema });
 
 @Global()
@@ -26,10 +20,20 @@ export const db = drizzle(client, { schema });
   providers: [
     {
       provide: 'DATABASE',
-      useValue: db,
+      useFactory: async () => {
+        await client.connect();
+        console.log('PostgreSQL connected successfully');
+        return db;
+      },
+    },
+    {
+      provide: 'DB_CLIENT',
+      useFactory: () => {
+        return client;
+      },
     },
     DbInitService,
   ],
-  exports: ['DATABASE', DbInitService],
+  exports: ['DATABASE', 'DB_CLIENT', DbInitService],
 })
 export class DbModule {}
