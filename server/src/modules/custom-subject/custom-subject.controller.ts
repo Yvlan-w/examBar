@@ -7,8 +7,15 @@ export class CustomSubjectController {
 
   @Post()
   @HttpCode(200)
-  async create(@Body() body: { userId: number; name: string; isPublic: boolean }) {
-    const data = await this.customSubjectService.createCustomSubject(body.userId, body.name, body.isPublic);
+  async create(@Body() body: { userId: number; name: string; isPublic: boolean; nickname?: string }) {
+    const data = await this.customSubjectService.createCustomSubject(body.userId, body.name, body.isPublic, body.nickname);
+    return { code: 200, msg: 'success', data };
+  }
+
+  @Post('toggle-visibility')
+  @HttpCode(200)
+  async toggleVisibility(@Body() body: { userId: number; subjectId: string }) {
+    const data = await this.customSubjectService.toggleVisibility(body.userId, body.subjectId);
     return { code: 200, msg: 'success', data };
   }
 

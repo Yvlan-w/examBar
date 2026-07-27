@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { customSubjects, questions, subjects } from '@/db/schema';
-import { eq, and, count } from 'drizzle-orm';
+import { customSubjects, questions, subjects, users } from '@/db/schema';
+import { eq, and, count, or } from 'drizzle-orm';
 import { LLMClient } from 'coze-coding-dev-sdk';
 
 @Injectable()
@@ -12,7 +12,33 @@ export class CustomSubjectService {
     this.llmClient = new LLMClient();
   }
 
-  async createCustomSubject(userId: number, name: string, isPublic: boolean) {
+  async getUniqueName(name: string, userId: number): Promise<string> {
+    const cleanedName = name.replace(/\s*by\s+\S+$/, '').replace(/\s*\(\d+\)$/, '').trim();
+
+    const existing = await db.select({ name: customSubjects.name }).from(customSubjects);
+    const existingNames = new Set(existing.map((s) => s.name));
+
+    if (!existingNames.has(name)) {
+      return name;
+    }
+
+    let counter = 1;
+    let newName = `${cleanedName}(${counter})`;
+    while (existingNames.has(newName)) {
+      counter++;
+      newName = `${cleanedName}(${counter})`;
+    }
+
+    return newName;
+  }
+
+  async createCustomSubject(userId: number, name: string, isPublic: boolean, nickname?: string) {
+    const uniqueName = await this.getUniqueName(name, userId);
+
+    const finalName = isPublic && nickname 
+      ? `${uniqueName} by ${nickname}` 
+      : uniqueName;
+
     const id = 'custom_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
     
     const colors = ['#2563EB', '#059669', '#D97706', '#7C3AED', '#DC2626', '#06B6D4'];
@@ -21,19 +47,54 @@ export class CustomSubjectService {
     await db.insert(customSubjects).values({
       id,
       userId,
-      name,
+      name: finalName,
       isPublic,
       color,
     });
 
     await db.insert(subjects).values({
       id,
-      name,
+      name: finalName,
       color,
       questionCount: 0,
     });
 
-    return { id, name, isPublic, color };
+    return { id, name: finalName, isPublic, color };
+  }
+
+  async toggleVisibility(userId: number, subjectId: string): Promise<{ success: boolean; isPublic: boolean; name: string }> {
+    const subjectResult = await db.select().from(customSubjects).where(and(eq(customSubjects.id, subjectId), eq(customSubjects.userId, userId)));
+    
+    if (subjectResult.length === 0) {
+      return { success: false, isPublic: false, name: '' };
+    }
+
+    const subject = subjectResult[0];
+    const newIsPublic = !subject.isPublic;
+
+    let newName = subject.name;
+
+    if (newIsPublic) {
+      const userResult = await db.select({ nickname: users.nickName }).from(users).where(eq(users.id, userId));
+      const nickname = userResult[0]?.nickname || '用户';
+      
+      if (!newName.includes(`by ${nickname}`)) {
+        newName = `${newName} by ${nickname}`;
+      }
+    } else {
+      const cleanedName = newName.replace(/\s*by\s+\S+$/, '').trim();
+      newName = cleanedName;
+    }
+
+    await db.update(customSubjects)
+      .set({ isPublic: newIsPublic, name: newName })
+      .where(and(eq(customSubjects.id, subjectId), eq(customSubjects.userId, userId)));
+
+    await db.update(subjects)
+      .set({ name: newName })
+      .where(eq(subjects.id, subjectId));
+
+    return { success: true, isPublic: newIsPublic, name: newName };
   }
 
   async getCustomSubjects(userId?: number) {

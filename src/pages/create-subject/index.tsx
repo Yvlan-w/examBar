@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
-import { Plus, Eye, EyeOff, Trash2, Upload, BookOpen } from 'lucide-react-taro'
+import { Plus, Eye, EyeOff, Trash2, Upload, BookOpen, Image as ImageIcon, FileText, FileUp } from 'lucide-react-taro'
 
 interface CustomSubject {
   id: string
@@ -33,6 +34,7 @@ const CreateSubjectPage = () => {
   const [parsing, setParsing] = useState(false)
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [importTab, setImportTab] = useState('text')
   const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
@@ -70,7 +72,7 @@ const CreateSubjectPage = () => {
       const res = await Network.request({
         url: '/api/custom-subjects',
         method: 'POST',
-        data: { userId: user?.id, name: subjectName.trim(), isPublic },
+        data: { userId: user?.id, name: subjectName.trim(), isPublic, nickname: user?.nickName },
       })
 
       if (res.data?.code === 200) {
@@ -83,6 +85,33 @@ const CreateSubjectPage = () => {
     } catch (e) {
       console.error('createSubject error:', e)
       Taro.showToast({ title: '创建失败', icon: 'none' })
+    }
+  }
+
+  const handleToggleVisibility = async (subjectId: string) => {
+    try {
+      const res = await Network.request({
+        url: '/api/custom-subjects/toggle-visibility',
+        method: 'POST',
+        data: { userId: user?.id, subjectId },
+      })
+
+      if (res.data?.code === 200 && res.data?.data?.success) {
+        setSubjects((prev) =>
+          prev.map((s) =>
+            s.id === subjectId
+              ? { ...s, isPublic: res.data.data.isPublic, name: res.data.data.name }
+              : s
+          )
+        )
+        Taro.showToast({
+          title: res.data.data.isPublic ? '已设为公开' : '已设为私密',
+          icon: 'success',
+        })
+      }
+    } catch (e) {
+      console.error('toggleVisibility error:', e)
+      Taro.showToast({ title: '操作失败', icon: 'none' })
     }
   }
 
@@ -115,6 +144,64 @@ const CreateSubjectPage = () => {
     setShowImportModal(true)
     setFileContent('')
     setParsedQuestions([])
+    setImportTab('text')
+  }
+
+  const handleUploadImage = () => {
+    Taro.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: async (res) => {
+        Taro.showToast({ title: '图片上传中...', icon: 'loading' })
+        try {
+          const uploadRes = await Network.uploadFile({
+            url: '/api/custom-subjects/parse',
+            filePath: res.tempFilePaths[0],
+            name: 'file',
+          })
+          console.log('image upload result:', uploadRes)
+          const data = JSON.parse(uploadRes.data)
+          if (data.code === 200) {
+            setParsedQuestions(data.data || [])
+            Taro.showToast({ title: `解析出 ${data.data?.length} 道题目`, icon: 'success' })
+          } else {
+            Taro.showToast({ title: '解析失败', icon: 'none' })
+          }
+        } catch (e) {
+          console.error('uploadImage error:', e)
+          Taro.showToast({ title: '上传失败', icon: 'none' })
+        }
+      },
+    })
+  }
+
+  const handleUploadFile = () => {
+    Taro.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      success: async (res) => {
+        Taro.showToast({ title: '文件上传中...', icon: 'loading' })
+        try {
+          const uploadRes = await Network.uploadFile({
+            url: '/api/custom-subjects/parse',
+            filePath: res.tempFiles[0].path,
+            name: 'file',
+          })
+          console.log('file upload result:', uploadRes)
+          const data = JSON.parse(uploadRes.data)
+          if (data.code === 200) {
+            setParsedQuestions(data.data || [])
+            Taro.showToast({ title: `解析出 ${data.data?.length} 道题目`, icon: 'success' })
+          } else {
+            Taro.showToast({ title: '解析失败', icon: 'none' })
+          }
+        } catch (e) {
+          console.error('uploadFile error:', e)
+          Taro.showToast({ title: '上传失败', icon: 'none' })
+        }
+      },
+    })
   }
 
   const handleParseFile = async () => {
@@ -232,7 +319,7 @@ const CreateSubjectPage = () => {
             {loading ? (
               <View className="space-y-3">
                 {[1, 2].map((i) => (
-                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                  <Skeleton key={i} className="h-28 w-full rounded-xl" />
                 ))}
               </View>
             ) : subjects.length === 0 ? (
@@ -242,53 +329,68 @@ const CreateSubjectPage = () => {
                 <Text className="block text-slate-300 text-sm mt-1">点击上方按钮创建</Text>
               </View>
             ) : (
-              <View className="space-y-3">
+              <View className="space-y-3 overflow-x-auto pb-2">
                 {subjects.map((subject) => (
                   <View
                     key={subject.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-white border border-slate-200"
+                    className="flex-shrink-0 w-full p-4 rounded-xl bg-white border border-slate-200"
                   >
-                    <View className="flex items-center gap-3">
+                    <View className="flex items-center gap-3 mb-3">
                       <View
                         className="w-10 h-10 rounded-xl flex items-center justify-center"
                         style={{ backgroundColor: subject.color + '20' }}
                       >
                         <BookOpen size={20} color={subject.color} />
                       </View>
-                      <View>
-                        <Text className="block text-sm font-medium text-slate-800">{subject.name}</Text>
-                        <View className="flex items-center gap-2 mt-1">
-                          <Text className="text-xs text-slate-400">{subject.questionCount}题</Text>
-                          <Badge
-                            className={`text-xs ${subject.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-                          >
-                            {subject.isPublic ? '公开' : '私密'}
-                          </Badge>
-                        </View>
+                      <Text className="block text-sm font-medium text-slate-800 flex-1 truncate">
+                        {subject.name}
+                      </Text>
+                    </View>
+
+                    <View className="flex items-center justify-between mb-3">
+                      <View className="flex items-center gap-2">
+                        <Text className="text-xs text-slate-400">{subject.questionCount}题</Text>
+                        <Badge
+                          className={`text-xs ${subject.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                        >
+                          {subject.isPublic ? '公开' : '私密'}
+                        </Badge>
+                      </View>
+                      <View className="flex items-center gap-2">
+                        {subject.isPublic ? (
+                          <Eye size={14} color="#10B981" />
+                        ) : (
+                          <EyeOff size={14} color="#6B7280" />
+                        )}
+                        <Switch
+                          checked={subject.isPublic}
+                          onCheckedChange={() => handleToggleVisibility(subject.id)}
+                        />
                       </View>
                     </View>
-                    <View className="flex items-center gap-2">
+
+                    <View className="flex gap-2">
                       <Button
                         variant="outline"
-                        className="h-8 px-3 rounded-lg"
+                        className="flex-1 h-9 rounded-lg text-xs"
                         onClick={() => handleSelectSubject(subject)}
                       >
-                        <Upload size={16} color="#64748B" className="mr-1" />
-                        <Text className="text-xs">导入</Text>
+                        <Upload size={14} color="#64748B" className="mr-1" />
+                        <Text>导入</Text>
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-8 px-3 rounded-lg"
+                        className="flex-1 h-9 rounded-lg text-xs"
                         onClick={() => handleStartPractice(subject.id, subject.name)}
                       >
-                        <Text className="text-xs">刷题</Text>
+                        <Text>刷题</Text>
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-8 w-8 rounded-lg"
+                        className="h-9 w-9 rounded-lg"
                         onClick={() => handleDeleteSubject(subject.id)}
                       >
-                        <Trash2 size={16} color="#64748B" />
+                        <Trash2 size={14} color="#64748B" />
                       </Button>
                     </View>
                   </View>
@@ -353,11 +455,13 @@ const CreateSubjectPage = () => {
           <View className="w-full bg-white rounded-t-3xl p-4 max-h-[80vh] overflow-y-auto">
             <View className="flex items-center justify-between mb-4">
               <Text className="block text-lg font-bold text-slate-800">导入题目</Text>
-              <Button variant="ghost" onClick={() => {
-                setShowImportModal(false)
-                setFileContent('')
-                setParsedQuestions([])
-              }}
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowImportModal(false)
+                  setFileContent('')
+                  setParsedQuestions([])
+                }}
               >
                 <Text className="text-sm text-slate-500">关闭</Text>
               </Button>
@@ -369,13 +473,29 @@ const CreateSubjectPage = () => {
               </Badge>
             )}
 
-            <View className="mb-4">
-              <Text className="block text-sm font-medium text-slate-600 mb-2">输入题目内容</Text>
-              <Text className="block text-xs text-slate-400 mb-2">支持选择题、判断题、简答题，自动解析为题目</Text>
-              <View className="bg-gray-50 rounded-xl p-4">
-                <textarea
-                  className="w-full min-h-[200px] bg-transparent outline-none text-sm"
-                  placeholder="请粘贴题目内容，例如：
+            <Tabs value={importTab} onValueChange={setImportTab}>
+              <TabsList className="w-full mb-4">
+                <TabsTrigger value="text" className="flex-1">
+                  <Text className="text-sm">直接输入</Text>
+                </TabsTrigger>
+                <TabsTrigger value="image" className="flex-1">
+                  <ImageIcon size={14} className="mr-1" color="#64748B" />
+                  <Text className="text-sm">图片上传</Text>
+                </TabsTrigger>
+                <TabsTrigger value="file" className="flex-1">
+                  <FileText size={14} className="mr-1" color="#64748B" />
+                  <Text className="text-sm">文件上传</Text>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="text" className="mt-0">
+                <View className="mb-4">
+                  <Text className="block text-sm font-medium text-slate-600 mb-2">输入题目内容</Text>
+                  <Text className="block text-xs text-slate-400 mb-2">支持选择题、判断题、简答题，自动解析为题目</Text>
+                  <View className="bg-gray-50 rounded-xl p-4">
+                    <textarea
+                      className="w-full min-h-[200px] bg-transparent outline-none text-sm"
+                      placeholder="请粘贴题目内容，例如：
 
 1. 什么是JavaScript？
 A. 编程语言
@@ -386,19 +506,55 @@ D. 硬件
 
 2. 1+1=2
 答案：正确"
-                  value={fileContent}
-                  onChange={(e) => setFileContent((e.target as any).value)}
-                />
-              </View>
-            </View>
+                      value={fileContent}
+                      onChange={(e) => setFileContent((e.target as any).value)}
+                    />
+                  </View>
+                </View>
 
-            <Button
-              className="w-full h-12 rounded-xl bg-rose-600 text-white mb-4"
-              onClick={handleParseFile}
-              disabled={parsing}
-            >
-              <Text className="text-base font-medium">{parsing ? '解析中...' : '解析题目'}</Text>
-            </Button>
+                <Button
+                  className="w-full h-12 rounded-xl bg-rose-600 text-white mb-4"
+                  onClick={handleParseFile}
+                  disabled={parsing}
+                >
+                  <Text className="text-base font-medium">{parsing ? '解析中...' : '解析题目'}</Text>
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="image" className="mt-0">
+                <View className="flex flex-col items-center justify-center py-12">
+                  <View className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <ImageIcon size={40} color="#94A3B8" />
+                  </View>
+                  <Text className="block text-sm font-medium text-slate-600 mb-2">上传题目图片</Text>
+                  <Text className="block text-xs text-slate-400 mb-4">支持拍照或从相册选择</Text>
+                  <Button
+                    className="w-full max-w-xs h-12 rounded-xl bg-rose-600 text-white"
+                    onClick={handleUploadImage}
+                  >
+                    <ImageIcon size={18} className="mr-2" color="#FFFFFF" />
+                    <Text className="text-base font-medium">选择图片</Text>
+                  </Button>
+                </View>
+              </TabsContent>
+
+              <TabsContent value="file" className="mt-0">
+                <View className="flex flex-col items-center justify-center py-12">
+                  <View className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <FileUp size={40} color="#94A3B8" />
+                  </View>
+                  <Text className="block text-sm font-medium text-slate-600 mb-2">上传题目文件</Text>
+                  <Text className="block text-xs text-slate-400 mb-4">支持 txt、md 等文本格式</Text>
+                  <Button
+                    className="w-full max-w-xs h-12 rounded-xl bg-rose-600 text-white"
+                    onClick={handleUploadFile}
+                  >
+                    <FileText size={18} className="mr-2" color="#FFFFFF" />
+                    <Text className="text-base font-medium">选择文件</Text>
+                  </Button>
+                </View>
+              </TabsContent>
+            </Tabs>
 
             {parsedQuestions.length > 0 && (
               <View className="space-y-3 mb-4">
