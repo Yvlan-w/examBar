@@ -39,6 +39,9 @@ const PracticePage = () => {
   const [correctCount, setCorrectCount] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [aiAnalysis, setAiAnalysis] = useState('')
+  const [gapAnalysis, setGapAnalysis] = useState('')
+  const [score, setScore] = useState(0)
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
@@ -157,6 +160,9 @@ const PracticePage = () => {
       setShowResult(true)
       setAnsweredCount((prev) => prev + 1)
       if (correct) setCorrectCount((prev) => prev + 1)
+      setAiAnalysis(result?.aiAnalysis || '')
+      setGapAnalysis(result?.gapAnalysis || '')
+      setScore(result?.score || 0)
     } catch (e) {
       console.error('submit error:', e)
     } finally {
@@ -171,6 +177,9 @@ const PracticePage = () => {
       setShortAnswer('')
       setShowResult(false)
       setIsFavorite(false)
+      setAiAnalysis('')
+      setGapAnalysis('')
+      setScore(0)
       submittedRef.current = false
       setTimeout(() => {
         if (questions[currentIndex + 1]) {
@@ -333,7 +342,7 @@ const PracticePage = () => {
 
         {/* 解析区域 */}
         {showResult && (
-          <View className="mt-4">
+          <View className="mt-4 space-y-4">
             <Card className={`border-0 ${isCorrect ? 'bg-emerald-50' : 'bg-red-50'}`}>
               <CardContent className="p-4">
                 <View className="flex items-center gap-2 mb-2">
@@ -345,15 +354,44 @@ const PracticePage = () => {
                   <Text className={`block text-sm font-semibold ${isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>
                     {isCorrect ? '回答正确' : '回答错误'}
                   </Text>
+                  {score > 0 && (
+                    <Badge className="ml-auto bg-blue-500 text-white">
+                      {score}分
+                    </Badge>
+                  )}
                 </View>
                 <Text className="block text-xs text-slate-500 mb-1">
                   正确答案：{currentQuestion.answer}
                 </Text>
-                <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
-                  {currentQuestion.analysis}
-                </Text>
+                {currentQuestion.analysis && (
+                  <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
+                    {currentQuestion.analysis}
+                  </Text>
+                )}
               </CardContent>
             </Card>
+
+            {gapAnalysis && (
+              <Card className="border-0 bg-orange-50">
+                <CardContent className="p-4">
+                  <Text className="block text-xs font-semibold text-orange-700 mb-2">差距分析</Text>
+                  <Text className="block text-sm text-slate-600 leading-relaxed">
+                    {gapAnalysis}
+                  </Text>
+                </CardContent>
+              </Card>
+            )}
+
+            {aiAnalysis && (
+              <Card className="border-0 bg-blue-50">
+                <CardContent className="p-4">
+                  <Text className="block text-xs font-semibold text-blue-700 mb-2">AI解析</Text>
+                  <Text className="block text-sm text-slate-600 leading-relaxed">
+                    {aiAnalysis}
+                  </Text>
+                </CardContent>
+              </Card>
+            )}
           </View>
         )}
       </View>

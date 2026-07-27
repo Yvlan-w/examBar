@@ -387,10 +387,10 @@ const CreateSubjectPage = () => {
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-9 w-9 rounded-lg"
+                        className="h-9 w-9 rounded-lg p-0 flex items-center justify-center"
                         onClick={() => handleDeleteSubject(subject.id)}
                       >
-                        <Trash size={100} color="#64748B" />
+                        <Trash size={18} color="#64748B" />
                       </Button>
                     </View>
                   </View>

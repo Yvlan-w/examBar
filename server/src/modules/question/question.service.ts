@@ -7,6 +7,7 @@ import {
   questions as seedQuestions,
 } from '@/data/seed-data';
 import { StatsService } from '../stats/stats.service';
+import { AnswerEvaluateService } from '../answer-evaluate/answer-evaluate.service';
 
 export interface AnswerRecord {
   id: string;
@@ -22,7 +23,10 @@ export interface AnswerRecord {
 
 @Injectable()
 export class QuestionService implements OnModuleInit {
-  constructor(private readonly statsService: StatsService) {}
+  constructor(
+    private readonly statsService: StatsService,
+    private readonly answerEvaluateService: AnswerEvaluateService,
+  ) {}
 
   async onModuleInit() {
     await this.seedData();
@@ -57,6 +61,8 @@ export class QuestionService implements OnModuleInit {
           content: questions.content,
           type: questions.type,
           options: questions.options,
+          answer: questions.answer,
+          analysis: questions.analysis,
           difficulty: questions.difficulty,
           subjectId: questions.subjectId,
           subjectName: questions.subjectName,
@@ -67,6 +73,8 @@ export class QuestionService implements OnModuleInit {
           content: questions.content,
           type: questions.type,
           options: questions.options,
+          answer: questions.answer,
+          analysis: questions.analysis,
           difficulty: questions.difficulty,
           subjectId: questions.subjectId,
           subjectName: questions.subjectName,
@@ -94,6 +102,8 @@ export class QuestionService implements OnModuleInit {
       content: questions.content,
       type: questions.type,
       options: questions.options,
+      answer: questions.answer,
+      analysis: questions.analysis,
       difficulty: questions.difficulty,
       subjectId: questions.subjectId,
       subjectName: questions.subjectName,
@@ -107,7 +117,23 @@ export class QuestionService implements OnModuleInit {
     const question = await this.getQuestionById(questionId);
     if (!question) return null;
 
-    const isCorrect = answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
+    let isCorrect = answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
+    let aiAnalysis = '';
+    let gapAnalysis = '';
+    let score = 0;
+
+    if (question.type === 'short') {
+      const evaluation = await this.answerEvaluateService.evaluateShortAnswer(
+        question.content,
+        answer,
+        question.answer,
+      );
+      aiAnalysis = evaluation.aiAnalysis;
+      gapAnalysis = evaluation.gapAnalysis;
+      score = evaluation.score;
+      isCorrect = score >= 60;
+    }
+
     const recordId = 'r' + Date.now() + Math.random().toString(36).substring(2, 6);
     const createdAt = new Date().toISOString().split('T')[0];
 
@@ -131,6 +157,9 @@ export class QuestionService implements OnModuleInit {
       isCorrect,
       correctAnswer: question.answer,
       analysis: question.analysis || '',
+      aiAnalysis,
+      gapAnalysis,
+      score,
       record: {
         id: recordId,
         questionId,
@@ -163,6 +192,8 @@ export class QuestionService implements OnModuleInit {
           content: questions.content,
           type: questions.type,
           options: questions.options,
+          answer: questions.answer,
+          analysis: questions.analysis,
           difficulty: questions.difficulty,
           subjectId: questions.subjectId,
           subjectName: questions.subjectName,
@@ -173,6 +204,8 @@ export class QuestionService implements OnModuleInit {
           content: questions.content,
           type: questions.type,
           options: questions.options,
+          answer: questions.answer,
+          analysis: questions.analysis,
           difficulty: questions.difficulty,
           subjectId: questions.subjectId,
           subjectName: questions.subjectName,
