@@ -41,7 +41,7 @@ export class AnswerEvaluateService {
       ];
 
       const response = await this.llmClient.invoke(messages, {
-        model: 'doubao-seed-2-0-mini-260428',
+        model: 'doubao-seed-2-0-mini-260215',
       });
 
       const content = response.content || '';

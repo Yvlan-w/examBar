@@ -162,7 +162,9 @@ export class CustomSubjectService {
         },
       ];
 
-      const response = await this.llmClient.invoke(messages);
+      const response = await this.llmClient.invoke(messages, {
+        model: 'doubao-seed-2-0-mini-260215',
+      });
       const content = response.content || '';
 
       let parsedQuestions: any[] = [];
