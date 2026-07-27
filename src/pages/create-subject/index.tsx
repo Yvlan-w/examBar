@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
-import { Plus, Eye, EyeOff, Trash2, Upload, BookOpen, Image as ImageIcon, FileText, FileUp } from 'lucide-react-taro'
+import { Plus, Eye, EyeOff, Trash, Upload, BookOpen, Image as ImageIcon, FileText, FileUp } from 'lucide-react-taro'
 
 interface CustomSubject {
   id: string
@@ -292,16 +292,16 @@ const CreateSubjectPage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 pb-24">
-      <View className="bg-rose-600 px-4 pt-8 pb-6 rounded-b-3xl">
+      <View className="bg-blue-500 px-4 pt-8 pb-6 rounded-b-3xl">
         <Text className="block text-white text-xl font-bold">创建题库</Text>
-        <Text className="block text-rose-100 text-xs mt-1">自定义题库并导入题目</Text>
+        <Text className="block text-blue-100 text-xs mt-1">自定义题库并导入题目</Text>
       </View>
 
       <View className="px-4 mt-4">
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <Button
-              className="w-full bg-rose-600 text-white h-12 rounded-xl"
+              className="w-full bg-blue-500 text-white h-12 rounded-xl"
               onClick={() => setShowCreateModal(true)}
             >
               <Plus size={20} color="#FFFFFF" className="mr-2" />
@@ -390,7 +390,7 @@ const CreateSubjectPage = () => {
                         className="h-9 w-9 rounded-lg"
                         onClick={() => handleDeleteSubject(subject.id)}
                       >
-                        <Trash2 size={14} color="#64748B" />
+                        <Trash size={14} color="#64748B" />
                       </Button>
                     </View>
                   </View>
@@ -438,7 +438,7 @@ const CreateSubjectPage = () => {
                     <Text>取消</Text>
                   </Button>
                   <Button
-                    className="flex-1 h-10 rounded-xl bg-rose-600 text-white"
+                    className="flex-1 h-10 rounded-xl bg-blue-500 text-white"
                     onClick={handleCreateSubject}
                   >
                     <Text>创建</Text>
@@ -468,7 +468,7 @@ const CreateSubjectPage = () => {
             </View>
 
             {selectedSubject && (
-              <Badge className="mb-4 bg-rose-100 text-rose-700">
+              <Badge className="mb-4 bg-blue-100 text-blue-700">
                 目标题库：{selectedSubject.name}
               </Badge>
             )}
@@ -513,7 +513,7 @@ D. 硬件
                 </View>
 
                 <Button
-                  className="w-full h-12 rounded-xl bg-rose-600 text-white mb-4"
+                  className="w-full h-12 rounded-xl bg-blue-500 text-white mb-4"
                   onClick={handleParseFile}
                   disabled={parsing}
                 >
@@ -529,7 +529,7 @@ D. 硬件
                   <Text className="block text-sm font-medium text-slate-600 mb-2">上传题目图片</Text>
                   <Text className="block text-xs text-slate-400 mb-4">支持拍照或从相册选择</Text>
                   <Button
-                    className="w-full max-w-xs h-12 rounded-xl bg-rose-600 text-white"
+                    className="w-full max-w-xs h-12 rounded-xl bg-blue-500 text-white"
                     onClick={handleUploadImage}
                   >
                     <ImageIcon size={18} className="mr-2" color="#FFFFFF" />
@@ -546,7 +546,7 @@ D. 硬件
                   <Text className="block text-sm font-medium text-slate-600 mb-2">上传题目文件</Text>
                   <Text className="block text-xs text-slate-400 mb-4">支持 txt、md 等文本格式</Text>
                   <Button
-                    className="w-full max-w-xs h-12 rounded-xl bg-rose-600 text-white"
+                    className="w-full max-w-xs h-12 rounded-xl bg-blue-500 text-white"
                     onClick={handleUploadFile}
                   >
                     <FileText size={18} className="mr-2" color="#FFFFFF" />

@@ -1,5 +1,5 @@
 export default {
-  navigationBarTitleText: '创建题库',
-  navigationBarBackgroundColor: '#DC2626',
+  navigationBarTitleText: '题库管理',
+  navigationBarBackgroundColor: '#3B82F6',
   navigationBarTextStyle: 'white',
 }

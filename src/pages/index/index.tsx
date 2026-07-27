@@ -47,7 +47,7 @@ const MODE_ICONS = [
   { key: 'exam', label: '模拟考试', desc: '全真模拟限时测试', icon: Clock, color: 'bg-amber-50', iconColor: '#D97706' },
   { key: 'history', label: '历年真题', desc: '历年考题精选', icon: FileText, color: 'bg-emerald-50', iconColor: '#059669' },
   { key: 'favorites', label: '我的收藏', desc: '收藏的题目', icon: Star, color: 'bg-purple-50', iconColor: '#7C3AED' },
-  { key: 'create-subject', label: '创建题库', desc: '自定义题库', icon: Plus, color: 'bg-rose-50', iconColor: '#DC2626' },
+  { key: 'create-subject', label: '题库管理', desc: '自定义题库', icon: Plus, color: 'bg-blue-50', iconColor: '#3B82F6' },
 ]
 
 const SUBJECT_COLORS = [
