@@ -198,6 +198,12 @@ const IndexPage = () => {
         <Card className="shadow-sm border-0">
           <CardContent className="p-4">
             <Text className="block text-base font-semibold text-slate-800 mb-3">刷题模式</Text>
+            {/* 右滑提示 */}
+            <View className="flex items-center gap-1 text-slate-400">
+              <Text className="text-xs">左右滑动</Text>
+              <ChevronRight size={14} color="#94a3b8"/>
+              <Text className="text-xs">→</Text>
+            </View>
             <View className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
               {MODE_ICONS.map((mode) => (
                 <View

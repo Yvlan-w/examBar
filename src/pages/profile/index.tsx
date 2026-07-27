@@ -152,23 +152,23 @@ const ProfilePage = () => {
         </View>
         <View className="flex items-center justify-around bg-white bg-opacity-10 rounded-2xl p-4">
           <View className="flex flex-col items-center">
-            <Text className="block text-white text-xl font-bold">{stats?.totalQuestions || 0}</Text>
-            <Text className="block text-blue-100 text-xs mt-1">总刷题量</Text>
+            <Text className="block text-slate-800 text-xl font-bold">{stats?.totalQuestions || 0}</Text>
+            <Text className="block text-blue-600 text-xs mt-1">总刷题量</Text>
           </View>
           <View className="w-px h-8 bg-white bg-opacity-20" />
           <View className="flex flex-col items-center">
-            <Text className={`block text-xl font-bold ${accuracyColor === 'text-emerald-600' ? 'text-white' : accuracyColor}`}>
+            <Text className={`block text-xl font-bold ${accuracyColor}`}>
               {accuracy}%
             </Text>
-            <Text className="block text-blue-100 text-xs mt-1">正确率</Text>
+            <Text className="block text-blue-600 text-xs mt-1">正确率</Text>
           </View>
           <View className="w-px h-8 bg-white bg-opacity-20" />
           <View className="flex flex-col items-center">
             <View className="flex items-center gap-1">
               <Flame size={16} color="#FCD34D" />
-              <Text className="block text-white text-xl font-bold">{stats?.streak || 0}</Text>
+              <Text className="block text-slate-800 text-xl font-bold">{stats?.streak || 0}</Text>
             </View>
-            <Text className="block text-blue-100 text-xs mt-1">连续天数</Text>
+            <Text className="block text-blue-600 text-xs mt-1">连续天数</Text>
           </View>
         </View>
       </View>
