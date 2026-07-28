@@ -233,7 +233,12 @@ export class CustomSubjectService {
       return { count: 0 };
     }
 
-    await db.insert(questions).values(questionsData);
+    const questionsToInsert = questionsData.map(q => {
+      const { createdAt, ...rest } = q;
+      return rest;
+    });
+
+    await db.insert(questions).values(questionsToInsert);
 
     const countResult = await db.select({ count: count() }).from(questions).where(eq(questions.subjectId, subjectId));
     
