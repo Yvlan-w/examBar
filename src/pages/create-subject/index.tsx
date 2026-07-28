@@ -304,6 +304,7 @@ const CreateSubjectPage = () => {
   }
 
   const handleImportQuestions = async () => {
+    console.log(parsedQuestions)
     if (parsedQuestions.length === 0) {
       Taro.showToast({ title: '没有可导入的题目', icon: 'none' })
       return

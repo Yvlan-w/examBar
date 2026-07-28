@@ -212,7 +212,7 @@ export class CustomSubjectService {
         id: 'q_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 8),
         subjectId,
         subjectName,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
       }));
 
       return { questions: finalQuestions, tempFileKey };
