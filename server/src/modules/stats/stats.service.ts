@@ -105,8 +105,11 @@ export class StatsService {
     }
 
     const stats = result[0];
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = stats.lastStudyDate === today;
+    
     return {
-      todayCount: stats.todayCount || 0,
+      todayCount: isToday ? (stats.todayCount || 0) : 0,
       totalDays: stats.totalDays || 0,
       streak: stats.streak || 0,
     };
@@ -140,7 +143,8 @@ export class StatsService {
       totalQuestions = stats.totalQuestions || 0;
       totalCorrect = stats.totalCorrect || 0;
       accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-      todayCount = stats.todayCount || 0;
+      const today = new Date().toISOString().split('T')[0];
+      todayCount = stats.lastStudyDate === today ? (stats.todayCount || 0) : 0;
       streak = stats.streak || 0;
       totalDays = stats.totalDays || 0;
     }

@@ -35,21 +35,22 @@ export class CustomSubjectController {
 
   @Post('parse')
   @HttpCode(200)
-  async parseFile(@Body() body: { fileContent: string; subjectId: string; subjectName: string }) {
-    const data = await this.customSubjectService.parseFileToQuestions(body.fileContent, body.subjectId, body.subjectName);
+  async parseFile(@Body() body: { fileContent: string; subjectId: string; subjectName: string; nickname?: string }) {
+    const data = await this.customSubjectService.parseFileToQuestions(body.fileContent, body.subjectId, body.subjectName, undefined, undefined, body.nickname);
     return { code: 200, msg: 'success', data: data.questions };
   }
 
   @Post('parse-url')
   @HttpCode(200)
-  async parseByUrl(@Body() body: { url: string; subjectId: string; subjectName: string; tempFileKey?: string }) {
+  async parseByUrl(@Body() body: { url: string; subjectId: string; subjectName: string; tempFileKey?: string; nickname?: string }) {
     try {
       const result = await this.customSubjectService.parseFileToQuestions(
         '',
         body.subjectId,
         body.subjectName,
         body.url,
-        body.tempFileKey
+        body.tempFileKey,
+        body.nickname
       );
 
       return { 

@@ -174,6 +174,7 @@ const CreateSubjectPage = () => {
                 subjectId: selectedSubject?.id || '',
                 subjectName: selectedSubject?.name || '',
                 tempFileKey: uploadData.data.key,
+                nickname: user?.nickName || 'user',
               },
             })
             
@@ -217,6 +218,7 @@ const CreateSubjectPage = () => {
                 fileContent: fileRes.data,
                 subjectId: selectedSubject?.id || '',
                 subjectName: selectedSubject?.name || '',
+                nickname: user?.nickName || 'user',
               },
             })
             
@@ -245,6 +247,7 @@ const CreateSubjectPage = () => {
                   subjectId: selectedSubject?.id || '',
                   subjectName: selectedSubject?.name || '',
                   tempFileKey: uploadData.data.key,
+                  nickname: user?.nickName || 'user',
                 },
               })
               
@@ -288,6 +291,7 @@ const CreateSubjectPage = () => {
           fileContent: fileContent.trim(),
           subjectId: selectedSubject.id,
           subjectName: selectedSubject.name,
+          nickname: user?.nickName || 'user',
         },
       })
 
