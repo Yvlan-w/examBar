@@ -3,12 +3,13 @@ import { db } from '@/db/db.module';
 import { customSubjects, questions, subjects, users } from '@/db/schema';
 import { eq, and, count, or } from 'drizzle-orm';
 import { LLMClient } from 'coze-coding-dev-sdk';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class CustomSubjectService {
   private llmClient: LLMClient;
 
-  constructor() {
+  constructor(private readonly storageService: StorageService) {
     this.llmClient = new LLMClient();
   }
 
@@ -131,12 +132,34 @@ export class CustomSubjectService {
     return subjectsWithCount;
   }
 
-  async parseFileToQuestions(fileContent: string, subjectId: string, subjectName: string): Promise<any[]> {
+  async parseFileToQuestions(
+    fileContent: string, 
+    subjectId: string, 
+    subjectName: string,
+    imageUrl?: string,
+    tempFileKey?: string
+  ): Promise<{ questions: any[]; tempFileKey?: string }> {
     try {
+      let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
+      
+      if (imageUrl) {
+        userMessageContent = [
+          {
+            type: 'image_url' as const,
+            image_url: {
+              url: imageUrl,
+              detail: 'high' as const,
+            },
+          },
+        ];
+      } else {
+        userMessageContent = fileContent;
+      }
+
       const messages = [
         {
           role: 'system' as const,
-          content: `你是一个专业的题目解析助手。请将以下文本内容解析为结构化的题目数据。
+          content: `你是一个专业的题目解析助手。请将以下文本或图片内容解析为结构化的题目数据。
 
 题目类型支持：
 - choice: 选择题（包含多个选项和正确答案）
@@ -158,7 +181,7 @@ export class CustomSubjectService {
         },
         {
           role: 'user' as const,
-          content: fileContent,
+          content: userMessageContent,
         },
       ];
 
@@ -192,10 +215,16 @@ export class CustomSubjectService {
         createdAt: new Date().toISOString(),
       }));
 
-      return finalQuestions;
+      return { questions: finalQuestions, tempFileKey };
     } catch (error) {
       console.error('LLM parsing error:', error);
-      return [];
+      return { questions: [], tempFileKey };
+    }
+  }
+
+  async cleanUpTempFile(key?: string): Promise<void> {
+    if (key) {
+      await this.storageService.deleteFile(key);
     }
   }
 

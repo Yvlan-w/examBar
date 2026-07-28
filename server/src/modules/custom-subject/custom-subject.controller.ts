@@ -37,7 +37,38 @@ export class CustomSubjectController {
   @HttpCode(200)
   async parseFile(@Body() body: { fileContent: string; subjectId: string; subjectName: string }) {
     const data = await this.customSubjectService.parseFileToQuestions(body.fileContent, body.subjectId, body.subjectName);
-    return { code: 200, msg: 'success', data };
+    return { code: 200, msg: 'success', data: data.questions };
+  }
+
+  @Post('parse-url')
+  @HttpCode(200)
+  async parseByUrl(@Body() body: { url: string; subjectId: string; subjectName: string; tempFileKey?: string }) {
+    try {
+      const result = await this.customSubjectService.parseFileToQuestions(
+        '',
+        body.subjectId,
+        body.subjectName,
+        body.url,
+        body.tempFileKey
+      );
+
+      return { 
+        code: 200, 
+        msg: 'success', 
+        data: result.questions,
+        tempFileKey: result.tempFileKey 
+      };
+    } catch (error) {
+      console.error('Parse by URL error:', error);
+      return { code: 500, msg: '解析失败', data: [] };
+    }
+  }
+
+  @Post('cleanup')
+  @HttpCode(200)
+  async cleanup(@Body() body: { tempFileKey: string }) {
+    await this.customSubjectService.cleanUpTempFile(body.tempFileKey);
+    return { code: 200, msg: 'success', data: null };
   }
 
   @Post('import')

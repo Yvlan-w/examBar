@@ -35,6 +35,7 @@ const CreateSubjectPage = () => {
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [importTab, setImportTab] = useState('text')
+  const [tempFileKey, setTempFileKey] = useState('')
   const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
@@ -156,17 +157,35 @@ const CreateSubjectPage = () => {
         Taro.showToast({ title: '图片上传中...', icon: 'loading' })
         try {
           const uploadRes = await Network.uploadFile({
-            url: '/api/custom-subjects/parse',
+            url: '/api/storage/upload-temp',
             filePath: res.tempFilePaths[0],
             name: 'file',
           })
           console.log('image upload result:', uploadRes)
-          const data = JSON.parse(uploadRes.data)
-          if (data.code === 200) {
-            setParsedQuestions(data.data || [])
-            Taro.showToast({ title: `解析出 ${data.data?.length} 道题目`, icon: 'success' })
+          const uploadData = JSON.parse(uploadRes.data)
+          
+          if (uploadData.code === 200) {
+            Taro.showToast({ title: '解析中...', icon: 'loading' })
+            const parseRes = await Network.request({
+              url: '/api/custom-subjects/parse-url',
+              method: 'POST',
+              data: {
+                url: uploadData.data.url,
+                subjectId: selectedSubject?.id || '',
+                subjectName: selectedSubject?.name || '',
+                tempFileKey: uploadData.data.key,
+              },
+            })
+            
+            if (parseRes.data?.code === 200) {
+              setParsedQuestions(parseRes.data?.data || [])
+              setTempFileKey(parseRes.data?.tempFileKey || '')
+              Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+            } else {
+              Taro.showToast({ title: '解析失败', icon: 'none' })
+            }
           } else {
-            Taro.showToast({ title: '解析失败', icon: 'none' })
+            Taro.showToast({ title: '上传失败', icon: 'none' })
           }
         } catch (e) {
           console.error('uploadImage error:', e)
@@ -181,24 +200,70 @@ const CreateSubjectPage = () => {
       count: 1,
       type: 'file',
       success: async (res) => {
-        Taro.showToast({ title: '文件上传中...', icon: 'loading' })
+        const fileName = res.tempFiles[0].name.toLowerCase()
+        Taro.showToast({ title: '处理中...', icon: 'loading' })
+        
         try {
-          const uploadRes = await Network.uploadFile({
-            url: '/api/custom-subjects/parse',
-            filePath: res.tempFiles[0].path,
-            name: 'file',
-          })
-          console.log('file upload result:', uploadRes)
-          const data = JSON.parse(uploadRes.data)
-          if (data.code === 200) {
-            setParsedQuestions(data.data || [])
-            Taro.showToast({ title: `解析出 ${data.data?.length} 道题目`, icon: 'success' })
+          if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
+            const fileRes = await (Taro as any).readFile({
+              filePath: res.tempFiles[0].path,
+              encoding: 'utf-8',
+            })
+            
+            const parseRes = await Network.request({
+              url: '/api/custom-subjects/parse',
+              method: 'POST',
+              data: {
+                fileContent: fileRes.data,
+                subjectId: selectedSubject?.id || '',
+                subjectName: selectedSubject?.name || '',
+              },
+            })
+            
+            if (parseRes.data?.code === 200) {
+              setParsedQuestions(parseRes.data?.data || [])
+              Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+            } else {
+              Taro.showToast({ title: '解析失败', icon: 'none' })
+            }
+          } else if (fileName.endsWith('.pdf')) {
+            const uploadRes = await Network.uploadFile({
+              url: '/api/storage/upload-temp',
+              filePath: res.tempFiles[0].path,
+              name: 'file',
+            })
+            console.log('pdf upload result:', uploadRes)
+            const uploadData = JSON.parse(uploadRes.data)
+            
+            if (uploadData.code === 200) {
+              Taro.showToast({ title: '解析中...', icon: 'loading' })
+              const parseRes = await Network.request({
+                url: '/api/custom-subjects/parse-url',
+                method: 'POST',
+                data: {
+                  url: uploadData.data.url,
+                  subjectId: selectedSubject?.id || '',
+                  subjectName: selectedSubject?.name || '',
+                  tempFileKey: uploadData.data.key,
+                },
+              })
+              
+              if (parseRes.data?.code === 200) {
+                setParsedQuestions(parseRes.data?.data || [])
+                setTempFileKey(parseRes.data?.tempFileKey || '')
+                Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+              } else {
+                Taro.showToast({ title: '解析失败', icon: 'none' })
+              }
+            } else {
+              Taro.showToast({ title: '上传失败', icon: 'none' })
+            }
           } else {
-            Taro.showToast({ title: '解析失败', icon: 'none' })
+            Taro.showToast({ title: '不支持的文件格式', icon: 'none' })
           }
         } catch (e) {
           console.error('uploadFile error:', e)
-          Taro.showToast({ title: '上传失败', icon: 'none' })
+          Taro.showToast({ title: '处理失败', icon: 'none' })
         }
       },
     })
@@ -257,6 +322,16 @@ const CreateSubjectPage = () => {
 
       if (res.data?.code === 200) {
         Taro.showToast({ title: `成功导入 ${res.data?.data?.count} 道题目`, icon: 'success' })
+        
+        if (tempFileKey) {
+          await Network.request({
+            url: '/api/custom-subjects/cleanup',
+            method: 'POST',
+            data: { tempFileKey },
+          })
+          setTempFileKey('')
+        }
+        
         setShowImportModal(false)
         setFileContent('')
         setParsedQuestions([])

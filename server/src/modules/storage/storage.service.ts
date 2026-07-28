@@ -80,4 +80,38 @@ export class StorageService implements OnModuleInit {
       throw new Error('从URL上传文件失败');
     }
   }
+
+  async deleteFile(key: string): Promise<void> {
+    try {
+      await this.storage.deleteFile({ fileKey: key });
+      console.log('File deleted successfully:', key);
+    } catch (error) {
+      console.error('Delete file error:', error);
+    }
+  }
+
+  async uploadTempFile(fileBuffer: Buffer, fileName: string, contentType: string = 'image/png'): Promise<{ url: string; key: string }> {
+    try {
+      const key = `temp/${Date.now()}_${fileName}`;
+      
+      const uploadResult = await this.storage.uploadFile({
+        fileContent: fileBuffer,
+        fileName: key,
+        contentType,
+      });
+      console.log('Upload result:', uploadResult);
+      
+      const actualKey = typeof uploadResult === 'string' ? uploadResult : key;
+      
+      const presignedUrl = await this.storage.generatePresignedUrl({
+        key: actualKey,
+        expireTime: 60 * 60 * 24,
+      });
+      console.log('Generated presigned URL:', presignedUrl);
+      return { url: presignedUrl, key: actualKey };
+    } catch (error) {
+      console.error('Upload temp file error:', error);
+      throw new Error('临时文件上传失败');
+    }
+  }
 }
