@@ -141,6 +141,19 @@ export class CustomSubjectService {
     nickname: string = 'user'
   ): Promise<{ questions: any[]; tempFileKey?: string }> {
     try {
+      console.log('\n=====================================');
+      console.log('=== LLM 题目解析流程开始 ===');
+      console.log('=====================================');
+      console.log('[输入参数] subjectId:', subjectId);
+      console.log('[输入参数] subjectName:', subjectName);
+      console.log('[输入参数] nickname:', nickname);
+      console.log('[输入参数] hasImageUrl:', !!imageUrl);
+      console.log('[输入参数] hasFileContent:', !!fileContent && fileContent.length > 0);
+      if (fileContent && fileContent.length > 0) {
+        console.log('[输入参数] fileContent长度:', fileContent.length);
+        console.log('[输入参数] fileContent前200字符:', fileContent.substring(0, 200) + (fileContent.length > 200 ? '...' : ''));
+      }
+
       let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
       
       if (imageUrl) {
@@ -193,10 +206,9 @@ medium：需要简单理解、对比分析，常规考核题型
 hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 
 # 额外业务规则
-1. 同时识别到多道题目，输出包含多个对象的JSON数组；仅一道题目同样外层包裹数组；
-2. 题干、选项文字做清洗：去除空格、乱码、多余换行；保证文本通顺；
-3. 若原始素材缺失标准答案，尽可能基于专业知识给出合理参考答案；无法判断时在analysis注明「原题未提供标准答案，解析仅供参考」；
-4. 不要自行编造不存在的题干与选项；识别不到有效题目返回空数组 []。
+1. 题干、选项文字做清洗：去除空格、乱码、多余换行；保证文本通顺；
+2. 若原始素材缺失标准答案，尽可能基于专业知识给出合理参考答案；无法判断时在analysis注明「原题未提供标准答案，解析仅供参考」；
+3. 不要自行编造不存在的题干与选项；识别不到有效题目返回空数组 []。
 
 
 模板标准样例：
@@ -224,30 +236,57 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         },
       ];
 
+      console.log('[LLM请求] 消息数量:', messages.length);
+      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? '图片数组' : '文本');
+      if (Array.isArray(userMessageContent)) {
+        console.log('[LLM请求] 图片URL:', userMessageContent[0]?.image_url?.url);
+      }
+
       const response = await this.llmClient.invoke(messages, {
         model: 'doubao-seed-2-0-lite-260215',
       });
       const content = response.content || '';
 
+      console.log('\n[LLM响应] 原始内容长度:', content.length);
+      console.log('[LLM响应] 原始内容:', content);
+
       let parsedQuestions: any[] = [];
       try {
         const jsonMatch = content.match(/\[.*\]/s);
+        console.log('[JSON解析] 找到JSON匹配:', !!jsonMatch);
         if (jsonMatch) {
+          console.log('[JSON解析] 匹配内容:', jsonMatch[0]);
           parsedQuestions = JSON.parse(jsonMatch[0]);
         }
       } catch (e) {
-        console.error('Failed to parse LLM response:', e);
+        console.error('[JSON解析] 解析失败:', e);
+      }
+
+      console.log('[解析结果] 解析出题目数量:', parsedQuestions.length);
+      if (parsedQuestions.length > 0) {
+        console.log('[解析结果] 第一题:', JSON.stringify(parsedQuestions[0], null, 2));
+        if (parsedQuestions.length > 1) {
+          console.log('[解析结果] 最后一题:', JSON.stringify(parsedQuestions[parsedQuestions.length - 1], null, 2));
+        }
       }
 
       const existingQuestions = await db.select({ content: questions.content, id: questions.id }).from(questions).where(eq(questions.subjectId, subjectId));
       const existingContents = new Set(existingQuestions.map((q) => q.content.trim()));
 
+      console.log('[去重检查] 题库中已有题目数量:', existingQuestions.length);
+
       const filteredQuestions = parsedQuestions.filter((q) => {
         return q.content && !existingContents.has(q.content.trim());
       });
 
+      console.log('[去重结果] 去重后题目数量:', filteredQuestions.length);
+      console.log('[去重结果] 被过滤的重复题目数量:', parsedQuestions.length - filteredQuestions.length);
+
       const cleanNickname = nickname.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       const cleanSubjectName = subjectName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').replace(/by\s+\S+$/, '').trim();
+
+      console.log('[ID生成] cleanNickname:', cleanNickname);
+      console.log('[ID生成] cleanSubjectName:', cleanSubjectName);
 
       let maxSequence = 0;
       for (const q of existingQuestions) {
@@ -269,9 +308,23 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         createdAt: new Date(),
       }));
 
+      console.log('[ID生成] 最大序列号:', maxSequence);
+      console.log('[最终结果] 生成题目数量:', finalQuestions.length);
+      if (finalQuestions.length > 0) {
+        console.log('[最终结果] 第一题ID:', finalQuestions[0].id);
+        console.log('[最终结果] 最后一题ID:', finalQuestions[finalQuestions.length - 1].id);
+      }
+      console.log('=====================================');
+      console.log('=== LLM 题目解析流程结束 ===');
+      console.log('=====================================\n');
+
       return { questions: finalQuestions, tempFileKey };
     } catch (error) {
-      console.error('LLM parsing error:', error);
+      console.error('=====================================');
+      console.error('=== LLM 题目解析流程出错 ===');
+      console.error('=====================================');
+      console.error('[错误]', error);
+      console.error('=====================================\n');
       return { questions: [], tempFileKey };
     }
   }
