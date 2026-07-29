@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { customSubjects, questions, subjects, users } from '@/db/schema';
-import { eq, and, count, or } from 'drizzle-orm';
+import { customSubjects, questions, subjects, users, answerRecords, favoriteRecords, subjectStats } from '@/db/schema';
+import { eq, and, count, or, inArray } from 'drizzle-orm';
 import { LLMClient } from 'coze-coding-dev-sdk';
 import { StorageService } from '../storage/storage.service';
 
@@ -363,8 +363,17 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
   }
 
   async deleteCustomSubject(userId: number, subjectId: string) {
-    await db.delete(customSubjects).where(and(eq(customSubjects.id, subjectId), eq(customSubjects.userId, userId)));
+    const subjectQuestions = await db.select({ id: questions.id }).from(questions).where(eq(questions.subjectId, subjectId));
+    const questionIds = subjectQuestions.map(q => q.id);
+
+    if (questionIds.length > 0) {
+      await db.delete(answerRecords).where(inArray(answerRecords.questionId, questionIds));
+      await db.delete(favoriteRecords).where(inArray(favoriteRecords.questionId, questionIds));
+    }
+
+    await db.delete(subjectStats).where(eq(subjectStats.subjectId, subjectId));
     await db.delete(questions).where(eq(questions.subjectId, subjectId));
+    await db.delete(customSubjects).where(and(eq(customSubjects.id, subjectId), eq(customSubjects.userId, userId)));
     await db.delete(subjects).where(eq(subjects.id, subjectId));
     
     return { success: true };
