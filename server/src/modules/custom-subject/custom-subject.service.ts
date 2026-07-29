@@ -191,6 +191,8 @@ export class CustomSubjectService {
     tempFileKeys?: string[],
     nickname: string = 'user'
   ): Promise<{ questions: any[]; questionsToUpdate?: any[]; tempFileKeys?: string[] }> {
+    let finalTempFileKeys = tempFileKeys || [];
+    
     try {
       console.log('\n=====================================');
       console.log('=== LLM 题目解析流程开始 ===');
@@ -210,10 +212,46 @@ export class CustomSubjectService {
         });
       }
 
+      // 检查是否是 PDF URL（通过 tempFileKeys 中的 key 来判断）
+      const isPdfFile = tempFileKeys?.some(key => key.includes('temp/'));
+      let finalImageUrls = imageUrls || [];
+
+      // 如果有 imageUrls，检查第一个是否指向 PDF 文件
+      if (finalImageUrls.length > 0 && !isPdfFile) {
+        const firstUrl = finalImageUrls[0];
+        const isPdfUrl = firstUrl.toLowerCase().includes('.pdf') || 
+          (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys[0].includes('.pdf'));
+        
+        if (isPdfUrl) {
+          console.log('[PDF处理] 检测到 PDF 文件，开始转换为图片...');
+          
+          try {
+            const pdfUrl = tempFileKeys ? await this.getPresignedUrl(tempFileKeys[0]) : firstUrl;
+            const { imageUrls: convertedUrls, tempFileKeys: convertedKeys } = 
+              await this.storageService.convertPdfToImages(pdfUrl);
+            
+            console.log(`[PDF处理] 转换完成，共 ${convertedUrls.length} 张图片`);
+            
+            // 使用转换后的图片 URL
+            finalImageUrls = convertedUrls;
+            // 更新 tempFileKeys
+            finalTempFileKeys = convertedKeys;
+            
+            // 添加原始 PDF 的 key 用于清理
+            if (tempFileKeys && tempFileKeys.length > 0) {
+              finalTempFileKeys = [...tempFileKeys, ...convertedKeys];
+            }
+          } catch (pdfError) {
+            console.error('[PDF处理] PDF 转换失败，尝试直接解析 PDF URL:', pdfError);
+            // 如果 PDF 转换失败，直接使用原始 URL 尝试解析
+          }
+        }
+      }
+
       let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
       
-      if (imageUrls && imageUrls.length > 0) {
-        userMessageContent = imageUrls.map((url) => ({
+      if (finalImageUrls && finalImageUrls.length > 0) {
+        userMessageContent = finalImageUrls.map((url) => ({
           type: 'image_url' as const,
           image_url: {
             url,
@@ -397,7 +435,7 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       return { 
         questions: finalNewQuestions, 
         questionsToUpdate,
-        tempFileKeys 
+        tempFileKeys: finalTempFileKeys
       };
     } catch (error) {
       console.error('=====================================');
@@ -405,7 +443,19 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       console.error('=====================================');
       console.error('[错误]', error);
       console.error('=====================================\n');
-      return { questions: [], questionsToUpdate: [], tempFileKeys };
+      return { questions: [], questionsToUpdate: [], tempFileKeys: finalTempFileKeys };
+    }
+  }
+
+  /**
+   * 获取文件的预签名 URL
+   */
+  private async getPresignedUrl(key: string): Promise<string> {
+    try {
+      return await this.storageService.generatePresignedUrl(key, 3600);
+    } catch (error) {
+      console.error('[获取URL失败]', error);
+      throw error;
     }
   }
 

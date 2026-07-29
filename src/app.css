@@ -154,3 +154,9 @@ image {
   background-color: var(--selection);
   color: var(--selection-foreground);
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

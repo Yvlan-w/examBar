@@ -32,6 +32,7 @@ const CreateSubjectPage = () => {
   const [selectedSubject, setSelectedSubject] = useState<CustomSubject | null>(null)
   const [fileContent, setFileContent] = useState('')
   const [parsing, setParsing] = useState(false)
+  const [loadingText, setLoadingText] = useState('')
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
   const [questionsToUpdate, setQuestionsToUpdate] = useState<any[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -158,9 +159,11 @@ const CreateSubjectPage = () => {
       sourceType: ['album', 'camera'],
       success: async (res) => {
         const tempFilePaths = res.tempFilePaths
-        Taro.showToast({ title: `上传 ${tempFilePaths.length} 张图片中...`, icon: 'loading' })
         
         try {
+          setParsing(true)
+          setLoadingText(`上传 ${tempFilePaths.length} 张图片中...`)
+          
           const uploadedResults: { url: string; key: string }[] = []
           
           for (const filePath of tempFilePaths) {
@@ -178,11 +181,12 @@ const CreateSubjectPage = () => {
           }
           
           if (uploadedResults.length === 0) {
+            setParsing(false)
             Taro.showToast({ title: '上传失败', icon: 'none' })
             return
           }
 
-          Taro.showToast({ title: '解析中...', icon: 'loading' })
+          setLoadingText('AI 智能解析中，请稍候...')
           const urls = uploadedResults.map(r => r.url)
           const keys = uploadedResults.map(r => r.key)
           
@@ -198,6 +202,8 @@ const CreateSubjectPage = () => {
             },
           })
           
+          setParsing(false)
+          
           if (parseRes.data?.code === 200) {
             const newCount = parseRes.data?.data?.length || 0
             const updateCount = parseRes.data?.questionsToUpdate?.length || 0
@@ -212,6 +218,7 @@ const CreateSubjectPage = () => {
             Taro.showToast({ title: '解析失败', icon: 'none' })
           }
         } catch (e) {
+          setParsing(false)
           console.error('uploadImage error:', e)
           Taro.showToast({ title: '上传失败', icon: 'none' })
         }
@@ -225,9 +232,11 @@ const CreateSubjectPage = () => {
       type: 'file',
       success: async (res) => {
         const fileName = res.tempFiles[0].name.toLowerCase()
-        Taro.showToast({ title: '处理中...', icon: 'loading' })
         
         try {
+          setParsing(true)
+          setLoadingText('读取文件中...')
+          
           if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
             let content: string
             
@@ -260,6 +269,7 @@ const CreateSubjectPage = () => {
             console.log('📄 文件内容长度:', content.length)
             console.log('📄 文件内容前100字:', content.substring(0, 100))
             
+            setLoadingText('AI 智能解析中，请稍候...')
             const parseRes = await Network.request({
               url: '/api/custom-subjects/parse',
               method: 'POST',
@@ -270,6 +280,8 @@ const CreateSubjectPage = () => {
                 nickname: user?.nickName || 'user',
               },
             })
+            
+            setParsing(false)
             
             if (parseRes.data?.code === 200) {
               const newCount = parseRes.data?.data?.length || 0
@@ -284,6 +296,7 @@ const CreateSubjectPage = () => {
               Taro.showToast({ title: '解析失败', icon: 'none' })
             }
           } else if (fileName.endsWith('.pdf')) {
+            setLoadingText('上传 PDF 文件中...')
             const uploadRes = await Network.uploadFile({
               url: '/api/storage/upload-temp',
               filePath: res.tempFiles[0].path,
@@ -293,7 +306,7 @@ const CreateSubjectPage = () => {
             const uploadData = JSON.parse(uploadRes.data)
             
             if (uploadData.code === 200) {
-              Taro.showToast({ title: '解析中...', icon: 'loading' })
+              setLoadingText('AI 智能解析中，请稍候...')
               const parseRes = await Network.request({
                 url: '/api/custom-subjects/parse-url',
                 method: 'POST',
@@ -305,6 +318,8 @@ const CreateSubjectPage = () => {
                   nickname: user?.nickName || 'user',
                 },
               })
+              
+              setParsing(false)
               
               if (parseRes.data?.code === 200) {
                 const newCount = parseRes.data?.data?.length || 0
@@ -326,6 +341,7 @@ const CreateSubjectPage = () => {
             Taro.showToast({ title: '不支持的文件格式', icon: 'none' })
           }
         } catch (e: any) {
+          setParsing(false)
           console.error('❌ uploadFile error:', e)
           console.error('❌ error message:', e?.message || e)
           Taro.showToast({ title: e?.message || '处理失败', icon: 'none' })
@@ -346,6 +362,7 @@ const CreateSubjectPage = () => {
 
     try {
       setParsing(true)
+      setLoadingText('AI 智能解析中，请稍候...')
       const res = await Network.request({
         url: '/api/custom-subjects/parse',
         method: 'POST',
@@ -357,6 +374,8 @@ const CreateSubjectPage = () => {
         },
       })
 
+      setParsing(false)
+      
       if (res.data?.code === 200) {
         const newCount = res.data?.data?.length || 0
         const updateCount = res.data?.questionsToUpdate?.length || 0
@@ -736,6 +755,70 @@ D. 硬件
                 </Button>
               </View>
             )}
+          </View>
+        </View>
+      )}
+
+      {parsing && (
+        <View 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            zIndex: 9999,
+          }}
+        >
+          <View 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              padding: '40px 32px',
+              minWidth: '200px',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            <View 
+              style={{
+                width: '50px',
+                height: '50px',
+                border: '4px solid #E0E7FF',
+                borderTopColor: '#3B82F6',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '20px',
+              }}
+            />
+            <Text 
+              style={{ 
+                fontSize: '15px', 
+                color: '#334155', 
+                fontWeight: 500,
+                textAlign: 'center',
+                lineHeight: '22px',
+              }}
+            >
+              {loadingText || '处理中...'}
+            </Text>
+            <Text 
+              style={{ 
+                fontSize: '12px', 
+                color: '#94A3B8', 
+                marginTop: '8px',
+                textAlign: 'center',
+              }}
+            >
+              请耐心等待，请勿关闭页面
+            </Text>
           </View>
         </View>
       )}
