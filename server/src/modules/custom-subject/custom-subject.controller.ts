@@ -37,7 +37,7 @@ export class CustomSubjectController {
   @HttpCode(200)
   async parseFile(@Body() body: { fileContent: string; subjectId: string; subjectName: string; nickname?: string }) {
     const data = await this.customSubjectService.parseFileToQuestions(body.fileContent, body.subjectId, body.subjectName, undefined, undefined, body.nickname);
-    return { code: 200, msg: 'success', data: data.questions };
+    return { code: 200, msg: 'success', data: data.questions, questionsToUpdate: data.questionsToUpdate };
   }
 
   @Post('parse-url')
@@ -60,6 +60,7 @@ export class CustomSubjectController {
         code: 200, 
         msg: 'success', 
         data: result.questions,
+        questionsToUpdate: result.questionsToUpdate,
         tempFileKeys: result.tempFileKeys
       };
     } catch (error) {
@@ -78,8 +79,8 @@ export class CustomSubjectController {
 
   @Post('import')
   @HttpCode(200)
-  async importQuestions(@Body() body: { questions: any[]; subjectId: string }) {
-    const data = await this.customSubjectService.importQuestions(body.questions, body.subjectId);
+  async importQuestions(@Body() body: { questions: any[]; questionsToUpdate?: any[]; subjectId: string }) {
+    const data = await this.customSubjectService.importQuestions(body.questions, body.subjectId, body.questionsToUpdate);
     return { code: 200, msg: 'success', data };
   }
 

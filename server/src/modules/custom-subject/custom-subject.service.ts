@@ -132,6 +132,57 @@ export class CustomSubjectService {
     return subjectsWithCount;
   }
 
+  private mergeQuestion(existing: any, newQ: any): any {
+    const merged = { ...existing };
+    
+    const fieldsToCheck = ['content', 'type', 'options', 'answer', 'analysis', 'difficulty'];
+    
+    for (const field of fieldsToCheck) {
+      const newValue = newQ[field];
+      const existingValue = existing[field];
+      
+      if (newValue !== undefined && newValue !== null && newValue !== '') {
+        if (field === 'options') {
+          if ((!existingValue || existingValue.length === 0) && newValue.length > 0) {
+            merged[field] = newValue;
+          }
+        } else if (field === 'answer') {
+          if (!existingValue || existingValue === '') {
+            merged[field] = newValue;
+          }
+        } else if (field === 'analysis') {
+          if (!existingValue || existingValue === '') {
+            merged[field] = newValue;
+          } else if (newValue.length > existingValue.length) {
+            merged[field] = newValue;
+          }
+        } else if (field === 'difficulty') {
+          if (!existingValue || existingValue === 'easy') {
+            merged[field] = newValue;
+          }
+        } else {
+          if (!existingValue || existingValue === '') {
+            merged[field] = newValue;
+          }
+        }
+      }
+    }
+    
+    return merged;
+  }
+
+  private hasNewInfo(existing: any, merged: any): boolean {
+    const fieldsToCheck = ['content', 'type', 'options', 'answer', 'analysis', 'difficulty'];
+    
+    for (const field of fieldsToCheck) {
+      if (JSON.stringify(existing[field]) !== JSON.stringify(merged[field])) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   async parseFileToQuestions(
     fileContent: string, 
     subjectId: string, 
@@ -139,7 +190,7 @@ export class CustomSubjectService {
     imageUrls?: string[],
     tempFileKeys?: string[],
     nickname: string = 'user'
-  ): Promise<{ questions: any[]; tempFileKeys?: string[] }> {
+  ): Promise<{ questions: any[]; questionsToUpdate?: any[]; tempFileKeys?: string[] }> {
     try {
       console.log('\n=====================================');
       console.log('=== LLM 题目解析流程开始 ===');
@@ -280,12 +331,31 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 
       console.log('[去重检查] 题库中已有题目数量:', existingQuestions.length);
 
-      const filteredQuestions = parsedQuestions.filter((q) => {
-        return q.content && !existingContents.has(q.content.trim());
-      });
+      const existingMap = new Map(existingQuestions.map(q => [q.content.trim(), q]));
+      
+      const questionsToInsert: any[] = [];
+      const questionsToUpdate: any[] = [];
+      let mergedCount = 0;
 
-      console.log('[去重结果] 去重后题目数量:', filteredQuestions.length);
-      console.log('[去重结果] 被过滤的重复题目数量:', parsedQuestions.length - filteredQuestions.length);
+      for (const q of parsedQuestions) {
+        if (!q.content) continue;
+        
+        const existing = existingMap.get(q.content.trim());
+        
+        if (existing) {
+          const merged = this.mergeQuestion(existing, q);
+          if (this.hasNewInfo(existing, merged)) {
+            questionsToUpdate.push({ id: existing.id, ...merged });
+            mergedCount++;
+          }
+        } else {
+          questionsToInsert.push(q);
+        }
+      }
+
+      console.log('[去重结果] 新题目数量:', questionsToInsert.length);
+      console.log('[去重结果] 合并更新题目数量:', mergedCount);
+      console.log('[去重结果] 重复但无需更新数量:', parsedQuestions.length - questionsToInsert.length - mergedCount);
 
       const cleanNickname = nickname.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       const cleanSubjectName = subjectName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').replace(/by\s+\S+$/, '').trim();
@@ -305,7 +375,7 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         }
       }
 
-      const finalQuestions = filteredQuestions.map((q, index) => ({
+      const finalNewQuestions = questionsToInsert.map((q, index) => ({
         ...q,
         id: `q_${cleanNickname}_${cleanSubjectName}_${maxSequence + index + 1}`,
         subjectId,
@@ -314,23 +384,28 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       }));
 
       console.log('[ID生成] 最大序列号:', maxSequence);
-      console.log('[最终结果] 生成题目数量:', finalQuestions.length);
-      if (finalQuestions.length > 0) {
-        console.log('[最终结果] 第一题ID:', finalQuestions[0].id);
-        console.log('[最终结果] 最后一题ID:', finalQuestions[finalQuestions.length - 1].id);
+      console.log('[最终结果] 新增题目数量:', finalNewQuestions.length);
+      console.log('[最终结果] 更新题目数量:', questionsToUpdate.length);
+      if (finalNewQuestions.length > 0) {
+        console.log('[最终结果] 第一题ID:', finalNewQuestions[0].id);
+        console.log('[最终结果] 最后一题ID:', finalNewQuestions[finalNewQuestions.length - 1].id);
       }
       console.log('=====================================');
       console.log('=== LLM 题目解析流程结束 ===');
       console.log('=====================================\n');
 
-      return { questions: finalQuestions, tempFileKeys };
+      return { 
+        questions: finalNewQuestions, 
+        questionsToUpdate,
+        tempFileKeys 
+      };
     } catch (error) {
       console.error('=====================================');
       console.error('=== LLM 题目解析流程出错 ===');
       console.error('=====================================');
       console.error('[错误]', error);
       console.error('=====================================\n');
-      return { questions: [], tempFileKeys };
+      return { questions: [], questionsToUpdate: [], tempFileKeys };
     }
   }
 
@@ -341,17 +416,29 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
     }
   }
 
-  async importQuestions(questionsData: any[], subjectId: string) {
-    if (questionsData.length === 0) {
-      return { count: 0 };
+  async importQuestions(questionsData: any[], subjectId: string, questionsToUpdate?: any[]) {
+    let insertedCount = 0;
+    let updatedCount = 0;
+
+    if (questionsData.length > 0) {
+      const questionsToInsert = questionsData.map(q => {
+        const { createdAt, ...rest } = q;
+        return rest;
+      });
+
+      await db.insert(questions).values(questionsToInsert);
+      insertedCount = questionsData.length;
     }
 
-    const questionsToInsert = questionsData.map(q => {
-      const { createdAt, ...rest } = q;
-      return rest;
-    });
-
-    await db.insert(questions).values(questionsToInsert);
+    if (questionsToUpdate && questionsToUpdate.length > 0) {
+      for (const q of questionsToUpdate) {
+        const { id, createdAt, ...rest } = q;
+        await db.update(questions)
+          .set(rest)
+          .where(eq(questions.id, id));
+      }
+      updatedCount = questionsToUpdate.length;
+    }
 
     const countResult = await db.select({ count: count() }).from(questions).where(eq(questions.subjectId, subjectId));
     
@@ -359,7 +446,7 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       .set({ questionCount: countResult[0].count || 0 })
       .where(eq(subjects.id, subjectId));
 
-    return { count: questionsData.length };
+    return { count: insertedCount + updatedCount, insertedCount, updatedCount };
   }
 
   async deleteCustomSubject(userId: number, subjectId: string) {

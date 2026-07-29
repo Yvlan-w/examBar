@@ -33,6 +33,7 @@ const CreateSubjectPage = () => {
   const [fileContent, setFileContent] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
+  const [questionsToUpdate, setQuestionsToUpdate] = useState<any[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [importTab, setImportTab] = useState('text')
   const [tempFileKeys, setTempFileKeys] = useState<string[]>([])
@@ -145,6 +146,7 @@ const CreateSubjectPage = () => {
     setShowImportModal(true)
     setFileContent('')
     setParsedQuestions([])
+    setQuestionsToUpdate([])
     setImportTab('text')
     setTempFileKeys([])
   }
@@ -197,9 +199,15 @@ const CreateSubjectPage = () => {
           })
           
           if (parseRes.data?.code === 200) {
+            const newCount = parseRes.data?.data?.length || 0
+            const updateCount = parseRes.data?.questionsToUpdate?.length || 0
             setParsedQuestions(parseRes.data?.data || [])
+            setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
             setTempFileKeys(parseRes.data?.tempFileKeys || [])
-            Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+            const msg = updateCount > 0 
+              ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
+              : `解析出 ${newCount} 道题目`
+            Taro.showToast({ title: msg, icon: 'success' })
           } else {
             Taro.showToast({ title: '解析失败', icon: 'none' })
           }
@@ -238,8 +246,14 @@ const CreateSubjectPage = () => {
             })
             
             if (parseRes.data?.code === 200) {
+              const newCount = parseRes.data?.data?.length || 0
+              const updateCount = parseRes.data?.questionsToUpdate?.length || 0
               setParsedQuestions(parseRes.data?.data || [])
-              Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+              setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
+              const msg = updateCount > 0 
+                ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
+                : `解析出 ${newCount} 道题目`
+              Taro.showToast({ title: msg, icon: 'success' })
             } else {
               Taro.showToast({ title: '解析失败', icon: 'none' })
             }
@@ -267,9 +281,15 @@ const CreateSubjectPage = () => {
               })
               
               if (parseRes.data?.code === 200) {
+                const newCount = parseRes.data?.data?.length || 0
+                const updateCount = parseRes.data?.questionsToUpdate?.length || 0
                 setParsedQuestions(parseRes.data?.data || [])
+                setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
                 setTempFileKeys(parseRes.data?.tempFileKeys || [])
-                Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+                const msg = updateCount > 0 
+                  ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
+                  : `解析出 ${newCount} 道题目`
+                Taro.showToast({ title: msg, icon: 'success' })
               } else {
                 Taro.showToast({ title: '解析失败', icon: 'none' })
               }
@@ -311,8 +331,14 @@ const CreateSubjectPage = () => {
       })
 
       if (res.data?.code === 200) {
+        const newCount = res.data?.data?.length || 0
+        const updateCount = res.data?.questionsToUpdate?.length || 0
         setParsedQuestions(res.data?.data || [])
-        Taro.showToast({ title: `解析出 ${res.data?.data?.length} 道题目`, icon: 'success' })
+        setQuestionsToUpdate(res.data?.questionsToUpdate || [])
+        const msg = updateCount > 0 
+          ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
+          : `解析出 ${newCount} 道题目`
+        Taro.showToast({ title: msg, icon: 'success' })
       }
     } catch (e) {
       console.error('parseFile error:', e)
@@ -324,7 +350,7 @@ const CreateSubjectPage = () => {
 
   const handleImportQuestions = async () => {
     console.log(parsedQuestions)
-    if (parsedQuestions.length === 0) {
+    if (parsedQuestions.length === 0 && questionsToUpdate.length === 0) {
       Taro.showToast({ title: '没有可导入的题目', icon: 'none' })
       return
     }
@@ -337,11 +363,19 @@ const CreateSubjectPage = () => {
       const res = await Network.request({
         url: '/api/custom-subjects/import',
         method: 'POST',
-        data: { questions: parsedQuestions, subjectId: selectedSubject.id },
+        data: { 
+          questions: parsedQuestions, 
+          questionsToUpdate,
+          subjectId: selectedSubject.id 
+        },
       })
 
       if (res.data?.code === 200) {
-        Taro.showToast({ title: `成功导入 ${res.data?.data?.count} 道题目`, icon: 'success' })
+        const { insertedCount = 0, updatedCount = 0 } = res.data?.data || {}
+        const msg = updatedCount > 0 
+          ? `成功导入 ${insertedCount} 题，更新 ${updatedCount} 题` 
+          : `成功导入 ${insertedCount} 道题目`
+        Taro.showToast({ title: msg, icon: 'success' })
         
         if (tempFileKeys.length > 0) {
           await Network.request({
@@ -355,6 +389,7 @@ const CreateSubjectPage = () => {
         setShowImportModal(false)
         setFileContent('')
         setParsedQuestions([])
+        setQuestionsToUpdate([])
         setSelectedSubject(null)
         loadSubjects()
       }
