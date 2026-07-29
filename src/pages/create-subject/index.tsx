@@ -229,16 +229,42 @@ const CreateSubjectPage = () => {
         
         try {
           if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
-            const fileRes = await (Taro as any).readFile({
-              filePath: res.tempFiles[0].path,
-              encoding: 'utf-8',
-            })
+            let content: string
+            
+            if (Taro.getEnv() === Taro.ENV_TYPE.WEAPP) {
+              const fs = Taro.getFileSystemManager()
+              const fileRes: any = await new Promise((resolve, reject) => {
+                fs.readFile({
+                  filePath: res.tempFiles[0].path,
+                  encoding: 'utf-8',
+                  success: (fileReadRes) => resolve(fileReadRes),
+                  fail: (err) => reject(err),
+                })
+              })
+              content = fileRes.data
+            } else {
+              // H5 端：使用 FileReader 读取文件
+              const file: any = res.tempFiles[0]
+              content = await new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = (e: any) => resolve(e.target?.result || '')
+                reader.onerror = (err) => reject(err)
+                reader.readAsText(file, 'utf-8')
+              })
+            }
+            
+            if (!content) {
+              throw new Error('文件内容为空')
+            }
+            
+            console.log('📄 文件内容长度:', content.length)
+            console.log('📄 文件内容前100字:', content.substring(0, 100))
             
             const parseRes = await Network.request({
               url: '/api/custom-subjects/parse',
               method: 'POST',
               data: {
-                fileContent: fileRes.data,
+                fileContent: content,
                 subjectId: selectedSubject?.id || '',
                 subjectName: selectedSubject?.name || '',
                 nickname: user?.nickName || 'user',
@@ -299,9 +325,10 @@ const CreateSubjectPage = () => {
           } else {
             Taro.showToast({ title: '不支持的文件格式', icon: 'none' })
           }
-        } catch (e) {
-          console.error('uploadFile error:', e)
-          Taro.showToast({ title: '处理失败', icon: 'none' })
+        } catch (e: any) {
+          console.error('❌ uploadFile error:', e)
+          console.error('❌ error message:', e?.message || e)
+          Taro.showToast({ title: e?.message || '处理失败', icon: 'none' })
         }
       },
     })
