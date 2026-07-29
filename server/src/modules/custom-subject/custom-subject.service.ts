@@ -532,32 +532,10 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
   }
 
   /**
-   * 从 URL 下载文件（用于内部处理）
+   * 从 URL 下载文件（委托给 StorageService）
    */
   private async downloadFileFromUrl(url: string): Promise<Buffer> {
-    const { default: http } = await import('http');
-    const { default: https } = await import('https');
-    const { URL } = await import('url');
-    
-    return new Promise((resolve, reject) => {
-      const parsedUrl = new URL(url);
-      const client = parsedUrl.protocol === 'https:' ? https : http;
-      
-      client.get(url, (response: any) => {
-        const chunks: Buffer[] = [];
-        
-        response.on('data', (chunk: Buffer) => {
-          chunks.push(chunk);
-        });
-        
-        response.on('end', () => {
-          const buffer = Buffer.concat(chunks);
-          resolve(buffer);
-        });
-        
-        response.on('error', reject);
-      }).on('error', reject);
-    });
+    return this.storageService.downloadFile(url);
   }
 
   /**

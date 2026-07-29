@@ -194,7 +194,7 @@ export class StorageService implements OnModuleInit {
   /**
    * 下载文件
    */
-  private async downloadFile(url: string): Promise<Buffer> {
+  async downloadFile(url: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(url);
       const client = parsedUrl.protocol === 'https:' ? https : http;
