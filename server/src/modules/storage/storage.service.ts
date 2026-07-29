@@ -3,6 +3,11 @@ import { S3Storage, S3Config } from 'coze-coding-dev-sdk';
 import { URL } from 'url';
 import * as http from 'http';
 import * as https from 'https';
+import { exec } from 'child_process';
+import { writeFile, mkdir, rm } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
@@ -208,6 +213,150 @@ export class StorageService implements OnModuleInit {
         
         response.on('error', reject);
       }).on('error', reject);
+    });
+  }
+
+  /**
+   * 解析 .docx 文件为纯文本（快速处理）
+   * @param buffer .docx 文件的 Buffer
+   * @returns 解析后的文本内容
+   */
+  async parseDocxToText(buffer: Buffer): Promise<string> {
+    try {
+      console.log(`[DOCX处理] 开始解析 .docx 文件，大小: ${buffer.length} bytes`);
+      
+      let mammoth: any;
+      try {
+        mammoth = await import('mammoth');
+      } catch (importError) {
+        console.error('[DOCX处理] mammoth 库未安装:', importError.message);
+        throw new Error('DOCX 解析需要 mammoth 库，请运行: pnpm add mammoth');
+      }
+      
+      const result = await mammoth.extractRawText({ buffer });
+      
+      console.log(`[DOCX处理] 解析完成，文本长度: ${result.value.length} chars`);
+      
+      if (result.messages && result.messages.length > 0) {
+        console.log('[DOCX处理] 解析警告:', result.messages);
+      }
+      
+      return result.value;
+    } catch (error) {
+      console.error('[DOCX处理] 解析失败:', error);
+      throw new Error(`DOCX 解析失败: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * 解析 .doc 文件为纯文本（快速处理，使用 word-extractor）
+   * @param buffer .doc 文件的 Buffer
+   * @returns 解析后的文本内容
+   */
+  async parseDocToText(buffer: Buffer): Promise<string> {
+    try {
+      console.log(`[DOC处理] 开始解析 .doc 文件，大小: ${buffer.length} bytes`);
+      
+      let WordExtractor: any;
+      try {
+        WordExtractor = await import('word-extractor');
+      } catch (importError) {
+        console.error('[DOC处理] word-extractor 库未安装:', importError.message);
+        throw new Error('DOC 解析需要 word-extractor 库，请运行: pnpm add word-extractor');
+      }
+      
+      const extractor = new WordExtractor();
+      const result = await extractor.extract(buffer);
+      
+      console.log(`[DOC处理] 解析完成，文本长度: ${result.length} chars`);
+      
+      return result;
+    } catch (error) {
+      console.error('[DOC处理] 解析失败:', error);
+      throw new Error(`DOC 解析失败: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * 将 .doc 文件转换为 PDF（备选方案，需要系统安装 LibreOffice）
+   * @param docUrl .doc 文件的预签名 URL
+   * @returns PDF 文件的 URL 和临时文件 key
+   */
+  async convertDocToPdf(docUrl: string): Promise<{ pdfUrl: string; pdfKey: string }> {
+    const tempDir = join(tmpdir(), `doc_convert_${randomUUID()}`);
+    
+    try {
+      console.log(`[DOC处理] 开始下载 DOC 文件: ${docUrl.substring(0, 100)}...`);
+      
+      // 1. 创建临时目录
+      await mkdir(tempDir, { recursive: true });
+      
+      // 2. 下载 DOC 文件
+      const docPath = join(tempDir, 'input.doc');
+      const docBuffer = await this.downloadFile(docUrl);
+      await writeFile(docPath, docBuffer);
+      console.log(`[DOC处理] DOC 已下载，大小: ${docBuffer.length} bytes`);
+      
+      // 3. 使用 LibreOffice 转换为 PDF
+      console.log('[DOC处理] 开始转换 DOC 为 PDF...');
+      
+      await this.executeCommand(`soffice --headless --convert-to pdf "${docPath}" --outdir "${tempDir}"`);
+      
+      // 4. 查找生成的 PDF 文件
+      const { readdir } = require('fs/promises');
+      const files = await readdir(tempDir);
+      const pdfFile = files.find(f => f.endsWith('.pdf'));
+      
+      if (!pdfFile) {
+        throw new Error('DOC 转 PDF 失败，未生成 PDF 文件');
+      }
+      
+      const pdfPath = join(tempDir, pdfFile);
+      console.log(`[DOC处理] PDF 已生成: ${pdfFile}`);
+      
+      // 5. 上传 PDF 到 TOS
+      const { readFile } = require('fs/promises');
+      const pdfBuffer = await readFile(pdfPath);
+      const uploadResult = await this.uploadTempFile(pdfBuffer, `converted_${Date.now()}.pdf`, 'application/pdf');
+      
+      console.log(`[DOC处理] PDF 已上传: ${uploadResult.key}`);
+      
+      // 6. 清理临时文件
+      await rm(tempDir, { recursive: true, force: true });
+      console.log('[DOC处理] 临时文件已清理');
+      
+      return { pdfUrl: uploadResult.url, pdfKey: uploadResult.key };
+    } catch (error) {
+      // 确保清理临时目录
+      try {
+        await rm(tempDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error('[DOC处理] 清理临时文件失败:', cleanupError);
+      }
+      
+      console.error('[DOC处理] 转换失败:', error);
+      throw new Error(`DOC 转 PDF 失败: ${error.message || error}。请确保系统已安装 LibreOffice。`);
+    }
+  }
+
+  /**
+   * 执行系统命令
+   */
+  private async executeCommand(command: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      exec(command, { timeout: 300000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[命令执行失败] ${command}`);
+          console.error(`stdout: ${stdout}`);
+          console.error(`stderr: ${stderr}`);
+          reject(error);
+        } else {
+          if (stderr) {
+            console.log(`[命令输出] stderr: ${stderr}`);
+          }
+          resolve();
+        }
+      });
     });
   }
 

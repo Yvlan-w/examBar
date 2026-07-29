@@ -295,18 +295,19 @@ const CreateSubjectPage = () => {
             } else {
               Taro.showToast({ title: '解析失败', icon: 'none' })
             }
-          } else if (fileName.endsWith('.pdf')) {
-            setLoadingText('上传 PDF 文件中...')
+          } else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+            const fileType = fileName.endsWith('.pdf') ? 'PDF' : (fileName.endsWith('.docx') ? 'DOCX' : 'DOC')
+            setLoadingText(`上传 ${fileType} 文件中...`)
             const uploadRes = await Network.uploadFile({
               url: '/api/storage/upload-temp',
               filePath: res.tempFiles[0].path,
               name: 'file',
             })
-            console.log('pdf upload result:', uploadRes)
+            console.log(`${fileType.toLowerCase()} upload result:`, uploadRes)
             const uploadData = JSON.parse(uploadRes.data)
             
             if (uploadData.code === 200) {
-              setLoadingText('AI 智能解析中，请稍候...')
+              setLoadingText(fileType === 'PDF' ? 'PDF 转图片中，请稍候...' : 'AI 智能解析中，请稍候...')
               const parseRes = await Network.request({
                 url: '/api/custom-subjects/parse-url',
                 method: 'POST',
@@ -720,7 +721,7 @@ D. 硬件
                     <FileUp size={40} color="#94A3B8" />
                   </View>
                   <Text className="block text-sm font-medium text-slate-600 mb-2">上传题目文件</Text>
-                  <Text className="block text-xs text-slate-400 mb-4">支持 txt、md 等文本格式</Text>
+                  <Text className="block text-xs text-slate-400 mb-4">支持 txt、md、pdf、docx、doc 文件格式</Text>
                   <Button
                     className="w-full max-w-xs h-12 rounded-xl bg-blue-500 text-white"
                     onClick={handleUploadFile}

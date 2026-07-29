@@ -214,9 +214,81 @@ export class CustomSubjectService {
 
       // 检查是否是 PDF 文件
       let finalImageUrls = imageUrls || [];
+      let finalFileContent = fileContent;
 
-      // 检查 URL 或 tempFileKeys 是否包含 PDF
+      // 检查 URL 或 tempFileKeys 是否包含 DOCX（直接解析文本）或 DOC（转 PDF）
       const firstUrl = finalImageUrls[0] || '';
+      const isDocxUrl = firstUrl.toLowerCase().includes('.docx') || 
+        (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys.some(key => key.toLowerCase().includes('.docx')));
+      const isDocUrl = firstUrl.toLowerCase().includes('.doc') && !firstUrl.toLowerCase().includes('.docx') ||
+        (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys.some(key => key.toLowerCase().includes('.doc') && !key.toLowerCase().includes('.docx')));
+      
+      console.log(`[DOCX检测] isDocxUrl: ${isDocxUrl}`);
+      console.log(`[DOC检测] isDocUrl: ${isDocUrl}`);
+      
+      // 处理 .docx 文件：直接解析文本
+      if (isDocxUrl) {
+        console.log('[DOCX处理] 检测到 .docx 文件，开始解析文本...');
+        
+        try {
+          let docxUrl = firstUrl;
+          if (tempFileKeys && tempFileKeys.length > 0) {
+            const docxKey = tempFileKeys.find(key => key.toLowerCase().includes('.docx')) || tempFileKeys[0];
+            docxUrl = await this.getPresignedUrl(docxKey);
+          }
+          
+          console.log(`[DOCX处理] 下载 URL: ${docxUrl.substring(0, 100)}...`);
+          
+          // 下载文件并解析
+          const docxBuffer = await this.downloadFileFromUrl(docxUrl);
+          const textContent = await this.storageService.parseDocxToText(docxBuffer);
+          
+          console.log(`[DOCX处理] 解析完成，文本长度: ${textContent.length} chars`);
+          
+          // 使用解析后的文本作为 fileContent
+          finalFileContent = textContent;
+          // 清空图片 URL，使用文本模式
+          finalImageUrls = [];
+          
+          console.log('[DOCX处理] 将使用文本模式解析题目');
+        } catch (docxError) {
+          console.error('[DOCX处理] DOCX 解析失败:', docxError);
+          throw new Error(`DOCX 解析失败: ${docxError.message || docxError}`);
+        }
+      }
+      
+      // 处理 .doc 文件：直接解析文本（使用 word-extractor）
+      if (isDocUrl) {
+        console.log('[DOC处理] 检测到 .doc 文件，开始解析文本...');
+        
+        try {
+          let docUrl = firstUrl;
+          if (tempFileKeys && tempFileKeys.length > 0) {
+            const docKey = tempFileKeys.find(key => key.toLowerCase().includes('.doc') && !key.toLowerCase().includes('.docx')) || tempFileKeys[0];
+            docUrl = await this.getPresignedUrl(docKey);
+          }
+          
+          console.log(`[DOC处理] 下载 URL: ${docUrl.substring(0, 100)}...`);
+          
+          // 下载文件并解析
+          const docBuffer = await this.downloadFileFromUrl(docUrl);
+          const textContent = await this.storageService.parseDocToText(docBuffer);
+          
+          console.log(`[DOC处理] 解析完成，文本长度: ${textContent.length} chars`);
+          
+          // 使用解析后的文本作为 fileContent
+          finalFileContent = textContent;
+          // 清空图片 URL，使用文本模式
+          finalImageUrls = [];
+          
+          console.log('[DOC处理] 将使用文本模式解析题目');
+        } catch (docError) {
+          console.error('[DOC处理] DOC 解析失败:', docError);
+          throw new Error(`DOC 解析失败: ${docError.message || docError}`);
+        }
+      }
+
+      // 检查是否是 PDF 文件
       const isPdfUrl = firstUrl.toLowerCase().includes('.pdf') || 
         (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys.some(key => key.toLowerCase().includes('.pdf')));
       
@@ -271,7 +343,7 @@ export class CustomSubjectService {
           },
         }));
       } else {
-        userMessageContent = fileContent;
+        userMessageContent = finalFileContent;
       }
 
       const messages = [
@@ -457,6 +529,35 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       console.error('=====================================\n');
       return { questions: [], questionsToUpdate: [], tempFileKeys: finalTempFileKeys };
     }
+  }
+
+  /**
+   * 从 URL 下载文件（用于内部处理）
+   */
+  private async downloadFileFromUrl(url: string): Promise<Buffer> {
+    const { default: http } = await import('http');
+    const { default: https } = await import('https');
+    const { URL } = await import('url');
+    
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const client = parsedUrl.protocol === 'https:' ? https : http;
+      
+      client.get(url, (response: any) => {
+        const chunks: Buffer[] = [];
+        
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+        
+        response.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          resolve(buffer);
+        });
+        
+        response.on('error', reject);
+      }).on('error', reject);
+    });
   }
 
   /**
