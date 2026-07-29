@@ -212,39 +212,51 @@ export class CustomSubjectService {
         });
       }
 
-      // 检查是否是 PDF URL（通过 tempFileKeys 中的 key 来判断）
-      const isPdfFile = tempFileKeys?.some(key => key.includes('temp/'));
+      // 检查是否是 PDF 文件
       let finalImageUrls = imageUrls || [];
 
-      // 如果有 imageUrls，检查第一个是否指向 PDF 文件
-      if (finalImageUrls.length > 0 && !isPdfFile) {
-        const firstUrl = finalImageUrls[0];
-        const isPdfUrl = firstUrl.toLowerCase().includes('.pdf') || 
-          (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys[0].includes('.pdf'));
+      // 检查 URL 或 tempFileKeys 是否包含 PDF
+      const firstUrl = finalImageUrls[0] || '';
+      const isPdfUrl = firstUrl.toLowerCase().includes('.pdf') || 
+        (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys.some(key => key.toLowerCase().includes('.pdf')));
+      
+      console.log(`[PDF检测] firstUrl: ${firstUrl.substring(0, 100)}`);
+      console.log(`[PDF检测] isPdfUrl: ${isPdfUrl}`);
+      console.log(`[PDF检测] tempFileKeys: ${JSON.stringify(tempFileKeys)}`);
+
+      if (isPdfUrl) {
+        console.log('[PDF处理] 检测到 PDF 文件，开始转换为图片...');
         
-        if (isPdfUrl) {
-          console.log('[PDF处理] 检测到 PDF 文件，开始转换为图片...');
-          
-          try {
-            const pdfUrl = tempFileKeys ? await this.getPresignedUrl(tempFileKeys[0]) : firstUrl;
-            const { imageUrls: convertedUrls, tempFileKeys: convertedKeys } = 
-              await this.storageService.convertPdfToImages(pdfUrl);
-            
-            console.log(`[PDF处理] 转换完成，共 ${convertedUrls.length} 张图片`);
-            
-            // 使用转换后的图片 URL
-            finalImageUrls = convertedUrls;
-            // 更新 tempFileKeys
-            finalTempFileKeys = convertedKeys;
-            
-            // 添加原始 PDF 的 key 用于清理
-            if (tempFileKeys && tempFileKeys.length > 0) {
-              finalTempFileKeys = [...tempFileKeys, ...convertedKeys];
-            }
-          } catch (pdfError) {
-            console.error('[PDF处理] PDF 转换失败，尝试直接解析 PDF URL:', pdfError);
-            // 如果 PDF 转换失败，直接使用原始 URL 尝试解析
+        try {
+          // 获取 PDF 的预签名 URL
+          let pdfUrl = firstUrl;
+          if (tempFileKeys && tempFileKeys.length > 0) {
+            const pdfKey = tempFileKeys.find(key => key.toLowerCase().includes('.pdf')) || tempFileKeys[0];
+            pdfUrl = await this.getPresignedUrl(pdfKey);
           }
+          
+          console.log(`[PDF处理] PDF URL: ${pdfUrl.substring(0, 100)}...`);
+          
+          const { imageUrls: convertedUrls, tempFileKeys: convertedKeys } = 
+            await this.storageService.convertPdfToImages(pdfUrl);
+          
+          console.log(`[PDF处理] 转换完成，共 ${convertedUrls.length} 张图片`);
+          
+          // 使用转换后的图片 URL
+          finalImageUrls = convertedUrls;
+          
+          // 更新 tempFileKeys：保留原始 PDF 的 key + 转换后图片的 key
+          if (tempFileKeys && tempFileKeys.length > 0) {
+            finalTempFileKeys = [...tempFileKeys, ...convertedKeys];
+          } else {
+            finalTempFileKeys = convertedKeys;
+          }
+          
+          console.log(`[PDF处理] finalImageUrls数量: ${finalImageUrls.length}`);
+          console.log(`[PDF处理] finalTempFileKeys数量: ${finalTempFileKeys.length}`);
+        } catch (pdfError) {
+          console.error('[PDF处理] PDF 转换失败:', pdfError);
+          throw new Error(`PDF 转换失败: ${pdfError.message || pdfError}`);
         }
       }
 
