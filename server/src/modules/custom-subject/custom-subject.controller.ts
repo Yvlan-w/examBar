@@ -42,14 +42,17 @@ export class CustomSubjectController {
 
   @Post('parse-url')
   @HttpCode(200)
-  async parseByUrl(@Body() body: { url: string; subjectId: string; subjectName: string; tempFileKey?: string; nickname?: string }) {
+  async parseByUrl(@Body() body: { url?: string; urls?: string[]; subjectId: string; subjectName: string; tempFileKey?: string; tempFileKeys?: string[]; nickname?: string }) {
     try {
+      const urls = body.urls || (body.url ? [body.url] : []);
+      const tempFileKeys = body.tempFileKeys || (body.tempFileKey ? [body.tempFileKey] : []);
+
       const result = await this.customSubjectService.parseFileToQuestions(
         '',
         body.subjectId,
         body.subjectName,
-        body.url,
-        body.tempFileKey,
+        urls,
+        tempFileKeys,
         body.nickname
       );
 
@@ -57,7 +60,7 @@ export class CustomSubjectController {
         code: 200, 
         msg: 'success', 
         data: result.questions,
-        tempFileKey: result.tempFileKey 
+        tempFileKeys: result.tempFileKeys
       };
     } catch (error) {
       console.error('Parse by URL error:', error);
@@ -67,8 +70,9 @@ export class CustomSubjectController {
 
   @Post('cleanup')
   @HttpCode(200)
-  async cleanup(@Body() body: { tempFileKey: string }) {
-    await this.customSubjectService.cleanUpTempFile(body.tempFileKey);
+  async cleanup(@Body() body: { tempFileKey?: string; tempFileKeys?: string[] }) {
+    const keys = body.tempFileKeys || (body.tempFileKey ? [body.tempFileKey] : []);
+    await this.customSubjectService.cleanUpTempFiles(keys);
     return { code: 200, msg: 'success', data: null };
   }
 

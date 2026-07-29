@@ -35,7 +35,7 @@ const CreateSubjectPage = () => {
   const [parsedQuestions, setParsedQuestions] = useState<any[]>([])
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [importTab, setImportTab] = useState('text')
-  const [tempFileKey, setTempFileKey] = useState('')
+  const [tempFileKeys, setTempFileKeys] = useState<string[]>([])
   const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
@@ -146,47 +146,62 @@ const CreateSubjectPage = () => {
     setFileContent('')
     setParsedQuestions([])
     setImportTab('text')
+    setTempFileKeys([])
   }
 
   const handleUploadImage = () => {
     Taro.chooseImage({
-      count: 1,
+      count: 9,
       sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
       success: async (res) => {
-        Taro.showToast({ title: '图片上传中...', icon: 'loading' })
+        const tempFilePaths = res.tempFilePaths
+        Taro.showToast({ title: `上传 ${tempFilePaths.length} 张图片中...`, icon: 'loading' })
+        
         try {
-          const uploadRes = await Network.uploadFile({
-            url: '/api/storage/upload-temp',
-            filePath: res.tempFilePaths[0],
-            name: 'file',
-          })
-          console.log('image upload result:', uploadRes)
-          const uploadData = JSON.parse(uploadRes.data)
+          const uploadedResults: { url: string; key: string }[] = []
           
-          if (uploadData.code === 200) {
-            Taro.showToast({ title: '解析中...', icon: 'loading' })
-            const parseRes = await Network.request({
-              url: '/api/custom-subjects/parse-url',
-              method: 'POST',
-              data: {
-                url: uploadData.data.url,
-                subjectId: selectedSubject?.id || '',
-                subjectName: selectedSubject?.name || '',
-                tempFileKey: uploadData.data.key,
-                nickname: user?.nickName || 'user',
-              },
+          for (const filePath of tempFilePaths) {
+            const uploadRes = await Network.uploadFile({
+              url: '/api/storage/upload-temp',
+              filePath,
+              name: 'file',
             })
+            console.log('image upload result:', uploadRes)
+            const uploadData = JSON.parse(uploadRes.data)
             
-            if (parseRes.data?.code === 200) {
-              setParsedQuestions(parseRes.data?.data || [])
-              setTempFileKey(parseRes.data?.tempFileKey || '')
-              Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
-            } else {
-              Taro.showToast({ title: '解析失败', icon: 'none' })
+            if (uploadData.code === 200) {
+              uploadedResults.push({ url: uploadData.data.url, key: uploadData.data.key })
             }
-          } else {
+          }
+          
+          if (uploadedResults.length === 0) {
             Taro.showToast({ title: '上传失败', icon: 'none' })
+            return
+          }
+
+          Taro.showToast({ title: '解析中...', icon: 'loading' })
+          const urls = uploadedResults.map(r => r.url)
+          const keys = uploadedResults.map(r => r.key)
+          
+          const parseRes = await Network.request({
+            url: '/api/custom-subjects/parse-url',
+            method: 'POST',
+            data: {
+              urls,
+              subjectId: selectedSubject?.id || '',
+              subjectName: selectedSubject?.name || '',
+              tempFileKeys: keys,
+              nickname: user?.nickName || 'user',
+            },
+          })
+          
+          if (parseRes.data?.code === 200) {
+            setParsedQuestions(parseRes.data?.data || [])
+            setTempFileKeys(parseRes.data?.tempFileKeys || [])
+            Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
+          } else {
+            Taro.showToast({ title: '解析失败', icon: 'none' })
           }
         } catch (e) {
           console.error('uploadImage error:', e)
@@ -246,14 +261,14 @@ const CreateSubjectPage = () => {
                   url: uploadData.data.url,
                   subjectId: selectedSubject?.id || '',
                   subjectName: selectedSubject?.name || '',
-                  tempFileKey: uploadData.data.key,
+                  tempFileKeys: [uploadData.data.key],
                   nickname: user?.nickName || 'user',
                 },
               })
               
               if (parseRes.data?.code === 200) {
                 setParsedQuestions(parseRes.data?.data || [])
-                setTempFileKey(parseRes.data?.tempFileKey || '')
+                setTempFileKeys(parseRes.data?.tempFileKeys || [])
                 Taro.showToast({ title: `解析出 ${parseRes.data?.data?.length} 道题目`, icon: 'success' })
               } else {
                 Taro.showToast({ title: '解析失败', icon: 'none' })
@@ -328,13 +343,13 @@ const CreateSubjectPage = () => {
       if (res.data?.code === 200) {
         Taro.showToast({ title: `成功导入 ${res.data?.data?.count} 道题目`, icon: 'success' })
         
-        if (tempFileKey) {
+        if (tempFileKeys.length > 0) {
           await Network.request({
             url: '/api/custom-subjects/cleanup',
             method: 'POST',
-            data: { tempFileKey },
+            data: { tempFileKeys },
           })
-          setTempFileKey('')
+          setTempFileKeys([])
         }
         
         setShowImportModal(false)

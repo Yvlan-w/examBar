@@ -136,10 +136,10 @@ export class CustomSubjectService {
     fileContent: string, 
     subjectId: string, 
     subjectName: string,
-    imageUrl?: string,
-    tempFileKey?: string,
+    imageUrls?: string[],
+    tempFileKeys?: string[],
     nickname: string = 'user'
-  ): Promise<{ questions: any[]; tempFileKey?: string }> {
+  ): Promise<{ questions: any[]; tempFileKeys?: string[] }> {
     try {
       console.log('\n=====================================');
       console.log('=== LLM 题目解析流程开始 ===');
@@ -147,25 +147,28 @@ export class CustomSubjectService {
       console.log('[输入参数] subjectId:', subjectId);
       console.log('[输入参数] subjectName:', subjectName);
       console.log('[输入参数] nickname:', nickname);
-      console.log('[输入参数] hasImageUrl:', !!imageUrl);
+      console.log('[输入参数] imageUrls数量:', imageUrls?.length || 0);
       console.log('[输入参数] hasFileContent:', !!fileContent && fileContent.length > 0);
       if (fileContent && fileContent.length > 0) {
         console.log('[输入参数] fileContent长度:', fileContent.length);
         console.log('[输入参数] fileContent前200字符:', fileContent.substring(0, 200) + (fileContent.length > 200 ? '...' : ''));
       }
+      if (imageUrls && imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+          console.log(`[输入参数] 图片${index + 1} URL:`, url);
+        });
+      }
 
       let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
       
-      if (imageUrl) {
-        userMessageContent = [
-          {
-            type: 'image_url' as const,
-            image_url: {
-              url: imageUrl,
-              detail: 'high' as const,
-            },
+      if (imageUrls && imageUrls.length > 0) {
+        userMessageContent = imageUrls.map((url) => ({
+          type: 'image_url' as const,
+          image_url: {
+            url,
+            detail: 'high' as const,
           },
-        ];
+        }));
       } else {
         userMessageContent = fileContent;
       }
@@ -209,7 +212,7 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 1. 题干、选项文字做清洗：去除空格、乱码、多余换行；保证文本通顺；
 2. 若原始素材缺失标准答案，尽可能基于专业知识给出合理参考答案；无法判断时在analysis注明「原题未提供标准答案，解析仅供参考」；
 3. 不要自行编造不存在的题干与选项；识别不到有效题目返回空数组 []。
-
+4. 如果提供了多张图片，请按图片顺序解析所有题目，合并成一个数组返回，不要丢失任何图片中的题目。
 
 模板标准样例：
 [
@@ -237,9 +240,11 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       ];
 
       console.log('[LLM请求] 消息数量:', messages.length);
-      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? '图片数组' : '文本');
+      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? `图片数组(${userMessageContent.length}张)` : '文本');
       if (Array.isArray(userMessageContent)) {
-        console.log('[LLM请求] 图片URL:', userMessageContent[0]?.image_url?.url);
+        userMessageContent.forEach((part, index) => {
+          console.log(`[LLM请求] 图片${index + 1} URL:`, part.image_url?.url);
+        });
       }
 
       const response = await this.llmClient.invoke(messages, {
@@ -318,20 +323,21 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       console.log('=== LLM 题目解析流程结束 ===');
       console.log('=====================================\n');
 
-      return { questions: finalQuestions, tempFileKey };
+      return { questions: finalQuestions, tempFileKeys };
     } catch (error) {
       console.error('=====================================');
       console.error('=== LLM 题目解析流程出错 ===');
       console.error('=====================================');
       console.error('[错误]', error);
       console.error('=====================================\n');
-      return { questions: [], tempFileKey };
+      return { questions: [], tempFileKeys };
     }
   }
 
-  async cleanUpTempFile(key?: string): Promise<void> {
-    if (key) {
-      await this.storageService.deleteFile(key);
+  async cleanUpTempFiles(keys?: string[]): Promise<void> {
+    if (keys && keys.length > 0) {
+      await Promise.all(keys.map(key => this.storageService.deleteFile(key)));
+      console.log('[清理] 已删除', keys.length, '个临时文件');
     }
   }
 
