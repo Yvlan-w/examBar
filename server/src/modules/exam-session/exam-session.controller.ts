@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpCode, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpCode, Param, Query } from '@nestjs/common';
 import { ExamSessionService } from './exam-session.service';
 
 @Controller('sessions')
@@ -22,11 +22,11 @@ export class ExamSessionController {
   @Post(':id/update')
   @HttpCode(200)
   async updateSession(
+    @Param('id') id: string,
     @Body() body: {
       incrementCorrect?: boolean;
       addDuration?: number;
     },
-    @Query('id') id: string,
   ) {
     await this.sessionService.updateSession(id, body);
     return { code: 200, msg: 'success' };
@@ -34,7 +34,7 @@ export class ExamSessionController {
 
   @Post(':id/complete')
   @HttpCode(200)
-  async completeSession(@Query('id') id: string) {
+  async completeSession(@Param('id') id: string) {
     await this.sessionService.completeSession(id);
     return { code: 200, msg: 'success' };
   }
@@ -42,7 +42,7 @@ export class ExamSessionController {
   @Post(':id/mark-answered')
   @HttpCode(200)
   async markQuestionAnswered(
-    @Query('id') id: string,
+    @Param('id') id: string,
     @Body() body: { questionId: string },
   ) {
     await this.sessionService.markQuestionAnswered(id, body.questionId);
@@ -58,14 +58,14 @@ export class ExamSessionController {
 
   @Get(':id')
   @HttpCode(200)
-  async getSession(@Query('id') id: string) {
+  async getSession(@Param('id') id: string) {
     const session = await this.sessionService.getSessionById(id);
     return { code: 200, msg: 'success', data: session };
   }
 
   @Get(':id/detail')
   @HttpCode(200)
-  async getSessionDetail(@Query('id') id: string) {
+  async getSessionDetail(@Param('id') id: string) {
     const detail = await this.sessionService.getSessionDetail(id);
     if (!detail) {
       return { code: 404, msg: '场次不存在', data: null };
@@ -75,7 +75,7 @@ export class ExamSessionController {
 
   @Get(':id/remaining')
   @HttpCode(200)
-  async getRemainingQuestions(@Query('id') id: string) {
+  async getRemainingQuestions(@Param('id') id: string) {
     const result = await this.sessionService.getRemainingQuestions(id);
     if (!result) {
       return { code: 404, msg: '场次不存在', data: null };

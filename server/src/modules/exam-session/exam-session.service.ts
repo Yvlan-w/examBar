@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
 import { examSessions, answerRecords, sessionQuestions, questions } from '@/db/schema';
-import { eq, desc, sql, and } from 'drizzle-orm';
+import { eq, desc, sql, and, inArray } from 'drizzle-orm';
 
 @Injectable()
 export class ExamSessionService {
@@ -107,10 +107,7 @@ export class ExamSessionService {
 
     // 获取题目详情
     const questionDetails = questionIds.length > 0
-      ? await db.select().from(questions).where(and(
-          eq(questions.subjectId, session.subjectId || ''),
-          questionIds.length > 0 ? sql`${questions.id} IN ${questionIds}` : sql`true`,
-        ))
+      ? await db.select().from(questions).where(inArray(questions.id, questionIds))
       : [];
     
     // 获取答题记录
@@ -177,7 +174,7 @@ export class ExamSessionService {
 
     // 获取未答的关联记录
     const sqRecords = await db.select().from(sessionQuestions)
-      .where(and(eq(sessionQuestions.sessionId, sessionId), sql`${sessionQuestions.answered} = false`))
+      .where(and(eq(sessionQuestions.sessionId, sessionId), eq(sessionQuestions.answered, false)))
       .orderBy(sessionQuestions.orderIndex);
     
     if (sqRecords.length === 0) {
@@ -188,7 +185,7 @@ export class ExamSessionService {
 
     // 获取题目详情
     const questionDetails = await db.select().from(questions)
-      .where(sql`${questions.id} IN ${questionIds}`);
+      .where(inArray(questions.id, questionIds));
 
     // 按 orderIndex 排序
     const orderedQuestions = sqRecords.map(sq => {
