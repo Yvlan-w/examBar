@@ -5,6 +5,29 @@ import { eq, desc, sql, and, inArray } from 'drizzle-orm';
 
 @Injectable()
 export class ExamSessionService {
+  
+  /**
+   * 格式化时间为东八区（Asia/Shanghai）字符串
+   * 统一时区处理，避免前后端时区不一致
+   */
+  private formatToShanghaiTime(date: Date | string | null | undefined): string | null {
+    if (!date) return null;
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return null;
+    
+    // 使用 Asia/Shanghai 时区格式化
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    };
+    return new Intl.DateTimeFormat('zh-CN', options).format(d);
+  }
   async createSession(params: {
     userId?: number;
     mode: string;
@@ -154,7 +177,7 @@ export class ExamSessionService {
         } : null,
         userAnswer: answer?.userAnswer || null,
         isCorrect: answer?.isCorrect || false,
-        answeredAt: answer?.createdAt || null,
+        answeredAt: this.formatToShanghaiTime(answer?.createdAt) || null,
       };
     });
 
@@ -199,8 +222,8 @@ export class ExamSessionService {
         totalQuestions: session.totalQuestions,
         correctCount: session.correctCount,
         completed: session.completed,
-        createdAt: session.createdAt,
-        completedAt: session.completedAt,
+        createdAt: this.formatToShanghaiTime(session.createdAt),
+        completedAt: this.formatToShanghaiTime(session.completedAt),
         duration: actualDuration,
       },
       questionReviews,

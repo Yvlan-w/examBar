@@ -11,6 +11,7 @@ const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:Enu75Z3n
 
 export const client = new Client({
   connectionString: DATABASE_URL,
+  statement_timeout: 30000,
 });
 
 export const db = drizzle(client, { schema });
@@ -23,6 +24,11 @@ export const db = drizzle(client, { schema });
       useFactory: async () => {
         await client.connect();
         console.log('PostgreSQL connected successfully');
+        
+        // 设置会话时区为东八区 (Asia/Shanghai)
+        await client.query("SET TIME ZONE 'Asia/Shanghai'");
+        console.log('Database timezone set to Asia/Shanghai');
+        
         return db;
       },
     },

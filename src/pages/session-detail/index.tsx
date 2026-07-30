@@ -96,8 +96,8 @@ const SessionDetailPage = () => {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-'
-    const date = new Date(dateStr)
-    return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    // 后端已返回东八区格式化字符串，直接使用
+    return dateStr
   }
 
   const calculateRate = (correct: number, total: number) => {

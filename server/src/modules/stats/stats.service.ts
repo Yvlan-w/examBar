@@ -5,6 +5,25 @@ import { eq, count, desc, and, or, sql, inArray } from 'drizzle-orm';
 
 @Injectable()
 export class StatsService {
+  
+  /**
+   * 格式化时间为东八区（Asia/Shanghai）字符串
+   */
+  private formatToShanghaiTime(date: Date | string | null | undefined): string {
+    if (!date) return '-';
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Shanghai',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    };
+    return new Intl.DateTimeFormat('zh-CN', options).format(d);
+  }
   async updateStats(userId: number, subjectId: string, isCorrect: boolean) {
     const today = new Date().toISOString().split('T')[0];
 
@@ -223,7 +242,7 @@ export class StatsService {
           answeredCount,
           progress,
           accuracy,
-          createdAt: r.createdAt,
+          createdAt: this.formatToShanghaiTime(r.createdAt),
           completed: r.completed,
         };
       });
@@ -248,7 +267,7 @@ export class StatsService {
         total: 1,
         correct: r.isCorrect ? 1 : 0,
         accuracy: r.isCorrect ? 100 : 0,
-        createdAt: r.createdAt,
+        createdAt: this.formatToShanghaiTime(r.createdAt),
         completed: true,
       }));
     }
