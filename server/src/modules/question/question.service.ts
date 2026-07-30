@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { db } from '@/db/db.module';
 import { questions, subjects, answerRecords, favoriteRecords } from '@/db/schema';
-import { eq, and, count, desc, or, isNotNull } from 'drizzle-orm';
+import { eq, and, count, desc, or, isNotNull, sql } from 'drizzle-orm';
 import {
   subjects as seedSubjects,
   questions as seedQuestions,
@@ -179,9 +179,17 @@ export class QuestionService implements OnModuleInit {
   }
 
   async getHistoryQuestions(subjectId?: string, year?: string) {
+    console.log(`[History] 查询真题 subjectId=${subjectId} year=${year}`);
+    
+    // 先查询所有题目，看看有没有带 year 的
+    const allQuestions = await db.select({ id: questions.id, year: questions.year, subjectId: questions.subjectId, content: questions.content }).from(questions).limit(5);
+    console.log(`[History] 数据库中前5条题目样本:`, allQuestions.map(q => ({ id: q.id, year: q.year, subjectId: q.subjectId, content: (q.content || '').substring(0, 30) })));
+    
     const conditions: any[] = [];
     if (subjectId) conditions.push(eq(questions.subjectId, subjectId));
     if (year && year !== 'all') conditions.push(eq(questions.year, parseInt(year)));
+
+    console.log(`[History] 查询条件数量: ${conditions.length}, conditions:`, conditions.map(c => String(c)));
 
     const query = conditions.length > 0
       ? db.select({
@@ -209,11 +217,27 @@ export class QuestionService implements OnModuleInit {
           year: questions.year,
         }).from(questions);
 
-    return await query;
+    const result = await query;
+    console.log(`[History] 查询结果: ${result.length} 道题目`);
+    if (result.length > 0) {
+      console.log(`[History] 第一条样本:`, { id: result[0].id, year: result[0].year, subjectId: result[0].subjectId, content: (result[0].content || '').substring(0, 50) });
+    }
+    return result;
   }
 
   async getYears() {
+    console.log('[Years] 查询所有可用年份');
+    
+    // 先检查数据库中 year 字段的分布
+    const yearDistribution = await db.select({ 
+      year: questions.year,
+      count: sql<number>`count(*)` 
+    }).from(questions).groupBy(questions.year);
+    console.log('[Years] 数据库中 year 字段分布:', yearDistribution);
+    
     const result = await db.select({ year: questions.year }).from(questions).where(isNotNull(questions.year)).groupBy(questions.year).orderBy(desc(questions.year));
+    console.log(`[Years] 查询结果: ${result.length} 个年份, values:`, result);
+    
     return result.map((r) => r.year!);
   }
 

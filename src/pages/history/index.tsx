@@ -103,14 +103,29 @@ const HistoryPage = () => {
   const loadData = async () => {
     try {
       setLoading(true)
+      console.log('[History] 开始加载数据...')
+      
       const [subjectsRes, yearsRes] = await Promise.all([
         Network.request({ url: '/api/subjects' }),
         Network.request({ url: '/api/years' }),
       ])
-      setSubjects(subjectsRes.data?.data || [])
-      setYears(yearsRes.data?.data || [])
-      if ((subjectsRes.data?.data || []).length > 0) {
-        setSelectedSubject((subjectsRes.data?.data || [])[0].id)
+      
+      console.log('[History] subjects 响应:', JSON.stringify(subjectsRes.data).substring(0, 200))
+      console.log('[History] years 响应:', JSON.stringify(yearsRes.data).substring(0, 200))
+      
+      const subjectData = subjectsRes.data?.data || []
+      const yearData = yearsRes.data?.data || []
+      
+      console.log(`[History] 科目数量: ${subjectData.length}, 年份数量: ${yearData.length}`)
+      
+      setSubjects(subjectData)
+      setYears(yearData)
+      
+      if (subjectData.length > 0) {
+        console.log(`[History] 自动选择第一个科目: ${subjectData[0].id} - ${subjectData[0].name}`)
+        setSelectedSubject(subjectData[0].id)
+      } else {
+        console.warn('[History] 没有可用的科目')
       }
     } catch (e) {
       console.error('loadData error:', e)
@@ -126,8 +141,17 @@ const HistoryPage = () => {
       if (selectedYear !== 'all') {
         params.year = selectedYear
       }
+      
+      console.log(`[History] 请求题目:`, params)
+      
       const res = await Network.request({ url: '/api/questions/history', data: params })
-      setQuestions(res.data?.data || [])
+      
+      console.log(`[History] 题目响应:`, JSON.stringify(res.data).substring(0, 300))
+      
+      const questionsData = res.data?.data || []
+      console.log(`[History] 题目数量: ${questionsData.length}`)
+      
+      setQuestions(questionsData)
     } catch (e) {
       console.error('loadQuestions error:', e)
     } finally {

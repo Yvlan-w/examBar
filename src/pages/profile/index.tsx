@@ -228,19 +228,7 @@ const ProfilePage = () => {
               </View>
               <ChevronRight size={16} color="#94A3B8" />
             </View>
-            <Separator />
-            <View
-              className="flex items-center justify-between p-4 active:bg-slate-50"
-              onClick={() => Taro.navigateTo({ url: '/pages/questions/index' })}
-            >
-              <View className="flex items-center gap-3">
-                <View className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <BookOpen size={18} color="#2563EB" />
-                </View>
-                <Text className="text-sm font-medium text-slate-800">题库</Text>
-              </View>
-              <ChevronRight size={16} color="#94A3B8" />
-            </View>
+            
           </CardContent>
         </Card>
       </View>
