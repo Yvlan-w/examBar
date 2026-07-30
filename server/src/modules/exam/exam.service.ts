@@ -63,6 +63,7 @@ export class ExamService {
     let sessionId: string | null = null;
     if (userId) {
       sessionId = this.generateSessionId();
+      const now = new Date();
       try {
         await db.insert(examSessions).values({
           id: sessionId,
@@ -72,8 +73,10 @@ export class ExamService {
           subjectName: firstQuestion.subjectName,
           totalQuestions: selected.length,
           correctCount: 0,
-          duration,
+          duration: 0,
+          elapsedTime: 0,
           completed: false,
+          createdAt: now,
         });
         
         // 写入关联记录

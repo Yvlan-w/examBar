@@ -14,6 +14,7 @@ export class ExamSessionService {
     questionIds?: string[];
   }) {
     const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    const now = new Date();
     
     const session = await db.insert(examSessions).values({
       id: sessionId,
@@ -24,7 +25,9 @@ export class ExamSessionService {
       totalQuestions: params.totalQuestions || 0,
       correctCount: 0,
       duration: 0,
+      elapsedTime: 0,
       completed: false,
+      createdAt: now,
     }).returning();
     
     // 写入关联记录
@@ -75,12 +78,15 @@ export class ExamSessionService {
     const now = new Date();
     const createdAt = session.createdAt ? new Date(session.createdAt) : now;
     const elapsedSeconds = Math.round((now.getTime() - createdAt.getTime()) / 1000);
-    const totalElapsed = (session.elapsedTime || 0) + elapsedSeconds;
+    const totalElapsed = Math.max(elapsedSeconds, session.elapsedTime || 0);
+    
+    console.log(`[Session] 完成场次: ${sessionId}, createdAt=${session.createdAt}, now=${now}, elapsed=${elapsedSeconds}s, totalElapsed=${totalElapsed}s`);
     
     await db.update(examSessions).set({
       completed: true,
       completedAt: now,
       elapsedTime: totalElapsed,
+      duration: totalElapsed,
     }).where(eq(examSessions.id, sessionId));
     
     console.log(`[Session] 完成场次: ${sessionId}, 用时: ${totalElapsed}秒`);
@@ -165,15 +171,24 @@ export class ExamSessionService {
 
     // 计算实际用时（秒）
     let actualDuration = 0;
-    if (session.completed && session.completedAt && session.createdAt) {
-      // 已完成：用完成时间 - 创建时间
-      actualDuration = Math.round((new Date(session.completedAt).getTime() - new Date(session.createdAt).getTime()) / 1000);
-    } else if (session.elapsedTime) {
-      // 进行中：使用已用时间
+    const createdAtMs = session.createdAt ? new Date(session.createdAt).getTime() : Date.now();
+    console.log(`[Session] 计算时长: createdAt=${session.createdAt} (${createdAtMs})`);
+    
+    if (session.completed && session.completedAt) {
+      const completedAtMs = new Date(session.completedAt).getTime();
+      actualDuration = Math.round((completedAtMs - createdAtMs) / 1000);
+      console.log(`[Session] 已完成: completedAt=${session.completedAt} (${completedAtMs}), duration=${actualDuration}s`);
+    } else if (session.elapsedTime && session.elapsedTime > 0) {
       actualDuration = session.elapsedTime;
-    } else if (session.duration) {
-      // 回退：使用 duration 字段
-      actualDuration = session.duration;
+      console.log(`[Session] 进行中: elapsedTime=${actualDuration}s`);
+    } else {
+      actualDuration = 0;
+      console.log(`[Session] 无有效时长`);
+    }
+    
+    // 确保时长不为负数
+    if (actualDuration < 0) {
+      actualDuration = 0;
     }
 
     return {
