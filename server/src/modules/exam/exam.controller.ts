@@ -7,8 +7,9 @@ export class ExamController {
 
   @Post('start')
   @HttpCode(200)
-  async startExam(@Body() body: { subjectId: string; duration: number; questionCount?: number }) {
-    const result = await this.examService.startExam(body.subjectId, body.duration, body.questionCount || 20);
+  async startExam(@Body() body: { subjectId: string; duration: number; questionCount?: number; userId?: number }) {
+    console.log(`[API] POST /api/exam/start subjectId=${body.subjectId} userId=${body.userId}`);
+    const result = await this.examService.startExam(body.subjectId, body.duration, body.questionCount || 20, body.userId);
     return { code: 200, msg: 'success', data: result };
   }
 
@@ -20,9 +21,11 @@ export class ExamController {
       answers: { questionId: string; answer: string }[];
       timeUsed: number;
       userId?: number;
+      sessionId?: string;
     },
   ) {
-    const result = await this.examService.submitExam(body.subjectId, body.answers, body.timeUsed, body.userId);
+    console.log(`[API] POST /api/exam/submit subjectId=${body.subjectId} sessionId=${body.sessionId}`);
+    const result = await this.examService.submitExam(body.subjectId, body.answers, body.timeUsed, body.userId, body.sessionId);
     return { code: 200, msg: 'success', data: result };
   }
 }

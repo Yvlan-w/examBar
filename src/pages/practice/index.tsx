@@ -41,6 +41,7 @@ const PracticePage = () => {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState('')
   const [score, setScore] = useState(0)
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
@@ -63,14 +64,55 @@ const PracticePage = () => {
     }
   }
 
+  // 创建考试场次
+  const createSession = async (questionList: Question[]) => {
+    if (!isLoggedIn || !user?.id) return
+    try {
+      const res = await Network.request({
+        url: '/api/sessions/start',
+        method: 'POST',
+        data: {
+          userId: user.id,
+          mode,
+          subjectId: subjectId || undefined,
+          subjectName: questionList[0]?.subjectName || undefined,
+          totalQuestions: questionList.length,
+        },
+      })
+      const sessionId = res.data?.data?.id
+      if (sessionId) {
+        setCurrentSessionId(sessionId)
+        console.log('[Session] 创建场次:', sessionId)
+      }
+    } catch (e) {
+      console.warn('[Session] 创建场次失败（不影响答题）:', e)
+    }
+  }
+
+  // 完成考试场次
+  const completeSession = async () => {
+    if (!currentSessionId) return
+    try {
+      await Network.request({
+        url: `/api/sessions/${currentSessionId}/complete`,
+        method: 'POST',
+      })
+      console.log('[Session] 完成场次:', currentSessionId)
+    } catch (e) {
+      console.warn('[Session] 完成场次失败:', e)
+    }
+  }
+
   const loadQuestions = async () => {
     try {
       setLoading(true)
+      let loadedQuestions: Question[] = []
+      
       if (questionId) {
         const res = await Network.request({ url: '/api/questions/' + questionId })
         console.log('single question:', res.data)
         if (res.data?.data) {
-          setQuestions([res.data.data])
+          loadedQuestions = [res.data.data]
         }
       } else {
         let url = '/api/questions'
@@ -88,7 +130,14 @@ const PracticePage = () => {
         }
         const res = await Network.request({ url, data: params })
         console.log('questions list:', res.data)
-        setQuestions(res.data?.data || [])
+        loadedQuestions = res.data?.data || []
+      }
+      
+      setQuestions(loadedQuestions)
+      
+      // 题目加载完成后，创建考试场次
+      if (loadedQuestions.length > 0) {
+        await createSession(loadedQuestions)
       }
     } catch (e) {
       console.error('loadQuestions error:', e)
@@ -150,6 +199,7 @@ const PracticePage = () => {
           answer: userAnswer,
           mode,
           userId: user?.id,
+          sessionId: currentSessionId || undefined,
         },
       })
       console.log('submit answer:', res.data)
@@ -184,7 +234,8 @@ const PracticePage = () => {
         }
       }, 100)
     } else {
-      // 完成所有题目，跳转结果页
+      // 完成所有题目，先标记场次完成再跳转
+      completeSession()
       Taro.redirectTo({
         url: '/pages/result/index?total=' + questions.length +
           '&correct=' + correctCount +
@@ -199,6 +250,8 @@ const PracticePage = () => {
   }
 
   const handleFinish = () => {
+    // 提前结束时也标记场次完成
+    completeSession()
     Taro.redirectTo({
       url: '/pages/result/index?total=' + answeredCount +
         '&correct=' + correctCount +

@@ -34,6 +34,7 @@ const ExamPage = () => {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const { isLoggedIn, user } = useUserStore()
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -100,12 +101,21 @@ const ExamPage = () => {
       const res = await Network.request({
         url: '/api/exam/start',
         method: 'POST',
-        data: { subjectId, duration: parseInt(duration) * 60, questionCount: parseInt(count) },
+        data: {
+          subjectId,
+          duration: parseInt(duration) * 60,
+          questionCount: parseInt(count),
+          userId: user?.id,
+        },
       })
       console.log('exam start:', res.data)
       const examData = res.data?.data
       if (examData?.questions) {
         setQuestions(examData.questions)
+      }
+      if (examData?.sessionId) {
+        setCurrentSessionId(examData.sessionId)
+        console.log('[Session] 模拟考试场次:', examData.sessionId)
       }
     } catch (e) {
       console.error('loadExamQuestions error:', e)
@@ -145,6 +155,7 @@ const ExamPage = () => {
           })),
           timeUsed: initialDuration - timeLeft,
           userId: user?.id,
+          sessionId: currentSessionId || undefined,
         },
       })
       console.log('exam submit:', res.data)
