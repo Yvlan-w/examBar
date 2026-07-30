@@ -21,7 +21,7 @@ interface Question {
 
 const ExamPage = () => {
   const router = useRouter()
-  const { subjectId = '', count = '20', duration = '30' } = router.params
+  const { subjectId = '', count = '20', duration = '30', sessionId = '', continue: continueMode = '' } = router.params
 
   const initialDuration = parseInt(duration) * 60
 
@@ -35,6 +35,7 @@ const ExamPage = () => {
   const [loginLoading, setLoginLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [isContinueMode, setIsContinueMode] = useState(false)
   const { isLoggedIn, user } = useUserStore()
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -66,8 +67,67 @@ const ExamPage = () => {
   const initPage = async () => {
     if (!isLoggedIn) {
       setShowLoginDialog(true)
+    } else if (continueMode === '1' && sessionId) {
+      // 继续作答模式
+      setCurrentSessionId(sessionId)
+      setIsContinueMode(true)
+      loadSessionQuestions(sessionId)
     } else {
       loadExamQuestions()
+    }
+  }
+
+  // 加载场次完整题目列表并恢复状态
+  const loadSessionQuestions = async (sid: string) => {
+    try {
+      setLoading(true)
+      const res = await Network.request({
+        url: `/api/sessions/${sid}/questions`,
+      })
+      const data = res.data?.data
+      if (data?.questions && data.questions.length > 0) {
+        // 保存完整题目列表
+        const qList = data.questions.map((q: any) => ({
+          id: q.id,
+          content: q.content,
+          type: q.type,
+          options: q.options,
+          answered: q.answered,
+          userAnswer: q.userAnswer,
+        }))
+        setQuestions(qList)
+        
+        // 恢复答案
+        const savedAnswers: Record<string, string> = {}
+        data.questions.forEach((q: any) => {
+          if (q.answered && q.userAnswer) {
+            savedAnswers[q.id] = q.userAnswer
+          }
+        })
+        setAnswers(savedAnswers)
+        
+        // 恢复进度
+        const nextIdx = data.nextIndex || 0
+        setCurrentIndex(nextIdx)
+        
+        // 恢复计时器：使用 duration - elapsedTime 作为剩余时间
+        const sessionDuration = data.session?.duration || initialDuration
+        const sessionElapsedTime = data.session?.elapsedTime || 0
+        const remaining = Math.max(0, sessionDuration - sessionElapsedTime)
+        setTimeLeft(remaining)
+        
+        console.log('[Exam] 恢复进度: 总题数', qList.length, '下一题:', nextIdx, '剩余时间:', remaining, '秒')
+      } else {
+        Taro.showToast({ title: '该场次无题目', icon: 'none' })
+        setTimeout(() => {
+          Taro.navigateBack()
+        }, 1500)
+      }
+    } catch (e) {
+      console.error('load session questions error:', e)
+      Taro.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -144,6 +204,22 @@ const ExamPage = () => {
     if (timerRef.current) clearInterval(timerRef.current)
 
     try {
+      const timeUsed = initialDuration - timeLeft
+      
+      // 更新场次的 elapsedTime
+      if (currentSessionId) {
+        try {
+          await Network.request({
+            url: `/api/sessions/${currentSessionId}/update`,
+            method: 'POST',
+            data: { addElapsedTime: timeUsed },
+          })
+          console.log('[Exam] 更新 elapsedTime:', timeUsed)
+        } catch (e) {
+          console.warn('[Exam] 更新 elapsedTime 失败:', e)
+        }
+      }
+
       const res = await Network.request({
         url: '/api/exam/submit',
         method: 'POST',
@@ -153,7 +229,7 @@ const ExamPage = () => {
             questionId,
             answer,
           })),
-          timeUsed: initialDuration - timeLeft,
+          timeUsed,
           userId: user?.id,
           sessionId: currentSessionId || undefined,
         },
@@ -165,7 +241,7 @@ const ExamPage = () => {
           '&correct=' + (result?.correct || 0) +
           '&score=' + (result?.score || 0) +
           '&mode=exam' +
-          '&timeUsed=' + (result?.timeUsed || initialDuration - timeLeft),
+          '&timeUsed=' + (result?.timeUsed || timeUsed),
       })
     } catch (e) {
       console.error('submit exam error:', e)
@@ -223,6 +299,13 @@ const ExamPage = () => {
 
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
+      {/* 继续作答提示 */}
+      {isContinueMode && (
+        <View className="bg-amber-50 px-4 py-2 flex items-center gap-2">
+          <Clock size={14} color="#F59E0B" />
+          <Text className="block text-xs text-amber-700">继续上次未完成的考试</Text>
+        </View>
+      )}
       {/* 顶部信息栏 */}
       <View className={`px-4 py-3 shadow-sm ${isTimeWarning ? 'bg-red-50' : 'bg-white'}`}>
         <View className="flex items-center justify-between mb-2">

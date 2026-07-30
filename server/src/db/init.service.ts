@@ -171,6 +171,10 @@ export class DbInitService implements OnModuleInit {
           created_at TIMESTAMP DEFAULT NOW()
         )`,
       },
+      {
+        name: 'exam_sessions.elapsed_time',
+        sql: `ALTER TABLE exam_sessions ADD COLUMN IF NOT EXISTS elapsed_time INTEGER DEFAULT 0`,
+      },
     ];
 
     for (const migration of migrations) {

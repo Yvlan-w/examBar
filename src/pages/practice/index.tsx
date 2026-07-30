@@ -21,6 +21,9 @@ interface Question {
   analysis: string
   difficulty: string
   subjectName: string
+  answered?: boolean
+  userAnswer?: string | null
+  isCorrect?: boolean
 }
 
 const PracticePage = () => {
@@ -54,6 +57,13 @@ const PracticePage = () => {
     if (currentQuestion && !isFavorite) {
       checkFavorite(currentQuestion.id)
     }
+    // 如果是继续作答模式且当前题目已答，自动显示答案
+    if (currentQuestion?.answered && !showResult) {
+      setSelectedAnswer(currentQuestion.userAnswer || '')
+      setIsCorrect(currentQuestion.isCorrect || false)
+      setShowResult(true)
+      submittedRef.current = true
+    }
   }, [currentIndex, questions.length])
 
   const initPage = async () => {
@@ -70,16 +80,16 @@ const PracticePage = () => {
     }
   }
 
-  // 加载未完成场次的待答题目
+  // 加载场次完整题目列表（含答题状态）
   const loadRemainingQuestions = async (sid: string) => {
     try {
       setLoading(true)
       const res = await Network.request({
-        url: `/api/sessions/${sid}/remaining`,
+        url: `/api/sessions/${sid}/questions`,
       })
       const data = res.data?.data
       if (data?.questions && data.questions.length > 0) {
-        // 移除不需要的 orderIndex 字段
+        // 保存完整题目列表
         const qList = data.questions.map((q: any) => ({
           id: q.id,
           content: q.content,
@@ -89,12 +99,26 @@ const PracticePage = () => {
           analysis: q.analysis,
           difficulty: q.difficulty,
           subjectName: q.subjectName,
+          answered: q.answered,
+          userAnswer: q.userAnswer,
+          isCorrect: q.isCorrect,
         }))
         setQuestions(qList)
-        console.log('[Session] 加载待答题目:', qList.length, '题')
+        
+        // 恢复进度：设置到第一个未答题目的位置
+        const nextIdx = data.nextIndex || 0
+        setCurrentIndex(nextIdx)
+        
+        // 恢复已答题数和正确数
+        const answeredCount = qList.filter((q: Question) => q.answered).length
+        const correctCount = qList.filter((q: Question) => q.isCorrect).length
+        setAnsweredCount(answeredCount)
+        setCorrectCount(correctCount)
+        
+        console.log('[Session] 恢复进度: 总题数', qList.length, '下一题索引:', nextIdx, '已答:', answeredCount, '正确:', correctCount)
       } else {
-        // 没有待答题目，说明已经完成
-        Taro.showToast({ title: '该场次已完成', icon: 'none' })
+        // 没有题目
+        Taro.showToast({ title: '该场次无题目', icon: 'none' })
         setTimeout(() => {
           Taro.navigateBack()
         }, 1500)

@@ -287,8 +287,12 @@ const ProfilePage = () => {
                     // 已完成：跳转到结算页面
                     Taro.navigateTo({ url: `/pages/session-detail/index?sessionId=${record.id}` })
                   } else {
-                    // 未完成：跳转到练习页面继续作答
-                    Taro.navigateTo({ url: `/pages/practice/index?mode=${record.mode}&sessionId=${record.id}&continue=1` })
+                    // 未完成：根据模式跳转到对应页面继续作答
+                    if (record.mode === 'exam') {
+                      Taro.navigateTo({ url: `/pages/exam/index?sessionId=${record.id}&continue=1` })
+                    } else {
+                      Taro.navigateTo({ url: `/pages/practice/index?mode=${record.mode}&sessionId=${record.id}&continue=1` })
+                    }
                   }
                 }}
               >

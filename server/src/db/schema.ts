@@ -52,6 +52,7 @@ export const examSessions = pgTable('exam_sessions', {
   totalQuestions: integer('total_questions').default(0),
   correctCount: integer('correct_count').default(0),
   duration: integer('duration').default(0),
+  elapsedTime: integer('elapsed_time').default(0),
   completed: boolean('completed').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   completedAt: timestamp('completed_at'),

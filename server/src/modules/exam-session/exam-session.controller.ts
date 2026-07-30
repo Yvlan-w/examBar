@@ -26,6 +26,7 @@ export class ExamSessionController {
     @Body() body: {
       incrementCorrect?: boolean;
       addDuration?: number;
+      addElapsedTime?: number;
     },
   ) {
     await this.sessionService.updateSession(id, body);
@@ -71,6 +72,16 @@ export class ExamSessionController {
       return { code: 404, msg: '场次不存在', data: null };
     }
     return { code: 200, msg: 'success', data: detail };
+  }
+
+  @Get(':id/questions')
+  @HttpCode(200)
+  async getSessionQuestions(@Param('id') id: string) {
+    const result = await this.sessionService.getSessionQuestions(id);
+    if (!result) {
+      return { code: 404, msg: '场次不存在', data: null };
+    }
+    return { code: 200, msg: 'success', data: result };
   }
 
   @Get(':id/remaining')

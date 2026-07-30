@@ -47,6 +47,7 @@ export class ExamSessionService {
   async updateSession(sessionId: string, params: {
     incrementCorrect?: boolean;
     addDuration?: number;
+    addElapsedTime?: number;
   }) {
     const updates: any = {};
     
@@ -55,6 +56,9 @@ export class ExamSessionService {
     }
     if (params.addDuration) {
       updates.duration = sql`${examSessions.duration} + ${params.addDuration}`;
+    }
+    if (params.addElapsedTime) {
+      updates.elapsedTime = sql`${examSessions.elapsedTime} + ${params.addElapsedTime}`;
     }
     
     if (Object.keys(updates).length > 0) {
@@ -166,7 +170,65 @@ export class ExamSessionService {
   }
 
   /**
-   * 获取未完成场次的待答题目列表
+   * 获取场次完整题目列表（含已答状态和用户答案）
+   * 用于恢复进度
+   */
+  async getSessionQuestions(sessionId: string) {
+    const session = await this.getSessionById(sessionId);
+    if (!session) return null;
+
+    // 获取全部关联记录（按顺序）
+    const sqRecords = await db.select().from(sessionQuestions)
+      .where(eq(sessionQuestions.sessionId, sessionId))
+      .orderBy(sessionQuestions.orderIndex);
+    
+    if (sqRecords.length === 0) {
+      return { session, questions: [], nextIndex: 0 };
+    }
+
+    const questionIds = sqRecords.map(sq => sq.questionId);
+
+    // 获取题目详情
+    const questionDetails = await db.select().from(questions)
+      .where(inArray(questions.id, questionIds));
+    
+    // 获取答题记录
+    const answerRecordsList = await db.select().from(answerRecords)
+      .where(eq(answerRecords.sessionId, sessionId));
+
+    // 构建完整题目列表，包含答题状态
+    const orderedQuestions = sqRecords.map(sq => {
+      const question = questionDetails.find(q => q.id === sq.questionId);
+      const answer = answerRecordsList.find(a => a.questionId === sq.questionId);
+      return question ? {
+        id: question.id,
+        content: question.content,
+        type: question.type,
+        options: question.options,
+        answer: question.answer,
+        analysis: question.analysis,
+        difficulty: question.difficulty,
+        subjectId: question.subjectId,
+        subjectName: question.subjectName,
+        orderIndex: sq.orderIndex,
+        answered: sq.answered,
+        userAnswer: answer?.userAnswer || null,
+        isCorrect: answer?.isCorrect || false,
+      } : null;
+    }).filter(q => q !== null);
+
+    // 找到第一个未答题目的索引
+    const nextIndex = sqRecords.findIndex(sq => !sq.answered);
+
+    return { 
+      session, 
+      questions: orderedQuestions, 
+      nextIndex: nextIndex === -1 ? 0 : nextIndex 
+    };
+  }
+
+  /**
+   * 获取未完成场次的待答题目列表（旧接口，保留兼容）
    */
   async getRemainingQuestions(sessionId: string) {
     const session = await this.getSessionById(sessionId);
