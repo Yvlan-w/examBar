@@ -3,10 +3,14 @@ import { db } from '@/db/db.module';
 import { questions, answerRecords, examSessions, sessionQuestions } from '@/db/schema';
 import { eq, and, count, sql } from 'drizzle-orm';
 import { StatsService } from '../stats/stats.service';
+import { ExamSessionService } from '../exam-session/exam-session.service';
 
 @Injectable()
 export class ExamService {
-  constructor(private readonly statsService: StatsService) {}
+  constructor(
+    private readonly statsService: StatsService,
+    private readonly examSessionService: ExamSessionService,
+  ) {}
 
   private generateSessionId() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
@@ -134,18 +138,28 @@ export class ExamService {
       if (userId) {
         await this.statsService.updateStats(userId, question.subjectId, isCorrect);
       }
+
+      // 标记题目为已答
+      if (sessionId) {
+        await this.examSessionService.markQuestionAnswered(sessionId, ans.questionId);
+      }
     }
 
     // 更新场次统计并标记完成
     if (sessionId) {
       try {
+        // 获取场次信息以获取总题数
+        const session = await this.examSessionService.getSessionById(sessionId);
+        const totalQuestions = session?.totalQuestions || total;
+        
         await db.update(examSessions).set({
           correctCount: correct,
           completed: true,
           completedAt: new Date(),
           duration: timeUsed,
+          elapsedTime: timeUsed,
         }).where(eq(examSessions.id, sessionId));
-        console.log(`[Session] 模拟考试完成场次: ${sessionId}, 正确: ${correct}/${total}`);
+        console.log(`[Session] 模拟考试完成场次: ${sessionId}, 正确: ${correct}/${totalQuestions}`);
       } catch (sessionError) {
         console.warn('[Session] 更新模拟考试场次失败:', sessionError.message);
       }

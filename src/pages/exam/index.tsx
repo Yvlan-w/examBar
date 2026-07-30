@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
 import { loginWithProfile } from '@/utils/auth'
 import { Clock, CircleAlert, User } from 'lucide-react-taro'
@@ -28,6 +29,7 @@ const ExamPage = () => {
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [shortAnswers, setShortAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState(initialDuration)
   const [loading, setLoading] = useState(true)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
@@ -99,12 +101,17 @@ const ExamPage = () => {
         
         // 恢复答案
         const savedAnswers: Record<string, string> = {}
+        const savedShortAnswers: Record<string, string> = {}
         data.questions.forEach((q: any) => {
           if (q.answered && q.userAnswer) {
             savedAnswers[q.id] = q.userAnswer
+            if (q.type === 'short') {
+              savedShortAnswers[q.id] = q.userAnswer
+            }
           }
         })
         setAnswers(savedAnswers)
+        setShortAnswers(savedShortAnswers)
         
         // 恢复进度
         const nextIdx = data.nextIndex || 0
@@ -192,6 +199,13 @@ const ExamPage = () => {
 
   const handleSelectAnswer = (questionId: string, label: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: label }))
+  }
+
+  const handleShortAnswer = (questionId: string, value: string) => {
+    setShortAnswers((prev) => ({ ...prev, [questionId]: value }))
+    if (value.trim()) {
+      setAnswers((prev) => ({ ...prev, [questionId]: value }))
+    }
   }
 
   const handleSubmitExam = useCallback(async () => {
@@ -353,7 +367,7 @@ const ExamPage = () => {
                 第{currentIndex + 1}题
               </Text>
               <Badge variant="secondary" className="text-xs">
-                {currentQuestion.type === 'choice' ? '选择题' : '判断题'}
+                {currentQuestion.type === 'choice' ? '选择题' : currentQuestion.type === 'judge' ? '判断题' : '简答题'}
               </Badge>
             </View>
             <Card className="border-0 shadow-sm mb-4">
@@ -364,28 +378,46 @@ const ExamPage = () => {
               </CardContent>
             </Card>
 
-            <View className="space-y-3">
-              {currentQuestion.options?.map((option) => {
-                const isSelected = answers[currentQuestion.id] === option.label
-                return (
-                  <View
-                    key={option.label}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
-                      isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
-                    }`}
-                    onClick={() => handleSelectAnswer(currentQuestion.id, option.label)}
-                  >
-                    <View className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 ${
-                      isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
-                    }`}
-                    >
-                      {option.label}
-                    </View>
-                    <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+            {/* 选项区域 */}
+            {currentQuestion.type === 'short' ? (
+              <View className="mt-4">
+                <View className="bg-white rounded-xl p-4">
+                  <Text className="block text-xs text-slate-400 mb-2">请输入你的答案：</Text>
+                  <View className="bg-slate-50 rounded-xl p-3">
+                    <Textarea
+                      style={{ width: '100%', minHeight: '120px', backgroundColor: 'transparent' }}
+                      placeholder="在此输入你的答案..."
+                      value={shortAnswers[currentQuestion.id] || ''}
+                      onInput={(e) => handleShortAnswer(currentQuestion.id, e.detail.value)}
+                      maxlength={500}
+                    />
                   </View>
-                )
-              })}
-            </View>
+                </View>
+              </View>
+            ) : (
+              <View className="space-y-3">
+                {currentQuestion.options?.map((option) => {
+                  const isSelected = answers[currentQuestion.id] === option.label
+                  return (
+                    <View
+                      key={option.label}
+                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                        isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
+                      }`}
+                      onClick={() => handleSelectAnswer(currentQuestion.id, option.label)}
+                    >
+                      <View className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 ${
+                        isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
+                      }`}
+                      >
+                        {option.label}
+                      </View>
+                      <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                    </View>
+                  )
+                })}
+              </View>
+            )}
           </>
         )}
       </View>
