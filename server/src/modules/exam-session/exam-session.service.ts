@@ -67,12 +67,23 @@ export class ExamSessionService {
   }
 
   async completeSession(sessionId: string) {
+    // 获取当前场次信息
+    const session = await this.getSessionById(sessionId);
+    if (!session) return;
+    
+    // 计算已用时间
+    const now = new Date();
+    const createdAt = session.createdAt ? new Date(session.createdAt) : now;
+    const elapsedSeconds = Math.round((now.getTime() - createdAt.getTime()) / 1000);
+    const totalElapsed = (session.elapsedTime || 0) + elapsedSeconds;
+    
     await db.update(examSessions).set({
       completed: true,
-      completedAt: new Date(),
+      completedAt: now,
+      elapsedTime: totalElapsed,
     }).where(eq(examSessions.id, sessionId));
     
-    console.log(`[Session] 完成场次: ${sessionId}`);
+    console.log(`[Session] 完成场次: ${sessionId}, 用时: ${totalElapsed}秒`);
   }
 
   async markQuestionAnswered(sessionId: string, questionId: string) {
@@ -152,6 +163,19 @@ export class ExamSessionService {
       }
     });
 
+    // 计算实际用时（秒）
+    let actualDuration = 0;
+    if (session.completed && session.completedAt && session.createdAt) {
+      // 已完成：用完成时间 - 创建时间
+      actualDuration = Math.round((new Date(session.completedAt).getTime() - new Date(session.createdAt).getTime()) / 1000);
+    } else if (session.elapsedTime) {
+      // 进行中：使用已用时间
+      actualDuration = session.elapsedTime;
+    } else if (session.duration) {
+      // 回退：使用 duration 字段
+      actualDuration = session.duration;
+    }
+
     return {
       session: {
         id: session.id,
@@ -162,7 +186,7 @@ export class ExamSessionService {
         completed: session.completed,
         createdAt: session.createdAt,
         completedAt: session.completedAt,
-        duration: session.duration,
+        duration: actualDuration,
       },
       questionReviews,
       typeStats,

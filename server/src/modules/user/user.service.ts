@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
 import { users, answerRecords, userStats, subjectStats, favoriteRecords, questions } from '@/db/schema';
-import { eq, and, count, desc, or, isNotNull } from 'drizzle-orm';
+import { eq, and, count, desc, or, isNotNull, sql } from 'drizzle-orm';
 
 export interface UserCreateDto {
   openid?: string;
@@ -58,7 +58,7 @@ export class UserService {
   async getUserStats(userId: number): Promise<UserStatsDto> {
     const today = new Date().toISOString().split('T')[0];
     
-    const todayResult = await db.select({ count: count() }).from(answerRecords).where(and(eq(answerRecords.userId, userId), eq(answerRecords.createdAt, today)));
+    const todayResult = await db.select({ count: count() }).from(answerRecords).where(and(eq(answerRecords.userId, userId), eq(sql`date(${answerRecords.createdAt})`, today)));
     const todayCount = todayResult[0].count || 0;
 
     const correctResult = await db.select({ count: count() }).from(answerRecords).where(and(eq(answerRecords.userId, userId), eq(answerRecords.isCorrect, true)));

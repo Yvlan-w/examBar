@@ -77,7 +77,7 @@ export const answerRecords = pgTable('answer_records', {
   mode: varchar('mode', { length: 32 }).notNull(),
   subjectId: varchar('subject_id', { length: 32 }),
   subjectName: varchar('subject_name', { length: 128 }),
-  createdAt: date('created_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const favoriteRecords = pgTable('favorite_records', {

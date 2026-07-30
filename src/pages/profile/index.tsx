@@ -41,6 +41,8 @@ interface StatsData {
     total: number
     correct: number
     accuracy: number
+    progress: number
+    answeredCount: number
     createdAt: string
     completed?: boolean
   }[]
@@ -313,11 +315,11 @@ const ProfilePage = () => {
                   </View>
                   <View className="flex items-center justify-between mt-2">
                     <View className="flex items-center gap-3">
-                      <Text className={`text-lg font-bold ${record.accuracy >= 60 ? 'text-emerald-600' : record.accuracy > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                        {record.accuracy}%
+                      <Text className={`text-lg font-bold ${record.progress >= 100 ? 'text-emerald-600' : record.progress > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {record.answeredCount || 0}/{record.total}
                       </Text>
                       <Text className="text-xs text-slate-500">
-                        {record.correct}/{record.total}题
+                        正确率 {record.accuracy}%
                       </Text>
                     </View>
                     <Text className="text-xs text-slate-400">{record.createdAt}</Text>
@@ -325,8 +327,8 @@ const ProfilePage = () => {
                   {record.total > 0 && (
                     <View className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
                       <View 
-                        className={`h-full rounded-full ${record.accuracy >= 60 ? 'bg-emerald-500' : record.accuracy > 0 ? 'bg-amber-500' : 'bg-slate-300'}`}
-                        style={{ width: `${record.accuracy}%` }}
+                        className={`h-full rounded-full ${record.progress >= 100 ? 'bg-emerald-500' : record.progress > 0 ? 'bg-blue-500' : 'bg-slate-300'}`}
+                        style={{ width: `${record.progress}%` }}
                       />
                     </View>
                   )}

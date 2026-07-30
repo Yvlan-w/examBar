@@ -133,7 +133,7 @@ export class QuestionService implements OnModuleInit {
     }
 
     const recordId = 'r' + Date.now() + Math.random().toString(36).substring(2, 6);
-    const createdAt = new Date().toISOString().split('T')[0];
+    const createdAt = new Date();
 
     await db.insert(answerRecords).values({
       id: recordId,

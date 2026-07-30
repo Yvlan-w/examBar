@@ -110,12 +110,12 @@ const PracticePage = () => {
         setCurrentIndex(nextIdx)
         
         // 恢复已答题数和正确数
-        const answeredCount = qList.filter((q: Question) => q.answered).length
-        const correctCount = qList.filter((q: Question) => q.isCorrect).length
-        setAnsweredCount(answeredCount)
-        setCorrectCount(correctCount)
+        const newAnsweredCount = qList.filter((q: Question) => q.answered).length
+        const newCorrectCount = qList.filter((q: Question) => q.isCorrect).length
+        setAnsweredCount(newAnsweredCount)
+        setCorrectCount(newCorrectCount)
         
-        console.log('[Session] 恢复进度: 总题数', qList.length, '下一题索引:', nextIdx, '已答:', answeredCount, '正确:', correctCount)
+        console.log('[Session] 恢复进度: 总题数', qList.length, '下一题索引:', nextIdx, '已答:', newAnsweredCount, '正确:', newCorrectCount)
       } else {
         // 没有题目
         Taro.showToast({ title: '该场次无题目', icon: 'none' })

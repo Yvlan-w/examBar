@@ -108,7 +108,7 @@ export class ExamService {
   ) {
     let correct = 0;
     const total = answers.length;
-    const createdAt = new Date().toISOString().split('T')[0];
+    const createdAt = new Date();
 
     for (const ans of answers) {
       const questionResult = await db.select().from(questions).where(eq(questions.id, ans.questionId)).limit(1);

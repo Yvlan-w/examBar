@@ -77,7 +77,7 @@ export class DbInitService implements OnModuleInit {
           mode VARCHAR(32) NOT NULL,
           subject_id VARCHAR(32),
           subject_name VARCHAR(128),
-          created_at DATE DEFAULT NOW()
+          created_at TIMESTAMP DEFAULT NOW()
         )`,
       },
       {
@@ -174,6 +174,14 @@ export class DbInitService implements OnModuleInit {
       {
         name: 'exam_sessions.elapsed_time',
         sql: `ALTER TABLE exam_sessions ADD COLUMN IF NOT EXISTS elapsed_time INTEGER DEFAULT 0`,
+      },
+      {
+        name: 'answer_records.created_at type',
+        sql: `ALTER TABLE answer_records ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp`,
+      },
+      {
+        name: 'favorite_records.created_at type',
+        sql: `ALTER TABLE favorite_records ALTER COLUMN created_at TYPE TIMESTAMP USING created_at::timestamp`,
       },
     ];
 

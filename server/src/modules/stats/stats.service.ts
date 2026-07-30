@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { answerRecords, subjects, questions, userStats, subjectStats, examSessions } from '@/db/schema';
-import { eq, count, desc, and, or } from 'drizzle-orm';
+import { answerRecords, subjects, questions, userStats, subjectStats, examSessions, sessionQuestions } from '@/db/schema';
+import { eq, count, desc, and, or, sql, inArray } from 'drizzle-orm';
 
 @Injectable()
 export class StatsService {
@@ -193,16 +193,40 @@ export class StatsService {
         createdAt: examSessions.createdAt,
       }).from(examSessions).where(eq(examSessions.userId, userId)).orderBy(desc(examSessions.createdAt)).limit(10);
       
-      recentRecords = sessionRecords.map((r) => ({
-        id: r.id,
-        subjectName: r.subjectName || '未知科目',
-        mode: r.mode,
-        total: r.totalQuestions || 0,
-        correct: r.correctCount || 0,
-        accuracy: (r.totalQuestions || 0) > 0 ? Math.round((r.correctCount || 0) / (r.totalQuestions || 1) * 100) : 0,
-        createdAt: r.createdAt,
-        completed: r.completed,
-      }));
+      // 获取每个场次的已答题数
+      const sessionIds = sessionRecords.map(r => r.id);
+      let answeredCountMap = new Map<string, number>();
+      if (sessionIds.length > 0) {
+        const sqCounts = await db.select({
+          sessionId: sessionQuestions.sessionId,
+          count: sql`count(*)`,
+        }).from(sessionQuestions)
+          .where(and(inArray(sessionQuestions.sessionId, sessionIds), eq(sessionQuestions.answered, true)))
+          .groupBy(sessionQuestions.sessionId);
+        for (const sq of sqCounts) {
+          answeredCountMap.set(sq.sessionId, Number(sq.count));
+        }
+      }
+      
+      recentRecords = sessionRecords.map((r) => {
+        const total = r.totalQuestions || 0;
+        const correct = r.correctCount || 0;
+        const answeredCount = answeredCountMap.get(r.id) || correct; // 未答完时用correct数作为进度
+        const progress = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
+        const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+        return {
+          id: r.id,
+          subjectName: r.subjectName || '未知科目',
+          mode: r.mode,
+          total,
+          correct,
+          answeredCount,
+          progress,
+          accuracy,
+          createdAt: r.createdAt,
+          completed: r.completed,
+        };
+      });
       
       console.log(`[Stats] 获取到 ${recentRecords.length} 条场次记录`);
     } catch (sessionError) {
