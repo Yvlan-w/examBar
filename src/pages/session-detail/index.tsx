@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronLeft, CheckCircle2, XCircle, Clock, BookOpen, Target, Award, BarChart3 } from 'lucide-react-taro'
+import { ChevronLeft, CircleCheck, CircleX, Clock, BookOpen, Target, ChartBarIncreasing } from 'lucide-react-taro'
 
 interface QuestionReview {
   orderIndex: number
@@ -148,7 +148,7 @@ const SessionDetailPage = () => {
             <CardContent className="p-4 text-white">
               <View className="flex items-center justify-between mb-3">
                 <View className="flex items-center gap-2">
-                  <Badge className="bg-white/20 text-white text-xs">
+                  <Badge className="text-white text-xs" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
                     {MODE_LABELS[session.mode] || session.mode}
                   </Badge>
                   <Text className="text-sm">{session.subjectName}</Text>
@@ -168,15 +168,15 @@ const SessionDetailPage = () => {
               </View>
               
               <View className="grid grid-cols-3 gap-2 text-center">
-                <View className="bg-white/10 rounded-lg p-2">
+                <View className="rounded-lg p-2" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <Text className="block text-lg font-semibold">{session.correctCount}/{session.totalQuestions}</Text>
                   <Text className="block text-xs opacity-80">正确/总数</Text>
                 </View>
-                <View className="bg-white/10 rounded-lg p-2">
+                <View className="rounded-lg p-2" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <Text className="block text-lg font-semibold">{formatDuration(session.duration)}</Text>
                   <Text className="block text-xs opacity-80">用时</Text>
                 </View>
-                <View className="bg-white/10 rounded-lg p-2">
+                <View className="rounded-lg p-2" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <Text className="block text-lg font-semibold">{session.completedAt ? '已完成' : '进行中'}</Text>
                   <Text className="block text-xs opacity-80">状态</Text>
                 </View>
@@ -194,7 +194,7 @@ const SessionDetailPage = () => {
         {Object.keys(typeStats).length > 0 && (
           <View className="px-4 mb-4">
             <View className="flex items-center gap-2 mb-2">
-              <BarChart3 size={16} color="#2563EB" />
+              <ChartBarIncreasing size={16} color="#2563EB" />
               <Text className="text-sm font-semibold text-slate-800">按题型统计</Text>
             </View>
             <View className="grid grid-cols-2 gap-2">
@@ -257,9 +257,9 @@ const SessionDetailPage = () => {
                     </View>
                     {review.answered ? (
                       review.isCorrect ? (
-                        <CheckCircle2 size={20} color="#10B981" />
+                        <CircleCheck size={20} color="#10B981" />
                       ) : (
-                        <XCircle size={20} color="#EF4444" />
+                        <CircleX size={20} color="#EF4444" />
                       )
                     ) : (
                       <Clock size={20} color="#CBD5E1" />
@@ -314,7 +314,7 @@ const SessionDetailPage = () => {
                       {review.question.analysis && (
                         <View className="bg-blue-50 p-2 rounded">
                           <Text className="block text-xs text-blue-600 font-medium mb-1">
-                            <Target size={12} className="inline mr-1" />
+                            <Target size={12} color="#2563EB" className="inline mr-1" />
                             解析
                           </Text>
                           <Text className="block text-sm text-slate-700 leading-relaxed">

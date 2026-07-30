@@ -13,7 +13,6 @@ import {
   CircleCheck,
   Target,
   Clock,
-  BookOpen,
   Flame,
   ChartBar,
   CircleAlert,
@@ -320,7 +319,7 @@ const ProfilePage = () => {
                     <Text className="text-xs text-slate-400">{record.createdAt}</Text>
                   </View>
                   {record.total > 0 && (
-                    <View className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <View className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
                       <View 
                         className={`h-full rounded-full ${record.accuracy >= 60 ? 'bg-emerald-500' : record.accuracy > 0 ? 'bg-amber-500' : 'bg-slate-300'}`}
                         style={{ width: `${record.accuracy}%` }}

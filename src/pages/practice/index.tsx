@@ -123,10 +123,10 @@ const PracticePage = () => {
           questionIds: questionList.map(q => q.id),
         },
       })
-      const sessionId = res.data?.data?.id
-      if (sessionId) {
-        setCurrentSessionId(sessionId)
-        console.log('[Session] 创建场次:', sessionId, '题目数:', questionList.length)
+      const newSessionId = res.data?.data?.id
+      if (newSessionId) {
+        setCurrentSessionId(newSessionId)
+        console.log('[Session] 创建场次:', newSessionId, '题目数:', questionList.length)
       }
     } catch (e) {
       console.warn('[Session] 创建场次失败（不影响答题）:', e)
