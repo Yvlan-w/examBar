@@ -138,6 +138,39 @@ export class DbInitService implements OnModuleInit {
       }
     }
 
+    // 迁移：为已存在的表添加新字段
+    const migrations = [
+      {
+        name: 'exam_sessions table',
+        sql: `CREATE TABLE IF NOT EXISTS exam_sessions (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          mode VARCHAR(32) NOT NULL,
+          subject_id VARCHAR(32),
+          subject_name VARCHAR(128),
+          total_questions INTEGER DEFAULT 0,
+          correct_count INTEGER DEFAULT 0,
+          duration INTEGER DEFAULT 0,
+          completed BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          completed_at TIMESTAMP
+        )`,
+      },
+      {
+        name: 'answer_records.session_id',
+        sql: `ALTER TABLE answer_records ADD COLUMN IF NOT EXISTS session_id VARCHAR(64) REFERENCES exam_sessions(id)`,
+      },
+    ];
+
+    for (const migration of migrations) {
+      try {
+        await this.client.query(migration.sql);
+        console.log(`Migration "${migration.name}" applied successfully`);
+      } catch (error) {
+        console.warn(`Migration "${migration.name}" note:`, error.message);
+      }
+    }
+
     console.log('Database tables initialization completed');
   }
 }
