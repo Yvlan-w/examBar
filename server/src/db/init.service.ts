@@ -50,9 +50,26 @@ export class DbInitService implements OnModuleInit {
         )`,
       },
       {
+        name: 'exam_sessions',
+        sql: `CREATE TABLE IF NOT EXISTS exam_sessions (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          mode VARCHAR(32) NOT NULL,
+          subject_id VARCHAR(32),
+          subject_name VARCHAR(128),
+          total_questions INTEGER DEFAULT 0,
+          correct_count INTEGER DEFAULT 0,
+          duration INTEGER DEFAULT 0,
+          completed BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          completed_at TIMESTAMP
+        )`,
+      },
+      {
         name: 'answer_records',
         sql: `CREATE TABLE IF NOT EXISTS answer_records (
           id VARCHAR(64) PRIMARY KEY,
+          session_id VARCHAR(64) REFERENCES exam_sessions(id),
           user_id INTEGER REFERENCES users(id),
           question_id VARCHAR(32) NOT NULL REFERENCES questions(id),
           user_answer TEXT NOT NULL,

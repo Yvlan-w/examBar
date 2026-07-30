@@ -113,7 +113,7 @@ export class QuestionService implements OnModuleInit {
     return result[0];
   }
 
-  async submitAnswer(questionId: string, answer: string, mode: string, userId?: number) {
+  async submitAnswer(questionId: string, answer: string, mode: string, userId?: number, sessionId?: string) {
     const question = await this.getQuestionById(questionId);
     if (!question) return null;
 
@@ -137,6 +137,7 @@ export class QuestionService implements OnModuleInit {
 
     await db.insert(answerRecords).values({
       id: recordId,
+      sessionId: sessionId || null,
       questionId,
       userId: userId || null,
       userAnswer: answer,
@@ -151,6 +152,20 @@ export class QuestionService implements OnModuleInit {
       await this.statsService.updateStats(userId, question.subjectId, isCorrect);
     }
 
+    if (sessionId) {
+      // 更新 session 统计
+      try {
+        const { ExamSessionService } = await import('../exam-session/exam-session.service');
+        const sessionService = new ExamSessionService();
+        await sessionService.updateSession(sessionId, {
+          incrementTotal: true,
+          incrementCorrect: isCorrect,
+        });
+      } catch (sessionError) {
+        console.warn('[Session] 更新场次统计失败:', sessionError.message);
+      }
+    }
+
     return {
       isCorrect,
       correctAnswer: question.answer,
@@ -161,6 +176,7 @@ export class QuestionService implements OnModuleInit {
         id: recordId,
         questionId,
         userId,
+        sessionId,
         userAnswer: answer,
         isCorrect,
         mode,

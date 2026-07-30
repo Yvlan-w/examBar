@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { answerRecords, subjects, questions, userStats, subjectStats } from '@/db/schema';
+import { answerRecords, subjects, questions, userStats, subjectStats, examSessions } from '@/db/schema';
 import { eq, count, desc, and, or } from 'drizzle-orm';
 
 @Injectable()
@@ -180,13 +180,54 @@ export class StatsService {
       }
     }
 
-    const recentRecords = await db.select({
-      id: answerRecords.id,
-      subjectName: answerRecords.subjectName,
-      mode: answerRecords.mode,
-      isCorrect: answerRecords.isCorrect,
-      createdAt: answerRecords.createdAt,
-    }).from(answerRecords).where(eq(answerRecords.userId, userId)).orderBy(desc(answerRecords.createdAt)).limit(10);
+    // 优先使用 exam_sessions 获取最近场次记录
+    let recentRecords: any[] = [];
+    try {
+      const sessionRecords = await db.select({
+        id: examSessions.id,
+        subjectName: examSessions.subjectName,
+        mode: examSessions.mode,
+        totalQuestions: examSessions.totalQuestions,
+        correctCount: examSessions.correctCount,
+        completed: examSessions.completed,
+        createdAt: examSessions.createdAt,
+      }).from(examSessions).where(eq(examSessions.userId, userId)).orderBy(desc(examSessions.createdAt)).limit(10);
+      
+      recentRecords = sessionRecords.map((r) => ({
+        id: r.id,
+        subjectName: r.subjectName || '未知科目',
+        mode: r.mode,
+        total: r.totalQuestions || 0,
+        correct: r.correctCount || 0,
+        accuracy: (r.totalQuestions || 0) > 0 ? Math.round((r.correctCount || 0) / (r.totalQuestions || 1) * 100) : 0,
+        createdAt: r.createdAt,
+        completed: r.completed,
+      }));
+      
+      console.log(`[Stats] 获取到 ${recentRecords.length} 条场次记录`);
+    } catch (sessionError) {
+      console.warn('[Stats] exam_sessions 查询失败，回退到 answer_records:', sessionError.message);
+      
+      // 回退方案：使用 answer_records
+      const fallbackRecords = await db.select({
+        id: answerRecords.id,
+        subjectName: answerRecords.subjectName,
+        mode: answerRecords.mode,
+        isCorrect: answerRecords.isCorrect,
+        createdAt: answerRecords.createdAt,
+      }).from(answerRecords).where(eq(answerRecords.userId, userId)).orderBy(desc(answerRecords.createdAt)).limit(10);
+      
+      recentRecords = fallbackRecords.map((r) => ({
+        id: r.id,
+        subjectName: r.subjectName,
+        mode: r.mode,
+        total: 1,
+        correct: r.isCorrect ? 1 : 0,
+        accuracy: r.isCorrect ? 100 : 0,
+        createdAt: r.createdAt,
+        completed: true,
+      }));
+    }
 
     return {
       totalQuestions,
@@ -196,15 +237,7 @@ export class StatsService {
       streak,
       totalDays,
       subjectStats: subjectStatsList,
-      recentRecords: recentRecords.map((r) => ({
-        id: r.id,
-        subjectName: r.subjectName,
-        mode: r.mode,
-        total: 1,
-        correct: r.isCorrect ? 1 : 0,
-        accuracy: r.isCorrect ? 100 : 0,
-        createdAt: r.createdAt,
-      })),
+      recentRecords,
     };
   }
 

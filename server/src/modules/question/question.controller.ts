@@ -59,9 +59,9 @@ export class QuestionController {
 
   @Post('answers')
   @HttpCode(200)
-  async submitAnswer(@Body() body: { questionId: string; answer: string; mode: string; userId?: number }) {
-    console.log(`[API] POST /api/answers questionId=${body.questionId}`);
-    const result = await this.questionService.submitAnswer(body.questionId, body.answer, body.mode, body.userId);
+  async submitAnswer(@Body() body: { questionId: string; answer: string; mode: string; userId?: number; sessionId?: string }) {
+    console.log(`[API] POST /api/answers questionId=${body.questionId} sessionId=${body.sessionId}`);
+    const result = await this.questionService.submitAnswer(body.questionId, body.answer, body.mode, body.userId, body.sessionId);
     if (!result) {
       return { code: 404, msg: '题目不存在', data: null };
     }

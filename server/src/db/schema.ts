@@ -43,8 +43,23 @@ export const questions = pgTable('questions', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const examSessions = pgTable('exam_sessions', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  userId: integer('user_id').references(() => users.id),
+  mode: varchar('mode', { length: 32 }).notNull(),
+  subjectId: varchar('subject_id', { length: 32 }),
+  subjectName: varchar('subject_name', { length: 128 }),
+  totalQuestions: integer('total_questions').default(0),
+  correctCount: integer('correct_count').default(0),
+  duration: integer('duration').default(0),
+  completed: boolean('completed').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  completedAt: timestamp('completed_at'),
+});
+
 export const answerRecords = pgTable('answer_records', {
   id: varchar('id', { length: 64 }).primaryKey(),
+  sessionId: varchar('session_id', { length: 64 }).references(() => examSessions.id),
   userId: integer('user_id').references(() => users.id),
   questionId: varchar('question_id', { length: 32 }).notNull().references(() => questions.id),
   userAnswer: text('user_answer').notNull(),

@@ -43,7 +43,15 @@ interface StatsData {
     correct: number
     accuracy: number
     createdAt: string
+    completed?: boolean
   }[]
+}
+
+const MODE_COLORS: Record<string, string> = {
+  practice: 'bg-blue-50 text-blue-700',
+  exam: 'bg-purple-50 text-purple-700',
+  history: 'bg-emerald-50 text-emerald-700',
+  daily: 'bg-amber-50 text-amber-700',
 }
 
 const MODE_LABELS: Record<string, string> = {
@@ -266,7 +274,8 @@ const ProfilePage = () => {
       <View className="px-4 mt-4">
         <View className="flex items-center gap-2 mb-3">
           <Clock size={16} color="#2563EB" />
-          <Text className="block text-base font-semibold text-slate-800">最近记录</Text>
+          <Text className="block text-base font-semibold text-slate-800">最近场次</Text>
+          <Text className="text-xs text-slate-400 ml-auto">按练习/考试记录</Text>
         </View>
         {stats?.recentRecords && stats.recentRecords.length > 0 ? (
           <View className="space-y-2">
@@ -275,23 +284,36 @@ const ProfilePage = () => {
                 <CardContent className="p-3">
                   <View className="flex items-center justify-between">
                     <View className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge className={`text-xs ${MODE_COLORS[record.mode] || 'bg-slate-100 text-slate-700'}`}>
                         {MODE_LABELS[record.mode] || record.mode}
                       </Badge>
-                      <Text className="text-sm text-slate-700">{record.subjectName}</Text>
+                      <Text className="text-sm font-medium text-slate-700">{record.subjectName}</Text>
+                      {record.completed ? (
+                        <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200">已完成</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">进行中</Badge>
+                      )}
                     </View>
-                    <View className="flex items-center gap-1">
-                      <Text className={`text-sm font-medium ${record.accuracy >= 60 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  </View>
+                  <View className="flex items-center justify-between mt-2">
+                    <View className="flex items-center gap-3">
+                      <Text className={`text-lg font-bold ${record.accuracy >= 60 ? 'text-emerald-600' : record.accuracy > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
                         {record.accuracy}%
                       </Text>
+                      <Text className="text-xs text-slate-500">
+                        {record.correct}/{record.total}题
+                      </Text>
                     </View>
+                    <Text className="text-xs text-slate-400">{record.createdAt}</Text>
                   </View>
-                  <View className="flex items-center justify-between mt-1">
-                    <Text className="text-xs text-slate-400">
-                      {record.correct}/{record.total}题
-                    </Text>
-                    <Text className="text-xs text-slate-300">{record.createdAt}</Text>
-                  </View>
+                  {record.total > 0 && (
+                    <View className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <View 
+                        className={`h-full rounded-full ${record.accuracy >= 60 ? 'bg-emerald-500' : record.accuracy > 0 ? 'bg-amber-500' : 'bg-slate-300'}`}
+                        style={{ width: `${record.accuracy}%` }}
+                      />
+                    </View>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -299,7 +321,7 @@ const ProfilePage = () => {
         ) : (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6 flex flex-col items-center">
-              <Text className="block text-sm text-slate-400">暂无记录</Text>
+              <Text className="block text-sm text-slate-400">暂无记录，去刷题吧！</Text>
             </CardContent>
           </Card>
         )}
