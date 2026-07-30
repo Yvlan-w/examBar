@@ -266,11 +266,14 @@ export class StorageService implements OnModuleInit {
       }
       
       const extractor = new WordExtractor();
-      const result = await extractor.extract(buffer);
+      const doc = await extractor.extract(buffer);
       
-      console.log(`[DOC处理] 解析完成，文本长度: ${result.length} chars`);
+      // extract() 返回 Document 对象，需要调用 getBody() 获取文本
+      const text = doc.getBody();
       
-      return result;
+      console.log(`[DOC处理] 解析完成，文本长度: ${text.length} chars`);
+      
+      return text;
     } catch (error) {
       console.error('[DOC处理] 解析失败:', error);
       throw new Error(`DOC 解析失败: ${error.message || error}`);

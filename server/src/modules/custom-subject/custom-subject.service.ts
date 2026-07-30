@@ -187,7 +187,7 @@ export class CustomSubjectService {
     fileContent: string, 
     subjectId: string, 
     subjectName: string,
-    imageUrls?: string[],
+    urls?: string[],
     tempFileKeys?: string[],
     nickname: string = 'user'
   ): Promise<{ questions: any[]; questionsToUpdate?: any[]; tempFileKeys?: string[] }> {
@@ -200,24 +200,28 @@ export class CustomSubjectService {
       console.log('[输入参数] subjectId:', subjectId);
       console.log('[输入参数] subjectName:', subjectName);
       console.log('[输入参数] nickname:', nickname);
-      console.log('[输入参数] imageUrls数量:', imageUrls?.length || 0);
+      console.log('[输入参数] urls数量:', urls?.length || 0);
       console.log('[输入参数] hasFileContent:', !!fileContent && fileContent.length > 0);
       if (fileContent && fileContent.length > 0) {
         console.log('[输入参数] fileContent长度:', fileContent.length);
         console.log('[输入参数] fileContent前200字符:', fileContent.substring(0, 200) + (fileContent.length > 200 ? '...' : ''));
       }
-      if (imageUrls && imageUrls.length > 0) {
-        imageUrls.forEach((url, index) => {
-          console.log(`[输入参数] 图片${index + 1} URL:`, url);
+      if (urls && urls.length > 0) {
+        urls.forEach((url, index) => {
+          const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url.split('?')[0]);
+          const isDocx = /\.docx$/i.test(url.split('?')[0]);
+          const isDoc = /\.doc$/i.test(url.split('?')[0]);
+          const isPdf = /\.pdf$/i.test(url.split('?')[0]);
+          const type = isDocx ? 'DOCX文件' : isDoc ? 'DOC文件' : isPdf ? 'PDF文件' : isImage ? '图片' : '资源';
+          console.log(`[输入参数] ${type}${index + 1} URL:`, url.substring(0, 100) + (url.length > 100 ? '...' : ''));
         });
       }
 
-      // 检查是否是 PDF 文件
-      let finalImageUrls = imageUrls || [];
+      let finalUrls = urls || [];
       let finalFileContent = fileContent;
 
       // 检查 URL 或 tempFileKeys 是否包含 DOCX（直接解析文本）或 DOC（转 PDF）
-      const firstUrl = finalImageUrls[0] || '';
+      const firstUrl = finalUrls[0] || '';
       const isDocxUrl = firstUrl.toLowerCase().includes('.docx') || 
         (tempFileKeys && tempFileKeys.length > 0 && tempFileKeys.some(key => key.toLowerCase().includes('.docx')));
       const isDocUrl = firstUrl.toLowerCase().includes('.doc') && !firstUrl.toLowerCase().includes('.docx') ||
@@ -247,8 +251,8 @@ export class CustomSubjectService {
           
           // 使用解析后的文本作为 fileContent
           finalFileContent = textContent;
-          // 清空图片 URL，使用文本模式
-          finalImageUrls = [];
+          // 清空 URL，使用文本模式
+          finalUrls = [];
           
           console.log('[DOCX处理] 将使用文本模式解析题目');
         } catch (docxError) {
@@ -278,8 +282,8 @@ export class CustomSubjectService {
           
           // 使用解析后的文本作为 fileContent
           finalFileContent = textContent;
-          // 清空图片 URL，使用文本模式
-          finalImageUrls = [];
+          // 清空 URL，使用文本模式
+          finalUrls = [];
           
           console.log('[DOC处理] 将使用文本模式解析题目');
         } catch (docError) {
@@ -315,7 +319,7 @@ export class CustomSubjectService {
           console.log(`[PDF处理] 转换完成，共 ${convertedUrls.length} 张图片`);
           
           // 使用转换后的图片 URL
-          finalImageUrls = convertedUrls;
+          finalUrls = convertedUrls;
           
           // 更新 tempFileKeys：保留原始 PDF 的 key + 转换后图片的 key
           if (tempFileKeys && tempFileKeys.length > 0) {
@@ -324,7 +328,7 @@ export class CustomSubjectService {
             finalTempFileKeys = convertedKeys;
           }
           
-          console.log(`[PDF处理] finalImageUrls数量: ${finalImageUrls.length}`);
+          console.log(`[PDF处理] finalUrls数量: ${finalUrls.length}`);
           console.log(`[PDF处理] finalTempFileKeys数量: ${finalTempFileKeys.length}`);
         } catch (pdfError) {
           console.error('[PDF处理] PDF 转换失败:', pdfError);
@@ -334,16 +338,23 @@ export class CustomSubjectService {
 
       let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
       
-      if (finalImageUrls && finalImageUrls.length > 0) {
-        userMessageContent = finalImageUrls.map((url) => ({
+      if (finalUrls && finalUrls.length > 0) {
+        userMessageContent = finalUrls.map((url) => ({
           type: 'image_url' as const,
           image_url: {
             url,
             detail: 'high' as const,
           },
         }));
+        console.log(`[LLM请求] 使用图片模式，共 ${finalUrls.length} 张图片`);
       } else {
-        userMessageContent = finalFileContent;
+        // 防御性检查：确保 finalFileContent 不为 undefined 或空
+        userMessageContent = finalFileContent || '';
+        console.log(`[LLM请求] 使用文本模式，文本长度: ${(finalFileContent || '').length} chars`);
+        
+        if (!finalFileContent || finalFileContent.trim().length === 0) {
+          console.warn('[LLM请求] ⚠️ 文本内容为空，可能无法解析题目');
+        }
       }
 
       const messages = [
@@ -413,10 +424,12 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       ];
 
       console.log('[LLM请求] 消息数量:', messages.length);
-      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? `图片数组(${userMessageContent.length}张)` : '文本');
+      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? `视觉输入(${userMessageContent.length}张)` : '文本');
       if (Array.isArray(userMessageContent)) {
         userMessageContent.forEach((part, index) => {
-          console.log(`[LLM请求] 图片${index + 1} URL:`, part.image_url?.url);
+          const url = part.image_url?.url || '';
+          const urlType = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url.split('?')[0]) ? '图片' : '转换图片';
+          console.log(`[LLM请求] ${urlType}${index + 1} URL:`, url.substring(0, 100) + (url.length > 100 ? '...' : ''));
         });
       }
 
