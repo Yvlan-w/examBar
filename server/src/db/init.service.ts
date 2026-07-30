@@ -160,6 +160,17 @@ export class DbInitService implements OnModuleInit {
         name: 'answer_records.session_id',
         sql: `ALTER TABLE answer_records ADD COLUMN IF NOT EXISTS session_id VARCHAR(64) REFERENCES exam_sessions(id)`,
       },
+      {
+        name: 'session_questions table',
+        sql: `CREATE TABLE IF NOT EXISTS session_questions (
+          id VARCHAR(64) PRIMARY KEY,
+          session_id VARCHAR(64) NOT NULL REFERENCES exam_sessions(id),
+          question_id VARCHAR(32) NOT NULL REFERENCES questions(id),
+          order_index INTEGER NOT NULL DEFAULT 0,
+          answered BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW()
+        )`,
+      },
     ];
 
     for (const migration of migrations) {

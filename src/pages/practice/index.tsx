@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
-import { CircleCheck, CircleX, Star } from 'lucide-react-taro'
+import { CircleCheck, CircleX, Star, Clock } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -25,7 +25,7 @@ interface Question {
 
 const PracticePage = () => {
   const router = useRouter()
-  const { mode = 'practice', subjectId = '', questionId = '', type = '', difficulty = '' } = router.params
+  const { mode = 'practice', subjectId = '', questionId = '', type = '', difficulty = '', sessionId = '', continue: continueMode = '' } = router.params
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -42,6 +42,7 @@ const PracticePage = () => {
   const [aiAnalysis, setAiAnalysis] = useState('')
   const [score, setScore] = useState(0)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [isContinueMode, setIsContinueMode] = useState(false)
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
@@ -59,8 +60,50 @@ const PracticePage = () => {
     console.log("isloggedin:",isLoggedIn)
     if (!isLoggedIn) {
       setShowLoginDialog(true)
+    } else if (continueMode === '1' && sessionId) {
+      // 继续作答模式
+      setCurrentSessionId(sessionId)
+      setIsContinueMode(true)
+      loadRemainingQuestions(sessionId)
     } else {
       loadQuestions()
+    }
+  }
+
+  // 加载未完成场次的待答题目
+  const loadRemainingQuestions = async (sid: string) => {
+    try {
+      setLoading(true)
+      const res = await Network.request({
+        url: `/api/sessions/${sid}/remaining`,
+      })
+      const data = res.data?.data
+      if (data?.questions && data.questions.length > 0) {
+        // 移除不需要的 orderIndex 字段
+        const qList = data.questions.map((q: any) => ({
+          id: q.id,
+          content: q.content,
+          type: q.type,
+          options: q.options,
+          answer: q.answer,
+          analysis: q.analysis,
+          difficulty: q.difficulty,
+          subjectName: q.subjectName,
+        }))
+        setQuestions(qList)
+        console.log('[Session] 加载待答题目:', qList.length, '题')
+      } else {
+        // 没有待答题目，说明已经完成
+        Taro.showToast({ title: '该场次已完成', icon: 'none' })
+        setTimeout(() => {
+          Taro.navigateBack()
+        }, 1500)
+      }
+    } catch (e) {
+      console.error('load remaining error:', e)
+      Taro.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -77,12 +120,13 @@ const PracticePage = () => {
           subjectId: subjectId || undefined,
           subjectName: questionList[0]?.subjectName || undefined,
           totalQuestions: questionList.length,
+          questionIds: questionList.map(q => q.id),
         },
       })
       const sessionId = res.data?.data?.id
       if (sessionId) {
         setCurrentSessionId(sessionId)
-        console.log('[Session] 创建场次:', sessionId)
+        console.log('[Session] 创建场次:', sessionId, '题目数:', questionList.length)
       }
     } catch (e) {
       console.warn('[Session] 创建场次失败（不影响答题）:', e)
@@ -303,6 +347,12 @@ const PracticePage = () => {
   return (
     <View className="min-h-full bg-slate-50 flex flex-col">
       {/* 顶部进度 */}
+      {isContinueMode && (
+        <View className="bg-amber-50 px-4 py-2 flex items-center gap-2">
+          <Clock size={14} color="#F59E0B" />
+          <Text className="block text-xs text-amber-700">继续上次未完成的练习</Text>
+        </View>
+      )}
       <View className="bg-white px-4 py-3 shadow-sm">
         <View className="flex items-center justify-between mb-2">
           <Text className="text-xs text-slate-500">

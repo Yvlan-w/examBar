@@ -13,6 +13,7 @@ export class ExamSessionController {
     subjectId?: string;
     subjectName?: string;
     totalQuestions?: number;
+    questionIds?: string[];
   }) {
     const session = await this.sessionService.createSession(body);
     return { code: 200, msg: 'success', data: session };
@@ -23,7 +24,6 @@ export class ExamSessionController {
   async updateSession(
     @Body() body: {
       incrementCorrect?: boolean;
-      incrementTotal?: boolean;
       addDuration?: number;
     },
     @Query('id') id: string,
@@ -39,6 +39,16 @@ export class ExamSessionController {
     return { code: 200, msg: 'success' };
   }
 
+  @Post(':id/mark-answered')
+  @HttpCode(200)
+  async markQuestionAnswered(
+    @Query('id') id: string,
+    @Body() body: { questionId: string },
+  ) {
+    await this.sessionService.markQuestionAnswered(id, body.questionId);
+    return { code: 200, msg: 'success' };
+  }
+
   @Get('recent')
   @HttpCode(200)
   async getRecentSessions(@Query('userId') userId?: number, @Query('limit') limit?: string) {
@@ -51,5 +61,25 @@ export class ExamSessionController {
   async getSession(@Query('id') id: string) {
     const session = await this.sessionService.getSessionById(id);
     return { code: 200, msg: 'success', data: session };
+  }
+
+  @Get(':id/detail')
+  @HttpCode(200)
+  async getSessionDetail(@Query('id') id: string) {
+    const detail = await this.sessionService.getSessionDetail(id);
+    if (!detail) {
+      return { code: 404, msg: '场次不存在', data: null };
+    }
+    return { code: 200, msg: 'success', data: detail };
+  }
+
+  @Get(':id/remaining')
+  @HttpCode(200)
+  async getRemainingQuestions(@Query('id') id: string) {
+    const result = await this.sessionService.getRemainingQuestions(id);
+    if (!result) {
+      return { code: 404, msg: '场次不存在', data: null };
+    }
+    return { code: 200, msg: 'success', data: result };
   }
 }

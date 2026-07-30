@@ -57,6 +57,15 @@ export const examSessions = pgTable('exam_sessions', {
   completedAt: timestamp('completed_at'),
 });
 
+export const sessionQuestions = pgTable('session_questions', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  sessionId: varchar('session_id', { length: 64 }).notNull().references(() => examSessions.id),
+  questionId: varchar('question_id', { length: 32 }).notNull().references(() => questions.id),
+  orderIndex: integer('order_index').notNull().default(0),
+  answered: boolean('answered').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const answerRecords = pgTable('answer_records', {
   id: varchar('id', { length: 64 }).primaryKey(),
   sessionId: varchar('session_id', { length: 64 }).references(() => examSessions.id),

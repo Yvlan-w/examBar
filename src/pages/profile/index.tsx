@@ -280,7 +280,19 @@ const ProfilePage = () => {
         {stats?.recentRecords && stats.recentRecords.length > 0 ? (
           <View className="space-y-2">
             {stats.recentRecords.map((record) => (
-              <Card key={record.id} className="border-0 shadow-sm">
+              <Card 
+                key={record.id} 
+                className="border-0 shadow-sm active:opacity-80"
+                onClick={() => {
+                  if (record.completed) {
+                    // 已完成：跳转到结算页面
+                    Taro.navigateTo({ url: `/pages/session-detail/index?sessionId=${record.id}` })
+                  } else {
+                    // 未完成：跳转到练习页面继续作答
+                    Taro.navigateTo({ url: `/pages/practice/index?mode=${record.mode}&sessionId=${record.id}&continue=1` })
+                  }
+                }}
+              >
                 <CardContent className="p-3">
                   <View className="flex items-center justify-between">
                     <View className="flex items-center gap-2">
@@ -294,6 +306,7 @@ const ProfilePage = () => {
                         <Badge variant="outline" className="text-xs text-amber-600 border-amber-200">进行中</Badge>
                       )}
                     </View>
+                    <Text className="text-xs text-slate-400">{record.completed ? '查看详情' : '继续作答'}</Text>
                   </View>
                   <View className="flex items-center justify-between mt-2">
                     <View className="flex items-center gap-3">

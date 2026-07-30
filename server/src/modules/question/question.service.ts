@@ -153,14 +153,14 @@ export class QuestionService implements OnModuleInit {
     }
 
     if (sessionId) {
-      // 更新 session 统计
+      // 更新 session 统计 + 标记题目已答
       try {
         const { ExamSessionService } = await import('../exam-session/exam-session.service');
         const sessionService = new ExamSessionService();
         await sessionService.updateSession(sessionId, {
-          incrementTotal: true,
           incrementCorrect: isCorrect,
         });
+        await sessionService.markQuestionAnswered(sessionId, questionId);
       } catch (sessionError) {
         console.warn('[Session] 更新场次统计失败:', sessionError.message);
       }

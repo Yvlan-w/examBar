@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { questions, answerRecords, examSessions } from '@/db/schema';
+import { questions, answerRecords, examSessions, sessionQuestions } from '@/db/schema';
 import { eq, and, count, sql } from 'drizzle-orm';
 import { StatsService } from '../stats/stats.service';
 
@@ -71,6 +71,17 @@ export class ExamService {
           duration,
           completed: false,
         });
+        
+        // 写入关联记录
+        const sqData = selected.map((q, index) => ({
+          id: 'sq_' + sessionId! + '_' + index,
+          sessionId: sessionId!,
+          questionId: q.id,
+          orderIndex: index,
+          answered: false,
+        }));
+        await db.insert(sessionQuestions).values(sqData);
+        
         console.log(`[Session] 模拟考试创建场次: ${sessionId}, 题目数: ${selected.length}`);
       } catch (sessionError) {
         console.warn('[Session] 模拟考试创建场次失败（不影响考试）:', sessionError.message);
