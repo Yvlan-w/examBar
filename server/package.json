@@ -5,7 +5,7 @@
   "description": "NestJS server application",
   "scripts": {
     "build": "nest build --webpack",
-    "dev": "nest start --watch",
+    "dev": "nest start --watch --webpack",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
