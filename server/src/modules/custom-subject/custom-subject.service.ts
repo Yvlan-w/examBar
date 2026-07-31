@@ -506,8 +506,8 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       console.log('[去重结果] 合并更新题目数量:', mergedCount);
       console.log('[去重结果] 重复但无需更新数量:', parsedQuestions.length - questionsToInsert.length - mergedCount);
 
-      const cleanNickname = nickname.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
-      const cleanSubjectName = subjectName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').replace(/by\s+\S+$/, '').trim();
+      const cleanNickname = nickname.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').substring(0, 10);
+      const cleanSubjectName = subjectName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').replace(/by\s+\S+$/, '').trim().substring(0, 15);
 
       console.log('[ID生成] cleanNickname:', cleanNickname);
       console.log('[ID生成] cleanSubjectName:', cleanSubjectName);
@@ -524,13 +524,20 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         }
       }
 
-      const finalNewQuestions = questionsToInsert.map((q, index) => ({
-        ...q,
-        id: `q_${cleanNickname}_${cleanSubjectName}_${maxSequence + index + 1}`,
-        subjectId,
-        subjectName,
-        createdAt: new Date(),
-      }));
+      const finalNewQuestions = questionsToInsert.map((q, index) => {
+        const seq = maxSequence + index + 1;
+        const id = `q_${cleanNickname}_${cleanSubjectName}_${seq}`;
+        // 确保 ID 不超过 32 字符限制
+        const truncatedId = id.length > 32 ? id.substring(id.length - 32) : id;
+        
+        return {
+          ...q,
+          id: truncatedId,
+          subjectId,
+          subjectName,
+          createdAt: new Date(),
+        };
+      });
 
       console.log('[ID生成] 最大序列号:', maxSequence);
       console.log('[最终结果] 新增题目数量:', finalNewQuestions.length);
@@ -588,33 +595,75 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
     let insertedCount = 0;
     let updatedCount = 0;
 
-    if (questionsData.length > 0) {
-      const questionsToInsert = questionsData.map(q => {
-        const { createdAt, ...rest } = q;
-        return rest;
-      });
+    console.log(`[导入开始] 待插入题目: ${questionsData.length}, 待更新题目: ${questionsToUpdate?.length || 0}, 题库ID: ${subjectId}`);
 
-      await db.insert(questions).values(questionsToInsert);
-      insertedCount = questionsData.length;
-    }
+    try {
+      if (questionsData.length > 0) {
+        const questionsToInsert = questionsData.map(q => {
+          const { createdAt, ...rest } = q;
+          return rest;
+        });
 
-    if (questionsToUpdate && questionsToUpdate.length > 0) {
-      for (const q of questionsToUpdate) {
-        const { id, createdAt, ...rest } = q;
-        await db.update(questions)
-          .set(rest)
-          .where(eq(questions.id, id));
+        console.log(`[导入插入] 准备插入 ${questionsToInsert.length} 道题目`);
+        
+        // 逐条插入以便捕获具体错误
+        let successCount = 0;
+        let failedCount = 0;
+        for (const q of questionsToInsert) {
+          try {
+            await db.insert(questions).values(q);
+            successCount++;
+          } catch (insertError: any) {
+            failedCount++;
+            console.error(`[导入插入失败] 题目ID: ${q.id}, 错误: ${insertError.message || insertError}`);
+            // 继续处理其他题目
+          }
+        }
+        
+        insertedCount = successCount;
+        if (failedCount > 0) {
+          console.warn(`[导入警告] ${failedCount} 道题目插入失败`);
+        }
+        console.log(`[导入插入成功] ${successCount} 道题目`);
       }
-      updatedCount = questionsToUpdate.length;
+
+      if (questionsToUpdate && questionsToUpdate.length > 0) {
+        console.log(`[导入更新] 准备更新 ${questionsToUpdate.length} 道题目`);
+        let updateSuccessCount = 0;
+        let updateFailedCount = 0;
+        
+        for (const q of questionsToUpdate) {
+          const { id, createdAt, ...rest } = q;
+          try {
+            await db.update(questions)
+              .set(rest)
+              .where(eq(questions.id, id));
+            updateSuccessCount++;
+          } catch (updateError: any) {
+            updateFailedCount++;
+            console.error(`[导入更新失败] 题目ID: ${id}, 错误: ${updateError.message || updateError}`);
+          }
+        }
+        updatedCount = updateSuccessCount;
+        if (updateFailedCount > 0) {
+          console.warn(`[导入警告] ${updateFailedCount} 道题目更新失败`);
+        }
+        console.log(`[导入更新成功] ${updateSuccessCount} 道题目`);
+      }
+
+      const countResult = await db.select({ count: count() }).from(questions).where(eq(questions.subjectId, subjectId));
+      const totalCount = countResult[0].count || 0;
+      
+      await db.update(subjects)
+        .set({ questionCount: totalCount })
+        .where(eq(subjects.id, subjectId));
+
+      console.log(`[导入完成] 新增: ${insertedCount}, 更新: ${updatedCount}, 题库总题数: ${totalCount}`);
+      return { count: insertedCount + updatedCount, insertedCount, updatedCount };
+    } catch (error: any) {
+      console.error('[导入异常]', error);
+      throw new Error(`导入失败: ${error.message || error}`);
     }
-
-    const countResult = await db.select({ count: count() }).from(questions).where(eq(questions.subjectId, subjectId));
-    
-    await db.update(subjects)
-      .set({ questionCount: countResult[0].count || 0 })
-      .where(eq(subjects.id, subjectId));
-
-    return { count: insertedCount + updatedCount, insertedCount, updatedCount };
   }
 
   async deleteCustomSubject(userId: number, subjectId: string) {
