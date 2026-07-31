@@ -165,30 +165,45 @@ const CreateSubjectPage = () => {
           setLoadingText(`上传 ${tempFilePaths.length} 张图片中...`)
           
           const uploadedResults: { url: string; key: string }[] = []
+          const failedUploads: string[] = []
           
           for (const filePath of tempFilePaths) {
-            const uploadRes = await Network.uploadFile({
-              url: '/api/storage/upload-temp',
-              filePath,
-              name: 'file',
-            })
-            console.log('image upload result:', uploadRes)
-            const uploadData = JSON.parse(uploadRes.data)
-            
-            if (uploadData.code === 200) {
-              uploadedResults.push({ url: uploadData.data.url, key: uploadData.data.key })
+            try {
+              const uploadRes = await Network.uploadFile({
+                url: '/api/storage/upload-temp',
+                filePath,
+                name: 'file',
+              })
+              console.log('image upload result:', uploadRes)
+              const uploadData = JSON.parse(uploadRes.data)
+              
+              if (uploadData.code === 200) {
+                uploadedResults.push({ url: uploadData.data.url, key: uploadData.data.key })
+              } else {
+                failedUploads.push(filePath)
+                console.warn('[图片上传失败]', uploadData.msg)
+              }
+            } catch (uploadError) {
+              failedUploads.push(filePath)
+              console.error('[图片上传异常]', uploadError)
             }
           }
           
           if (uploadedResults.length === 0) {
             setParsing(false)
-            Taro.showToast({ title: '上传失败', icon: 'none' })
+            Taro.showToast({ title: '所有图片上传失败', icon: 'none' })
             return
+          }
+          
+          if (failedUploads.length > 0) {
+            console.warn(`[图片上传警告] ${failedUploads.length}/${tempFilePaths.length} 张图片上传失败`)
           }
 
           setLoadingText('AI 智能解析中，请稍候...')
           const urls = uploadedResults.map(r => r.url)
           const keys = uploadedResults.map(r => r.key)
+          
+          console.log('[图片解析] 上传成功', urls.length, '张图片，开始AI解析')
           
           const parseRes = await Network.request({
             url: '/api/custom-subjects/parse-url',
@@ -202,6 +217,7 @@ const CreateSubjectPage = () => {
             },
           })
           
+          console.log('[图片解析响应]', parseRes.data)
           setParsing(false)
           
           if (parseRes.data?.code === 200) {
@@ -215,14 +231,18 @@ const CreateSubjectPage = () => {
               : `解析出 ${newCount} 道题目`
             Taro.showToast({ title: msg, icon: 'success' })
           } else {
-            Taro.showToast({ title: '解析失败', icon: 'none' })
+            Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
           }
-        } catch (e) {
+        } catch (e: any) {
           setParsing(false)
-          console.error('uploadImage error:', e)
-          Taro.showToast({ title: '上传失败', icon: 'none' })
+          console.error('[图片上传错误]', e)
+          const errorMsg = e?.message || '上传失败，请重试'
+          Taro.showToast({ title: errorMsg, icon: 'none' })
         }
       },
+      fail: (err) => {
+        console.log('[图片选择取消]', err)
+      }
     })
   }
 
@@ -266,8 +286,7 @@ const CreateSubjectPage = () => {
               throw new Error('文件内容为空')
             }
             
-            console.log('📄 文件内容长度:', content.length)
-            console.log('📄 文件内容前100字:', content.substring(0, 100))
+            console.log('[文字文件] 内容长度:', content.length)
             
             setLoadingText('AI 智能解析中，请稍候...')
             const parseRes = await Network.request({
@@ -281,6 +300,7 @@ const CreateSubjectPage = () => {
               },
             })
             
+            console.log('[文字解析响应]', parseRes.data)
             setParsing(false)
             
             if (parseRes.data?.code === 200) {
@@ -293,7 +313,7 @@ const CreateSubjectPage = () => {
                 : `解析出 ${newCount} 道题目`
               Taro.showToast({ title: msg, icon: 'success' })
             } else {
-              Taro.showToast({ title: '解析失败', icon: 'none' })
+              Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
             }
           } else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
             const fileType = fileName.endsWith('.pdf') ? 'PDF' : (fileName.endsWith('.docx') ? 'DOCX' : 'DOC')
@@ -320,6 +340,7 @@ const CreateSubjectPage = () => {
                 },
               })
               
+              console.log(`[${fileType}解析响应]`, parseRes.data)
               setParsing(false)
               
               if (parseRes.data?.code === 200) {
@@ -333,7 +354,7 @@ const CreateSubjectPage = () => {
                   : `解析出 ${newCount} 道题目`
                 Taro.showToast({ title: msg, icon: 'success' })
               } else {
-                Taro.showToast({ title: '解析失败', icon: 'none' })
+                Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
               }
             } else {
               Taro.showToast({ title: '上传失败', icon: 'none' })
@@ -343,11 +364,14 @@ const CreateSubjectPage = () => {
           }
         } catch (e: any) {
           setParsing(false)
-          console.error('❌ uploadFile error:', e)
-          console.error('❌ error message:', e?.message || e)
-          Taro.showToast({ title: e?.message || '处理失败', icon: 'none' })
+          console.error('[文件上传错误]', e)
+          const errorMsg = e?.message || '处理失败，请重试'
+          Taro.showToast({ title: errorMsg, icon: 'none' })
         }
       },
+      fail: (err) => {
+        console.log('[文件选择取消]', err)
+      }
     })
   }
 
@@ -396,7 +420,8 @@ const CreateSubjectPage = () => {
   }
 
   const handleImportQuestions = async () => {
-    console.log(parsedQuestions)
+    console.log('[导入开始] parsedQuestions:', parsedQuestions.length, 'questionsToUpdate:', questionsToUpdate.length)
+    
     if (parsedQuestions.length === 0 && questionsToUpdate.length === 0) {
       Taro.showToast({ title: '没有可导入的题目', icon: 'none' })
       return
@@ -407,6 +432,9 @@ const CreateSubjectPage = () => {
     }
 
     try {
+      setParsing(true)
+      setLoadingText('正在导入题目...')
+      
       const res = await Network.request({
         url: '/api/custom-subjects/import',
         method: 'POST',
@@ -417,19 +445,32 @@ const CreateSubjectPage = () => {
         },
       })
 
+      console.log('[导入响应]', res.data)
+      
       if (res.data?.code === 200) {
         const { insertedCount = 0, updatedCount = 0 } = res.data?.data || {}
+        
+        if (insertedCount === 0 && updatedCount === 0) {
+          Taro.showToast({ title: '没有成功导入任何题目', icon: 'none' })
+          return
+        }
+        
         const msg = updatedCount > 0 
           ? `成功导入 ${insertedCount} 题，更新 ${updatedCount} 题` 
           : `成功导入 ${insertedCount} 道题目`
         Taro.showToast({ title: msg, icon: 'success' })
         
         if (tempFileKeys.length > 0) {
-          await Network.request({
-            url: '/api/custom-subjects/cleanup',
-            method: 'POST',
-            data: { tempFileKeys },
-          })
+          try {
+            await Network.request({
+              url: '/api/custom-subjects/cleanup',
+              method: 'POST',
+              data: { tempFileKeys },
+            })
+            console.log('[清理] 临时文件已清理')
+          } catch (cleanupError) {
+            console.warn('[清理失败]', cleanupError)
+          }
           setTempFileKeys([])
         }
         
@@ -439,10 +480,16 @@ const CreateSubjectPage = () => {
         setQuestionsToUpdate([])
         setSelectedSubject(null)
         loadSubjects()
+      } else {
+        Taro.showToast({ title: res.data?.msg || '导入失败', icon: 'none' })
       }
-    } catch (e) {
-      console.error('importQuestions error:', e)
-      Taro.showToast({ title: '导入失败', icon: 'none' })
+    } catch (e: any) {
+      console.error('[导入错误]', e)
+      const errorMsg = e?.message || '导入失败，请重试'
+      Taro.showToast({ title: errorMsg, icon: 'none' })
+    } finally {
+      setParsing(false)
+      setLoadingText('')
     }
   }
 
