@@ -17,7 +17,8 @@ interface Subject {
 
 const TYPE_OPTIONS = [
   { key: 'all', label: '全部题型' },
-  { key: 'choice', label: '选择题' },
+  { key: 'choice', label: '单选题' },
+  { key: 'multi', label: '多选题' },
   { key: 'judge', label: '判断题' },
   { key: 'short', label: '简答题' },
 ]

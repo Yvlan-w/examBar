@@ -377,23 +377,26 @@ export class CustomSubjectService {
 2. 严格遵守字段结构，不新增字段、不缺失字段、不修改key名称。
 
 # 题型定义
-可选type枚举：choice / judge / short
-1. choice 选择题
+可选type枚举：choice / multi / judge / short
+1. choice 单项选择题
     options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
     answer：选项label字符串，例"A"/"B"
-2. judge 判断题
+2. multi 多项/不定项选择题
+    options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
+    answer：多个选项label用逗号分隔，例"A,B,C"
+3. judge 判断题
     options固定为：[{"label":"A","content":"正确"},{"label":"B","content":"错误"}]
     answer："A"代表正确，"B"代表错误
-3. short 简答题
+4. short 简答题
     options：空数组 []
     answer：文字形式参考答案
 
 # 单题字段规范
 {
   "content": "完整题干文本，去除多余无关符号",
-  "type": "choice | judge | short",
+  "type": "choice | multi | judge | short",
   "options": [],
-  "answer": "答案",
+  "answer": "答案（multi类型用逗号分隔多个选项，如A,B,C）",
   "analysis": "专业解析，阐明原理、考点、易错点；原文无解析则自主生成合理解析",
   "difficulty": "easy | medium | hard"
 }

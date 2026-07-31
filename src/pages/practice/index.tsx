@@ -77,6 +77,7 @@ const PracticePage = () => {
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
+  const [selectedMultiAnswers, setSelectedMultiAnswers] = useState<Record<string, string[]>>({})
   const [shortAnswer, setShortAnswer] = useState('')
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
@@ -308,8 +309,17 @@ const PracticePage = () => {
     }
     if (!currentQuestion || submitting) return
 
-    const userAnswer = currentQuestion.type === 'short' ? shortAnswer : selectedAnswer
-    if (!userAnswer) return
+    let userAnswer = ''
+    if (currentQuestion.type === 'short') {
+      userAnswer = shortAnswer
+    } else if (currentQuestion.type === 'multi') {
+      const multiAnswers = selectedMultiAnswers[currentQuestion.id] || []
+      if (multiAnswers.length === 0) return
+      userAnswer = multiAnswers.join(',')
+    } else {
+      userAnswer = selectedAnswer
+      if (!userAnswer) return
+    }
 
     setSubmitting(true)
     submittedRef.current = true
@@ -352,6 +362,7 @@ const PracticePage = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((prev) => prev + 1)
       setSelectedAnswer('')
+      setSelectedMultiAnswers({})
       setShortAnswer('')
       setShowResult(false)
       setIsFavorite(false)
@@ -377,6 +388,21 @@ const PracticePage = () => {
   const handleOptionSelect = (label: string) => {
     if (showResult || submittedRef.current) return
     setSelectedAnswer(label)
+  }
+
+  const handleMultiSelect = (questionId: string, label: string) => {
+    if (showResult || submittedRef.current) return
+    setSelectedMultiAnswers((prev) => {
+      const current = prev[questionId] || []
+      const index = current.indexOf(label)
+      let newAnswers: string[]
+      if (index > -1) {
+        newAnswers = current.filter((l) => l !== label)
+      } else {
+        newAnswers = [...current, label]
+      }
+      return { ...prev, [questionId]: newAnswers }
+    })
   }
 
   const handleFinish = () => {
@@ -445,7 +471,7 @@ const PracticePage = () => {
             {currentIndex + 1} / {questions.length}
           </Text>
           <Badge variant="secondary" className="text-xs">
-            {currentQuestion.type === 'choice' ? '选择题' : currentQuestion.type === 'judge' ? '判断题' : '简答题'}
+            {currentQuestion.type === 'choice' ? '单选题' : currentQuestion.type === 'multi' ? '多选题' : currentQuestion.type === 'judge' ? '判断题' : '简答题'}
           </Badge>
         </View>
         <Progress value={progressValue} className="h-2" />
@@ -485,6 +511,47 @@ const PracticePage = () => {
                 />
               </View>
             </View>
+          </View>
+        ) : currentQuestion.type === 'multi' ? (
+          <View className="mt-4 space-y-3">
+            <Text className="block text-xs text-slate-400 mb-1">本题为多选题，请选择所有正确选项</Text>
+            {currentQuestion.options?.map((option) => {
+              const selectedList = selectedMultiAnswers[currentQuestion.id] || []
+              const isSelected = selectedList.includes(option.label)
+              const correctLabels = currentQuestion.answer.split(',').map((a: string) => a.trim().toUpperCase())
+              const isAnswer = showResult && correctLabels.includes(option.label.toUpperCase())
+              const isWrong = showResult && isSelected && !correctLabels.includes(option.label.toUpperCase())
+
+              let optionStyle = 'bg-white border-slate-200'
+              if (isSelected && !showResult) optionStyle = 'bg-blue-50 border-blue-300'
+              if (isAnswer) optionStyle = 'bg-emerald-50 border-emerald-300'
+              if (isWrong) optionStyle = 'bg-red-50 border-red-300'
+
+              return (
+                <View
+                  key={option.label}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${optionStyle}`}
+                  onClick={() => handleMultiSelect(currentQuestion.id, option.label)}
+                >
+                  <View
+                    className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border-2 ${
+                      isSelected && !showResult
+                        ? 'border-blue-500 text-blue-600 bg-blue-100'
+                        : isAnswer
+                          ? 'border-emerald-500 text-emerald-600 bg-emerald-100'
+                          : isWrong
+                            ? 'border-red-500 text-red-600 bg-red-100'
+                            : 'border-slate-300 text-slate-500'
+                    }`}
+                  >
+                    {isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
+                  </View>
+                  <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                  {isAnswer && <CircleCheck size={18} color="#059669" />}
+                  {isWrong && <CircleX size={18} color="#DC2626" />}
+                </View>
+              )
+            })}
           </View>
         ) : (
           <View className="mt-4 space-y-3">
@@ -547,7 +614,7 @@ const PracticePage = () => {
                   )}
                 </View>
                 <Text className="block text-xs text-slate-500 mb-1">
-                  正确答案：{currentQuestion.answer}
+                  正确答案：{currentQuestion.type === 'multi' ? currentQuestion.answer.split(',').join('、') : currentQuestion.answer}
                 </Text>
                 {currentQuestion.analysis && (
                   <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
@@ -607,7 +674,11 @@ const PracticePage = () => {
               <Button
                 className="w-full bg-blue-600 text-white h-11 rounded-xl"
                 onClick={handleSubmit}
-                disabled={!selectedAnswer && !shortAnswer}
+                disabled={
+                  currentQuestion?.type === 'multi'
+                    ? (selectedMultiAnswers[currentQuestion?.id] || []).length === 0
+                    : (!selectedAnswer && !shortAnswer)
+                }
               >
                 <Text className="text-sm font-medium">提交答案</Text>
               </Button>
