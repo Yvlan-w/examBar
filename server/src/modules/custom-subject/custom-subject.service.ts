@@ -99,9 +99,20 @@ export class CustomSubjectService {
   }
 
   async getCustomSubjects(userId?: number) {
-    const conditions = userId ? [eq(customSubjects.userId, userId)] : [];
+    let results: any[];
     
-    const results = await db.select().from(customSubjects).where(and(...conditions));
+    if (userId) {
+      // 登录用户：返回自己的所有题库 + 其他用户的 public 题库
+      results = await db.select().from(customSubjects).where(
+        or(
+          eq(customSubjects.userId, userId),  // 自己的所有题库（包括 private）
+          eq(customSubjects.isPublic, true)   // 所有 public 题库
+        )
+      );
+    } else {
+      // 未登录用户：只返回 public 题库
+      results = await db.select().from(customSubjects).where(eq(customSubjects.isPublic, true));
+    }
     
     const subjectsWithCount = await Promise.all(
       results.map(async (subject) => {
