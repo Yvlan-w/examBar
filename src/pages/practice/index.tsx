@@ -78,6 +78,7 @@ const PracticePage = () => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [selectedMultiAnswers, setSelectedMultiAnswers] = useState<Record<string, string[]>>({})
+  const [submittedUserAnswer, setSubmittedUserAnswer] = useState('')
   const [shortAnswer, setShortAnswer] = useState('')
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
@@ -321,6 +322,7 @@ const PracticePage = () => {
       if (!userAnswer) return
     }
 
+    setSubmittedUserAnswer(userAnswer)
     setSubmitting(true)
     submittedRef.current = true
 
@@ -363,6 +365,7 @@ const PracticePage = () => {
       setCurrentIndex((prev) => prev + 1)
       setSelectedAnswer('')
       setSelectedMultiAnswers({})
+      setSubmittedUserAnswer('')
       setShortAnswer('')
       setShowResult(false)
       setIsFavorite(false)
@@ -516,14 +519,16 @@ const PracticePage = () => {
           <View className="mt-4 space-y-3">
             <Text className="block text-xs text-slate-400 mb-1">本题为多选题，请选择所有正确选项</Text>
             {currentQuestion.options?.map((option) => {
-              const selectedList = selectedMultiAnswers[currentQuestion.id] || []
-              const isSelected = selectedList.includes(option.label)
-              const correctLabels = currentQuestion.answer.split(',').map((a: string) => a.trim().toUpperCase())
+              const selectedList = showResult
+                ? submittedUserAnswer.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
+                : (selectedMultiAnswers[currentQuestion.id] || [])
+              const isSelected = selectedList.includes(option.label.toUpperCase())
+              const correctLabels = currentQuestion.answer.split(',').map((a: string) => a.trim().toUpperCase()).filter(Boolean)
               const isAnswer = showResult && correctLabels.includes(option.label.toUpperCase())
-              const isWrong = showResult && isSelected && !correctLabels.includes(option.label.toUpperCase())
+              const isWrong = showResult && !isCorrect && isSelected && !correctLabels.includes(option.label.toUpperCase())
 
               let optionStyle = 'bg-white border-slate-200'
-              if (isSelected && !showResult) optionStyle = 'bg-blue-50 border-blue-300'
+              if (!showResult && isSelected) optionStyle = 'bg-blue-50 border-blue-300'
               if (isAnswer) optionStyle = 'bg-emerald-50 border-emerald-300'
               if (isWrong) optionStyle = 'bg-red-50 border-red-300'
 
@@ -531,11 +536,11 @@ const PracticePage = () => {
                 <View
                   key={option.label}
                   className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${optionStyle}`}
-                  onClick={() => handleMultiSelect(currentQuestion.id, option.label)}
+                  onClick={() => !showResult && handleMultiSelect(currentQuestion.id, option.label)}
                 >
                   <View
                     className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border-2 ${
-                      isSelected && !showResult
+                      !showResult && isSelected
                         ? 'border-blue-500 text-blue-600 bg-blue-100'
                         : isAnswer
                           ? 'border-emerald-500 text-emerald-600 bg-emerald-100'
@@ -544,7 +549,7 @@ const PracticePage = () => {
                             : 'border-slate-300 text-slate-500'
                     }`}
                   >
-                    {isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
+                    {!showResult && isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
                   </View>
                   <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
                   {isAnswer && <CircleCheck size={18} color="#059669" />}

@@ -27,7 +27,8 @@ interface Question {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  choice: '选择题',
+  choice: '单选题',
+  multi: '多选题',
   judge: '判断题',
   short: '简答题',
 }

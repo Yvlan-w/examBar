@@ -122,7 +122,17 @@ export class ExamService {
       const question = questionResult[0];
       if (!question) continue;
 
-      const isCorrect = ans.answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
+      let isCorrect = false;
+      if (question.type === 'multi') {
+        // 多选题：使用数组比较
+        isCorrect = this.compareMultiAnswers(ans.answer, question.answer);
+      } else if (question.type === 'short') {
+        // 简答题：暂不自动判题，记为错误
+        isCorrect = false;
+      } else {
+        // 单选题、判断题：直接比较
+        isCorrect = ans.answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
+      }
       if (isCorrect) correct++;
 
       await db.insert(answerRecords).values({
@@ -177,5 +187,33 @@ export class ExamService {
       score,
       timeUsed,
     };
+  }
+
+  /**
+   * 比较多选题答案
+   * 将答案拆分为数组，排序后比较
+   * 支持多种格式：A,B,C 或 A B C 或 ["A","B","C"]
+   */
+  private compareMultiAnswers(userAnswer: string, correctAnswer: string): boolean {
+    const parseAnswer = (ans: string): string[] => {
+      // 移除方括号和引号（如果存在）
+      let cleaned = ans.replace(/[\[\]"']/g, '');
+      // 尝试用逗号分隔
+      let parts = cleaned.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      // 如果逗号分隔后只有一个元素，尝试用空格分隔
+      if (parts.length <= 1 && cleaned.includes(' ')) {
+        parts = cleaned.split(/\s+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+      }
+      return parts.sort();
+    };
+
+    const userParts = parseAnswer(userAnswer);
+    const correctParts = parseAnswer(correctAnswer);
+
+    console.log('[MultiAnswer] 用户答案:', userAnswer, '->', userParts);
+    console.log('[MultiAnswer] 正确答案:', correctAnswer, '->', correctParts);
+    console.log('[MultiAnswer] 比较结果:', JSON.stringify(userParts) === JSON.stringify(correctParts));
+
+    return JSON.stringify(userParts) === JSON.stringify(correctParts);
   }
 }
