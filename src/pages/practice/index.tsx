@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { View, Text } from '@tarojs/components'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { View, Text, RichText } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,9 +8,53 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
-import { CircleCheck, CircleX, Star, Clock } from 'lucide-react-taro'
+import { CircleCheck, CircleX, Star, Clock, Sparkles } from 'lucide-react-taro'
+
+/**
+ * 简单的 Markdown 转 HTML 函数
+ * 支持常见的 Markdown 语法：标题、加粗、斜体、列表、换行等
+ */
+function parseMarkdown(md: string): string {
+  if (!md) return ''
+  
+  let html = md
+  
+  // 处理代码块 ```code```
+  html = html.replace(/```[\s\S]*?```/g, (match) => {
+    const code = match.replace(/```\w*\n?/g, '').replace(/\n?```$/, '')
+    return `<pre style="background:#f5f5f5;padding:8px;border-radius:4px;overflow-x:auto;"><code>${code}</code></pre>`
+  })
+  
+  // 处理标题 (h1-h3)
+  html = html.replace(/^### (.*$)/gm, '<h3 style="font-size:14px;font-weight:600;margin:8px 0 4px;">$1</h3>')
+  html = html.replace(/^## (.*$)/gm, '<h2 style="font-size:15px;font-weight:600;margin:10px 0 5px;">$1</h2>')
+  html = html.replace(/^# (.*$)/gm, '<h1 style="font-size:16px;font-weight:700;margin:12px 0 6px;">$1</h1>')
+  
+  // 处理无序列表
+  html = html.replace(/^- (.*$)/gm, '<li style="margin:2px 0;padding-left:4px;">$1</li>')
+  html = html.replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:4px 0;padding-left:16px;">$&</ul>')
+  
+  // 处理有序列表
+  html = html.replace(/^\d+\. (.*$)/gm, '<li style="margin:2px 0;padding-left:4px;">$1</li>')
+  html = html.replace(/(<li.*<\/li>\n?)+/g, '<ol style="margin:4px 0;padding-left:20px;">$&</ol>')
+  
+  // 处理加粗 **text**
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:600;">$1</strong>')
+  
+  // 处理斜体 *text*
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  
+  // 处理行内代码 `code`
+  html = html.replace(/`(.*?)`/g, '<code style="background:#f0f0f0;padding:2px 4px;border-radius:3px;font-size:0.9em;">$1</code>')
+  
+  // 处理换行
+  html = html.replace(/\n/g, '<br/>')
+  
+  return html
+}
 
 interface Question {
   id: string
@@ -46,8 +90,20 @@ const PracticePage = () => {
   const [score, setScore] = useState(0)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [isContinueMode, setIsContinueMode] = useState(false)
+  const [showAiGradingDialog, setShowAiGradingDialog] = useState(false)
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
+
+  // 将 Markdown 格式的 aiAnalysis 转换为 HTML
+  const aiAnalysisHtml = useMemo(() => {
+    if (!aiAnalysis) return ''
+    try {
+      return parseMarkdown(aiAnalysis)
+    } catch (e) {
+      console.error('Markdown parsing error:', e)
+      return aiAnalysis.replace(/\n/g, '<br/>')
+    }
+  }, [aiAnalysis])
 
   useEffect(() => {
     initPage()
@@ -258,6 +314,11 @@ const PracticePage = () => {
     setSubmitting(true)
     submittedRef.current = true
 
+    // 简答题提交时显示 AI 判题等待提示
+    if (currentQuestion.type === 'short') {
+      setShowAiGradingDialog(true)
+    }
+
     try {
       const res = await Network.request({
         url: '/api/answers',
@@ -282,6 +343,7 @@ const PracticePage = () => {
     } catch (e) {
       console.error('submit error:', e)
     } finally {
+      setShowAiGradingDialog(false)
       setSubmitting(false)
     }
   }
@@ -496,12 +558,18 @@ const PracticePage = () => {
             </Card>
 
             {aiAnalysis && (
-              <Card className="border-0 bg-blue-50">
+              <Card className="border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
                 <CardContent className="p-4">
-                  <Text className="block text-xs font-semibold text-blue-700 mb-2">AI解析</Text>
-                  <Text className="block text-sm text-slate-600 leading-relaxed">
-                    {aiAnalysis}
-                  </Text>
+                  <View className="flex items-center gap-2 mb-3">
+                    <Sparkles size={16} color="#3B82F6" />
+                    <Text className="text-sm font-semibold text-blue-700">AI 智能解析</Text>
+                  </View>
+                  <View className="bg-white rounded-lg p-3">
+                    <RichText 
+                      nodes={aiAnalysisHtml}
+                      className="text-sm text-slate-700 leading-relaxed"
+                    />
+                  </View>
                 </CardContent>
               </Card>
             )}
@@ -558,6 +626,29 @@ const PracticePage = () => {
           </View>
         )}
       </View>
+
+      {/* AI 判题等待提示 */}
+      <Dialog open={showAiGradingDialog} onOpenChange={setShowAiGradingDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles size={20} color="#3B82F6" />
+              AI 正在判题
+            </DialogTitle>
+            <DialogDescription>
+              请稍候，AI 正在分析您的答案...
+            </DialogDescription>
+          </DialogHeader>
+          <View className="flex flex-col items-center py-4">
+            <View className="animate-pulse">
+              <Sparkles size={48} color="#60A5FA" />
+            </View>
+            <Text className="block text-sm text-slate-500 mt-4">
+              正在生成智能解析，请勿离开页面
+            </Text>
+          </View>
+        </DialogContent>
+      </Dialog>
     </View>
   )
 }
