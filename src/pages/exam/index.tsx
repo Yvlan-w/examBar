@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
 import { loginWithProfile } from '@/utils/auth'
-import { Clock, CircleAlert, User } from 'lucide-react-taro'
+import { Clock, CircleAlert, User, CircleCheck } from 'lucide-react-taro'
 
 interface Question {
   id: string
@@ -29,6 +29,7 @@ const ExamPage = () => {
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [multiAnswers, setMultiAnswers] = useState<Record<string, string[]>>({})
   const [shortAnswers, setShortAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState(initialDuration)
   const [loading, setLoading] = useState(true)
@@ -102,16 +103,20 @@ const ExamPage = () => {
         // 恢复答案
         const savedAnswers: Record<string, string> = {}
         const savedShortAnswers: Record<string, string> = {}
+        const savedMultiAnswers: Record<string, string[]> = {}
         data.questions.forEach((q: any) => {
           if (q.answered && q.userAnswer) {
             savedAnswers[q.id] = q.userAnswer
             if (q.type === 'short') {
               savedShortAnswers[q.id] = q.userAnswer
+            } else if (q.type === 'multi') {
+              savedMultiAnswers[q.id] = q.userAnswer.split(',').map((s: string) => s.trim())
             }
           }
         })
         setAnswers(savedAnswers)
         setShortAnswers(savedShortAnswers)
+        setMultiAnswers(savedMultiAnswers)
         
         // 恢复进度
         const nextIdx = data.nextIndex || 0
@@ -199,6 +204,22 @@ const ExamPage = () => {
 
   const handleSelectAnswer = (questionId: string, label: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: label }))
+  }
+
+  const handleMultiSelectAnswer = (questionId: string, label: string) => {
+    setMultiAnswers((prev) => {
+      const current = prev[questionId] || []
+      const index = current.indexOf(label)
+      let newAnswers: string[]
+      if (index > -1) {
+        newAnswers = current.filter((l) => l !== label)
+      } else {
+        newAnswers = [...current, label]
+      }
+      // 同步到 answers 用于提交
+      setAnswers((prev2) => ({ ...prev2, [questionId]: newAnswers.join(',') }))
+      return { ...prev, [questionId]: newAnswers }
+    })
   }
 
   const handleShortAnswer = (questionId: string, value: string) => {
@@ -367,7 +388,7 @@ const ExamPage = () => {
                 第{currentIndex + 1}题
               </Text>
               <Badge variant="secondary" className="text-xs">
-                {currentQuestion.type === 'choice' ? '选择题' : currentQuestion.type === 'judge' ? '判断题' : '简答题'}
+                {currentQuestion.type === 'choice' ? '单选题' : currentQuestion.type === 'multi' ? '多选题' : currentQuestion.type === 'judge' ? '判断题' : '简答题'}
               </Badge>
             </View>
             <Card className="border-0 shadow-sm mb-4">
@@ -393,6 +414,31 @@ const ExamPage = () => {
                     />
                   </View>
                 </View>
+              </View>
+            ) : currentQuestion.type === 'multi' ? (
+              <View className="mt-4 space-y-3">
+                <Text className="block text-xs text-slate-400 mb-1">本题为多选题，请选择所有正确选项</Text>
+                {currentQuestion.options?.map((option) => {
+                  const selectedList = multiAnswers[currentQuestion.id] || []
+                  const isSelected = selectedList.includes(option.label)
+                  return (
+                    <View
+                      key={option.label}
+                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                        isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
+                      }`}
+                      onClick={() => handleMultiSelectAnswer(currentQuestion.id, option.label)}
+                    >
+                      <View className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border-2 ${
+                        isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
+                      }`}
+                      >
+                        {isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
+                      </View>
+                      <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                    </View>
+                  )
+                })}
               </View>
             ) : (
               <View className="space-y-3">

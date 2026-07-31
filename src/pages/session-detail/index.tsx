@@ -50,7 +50,8 @@ const MODE_LABELS: Record<string, string> = {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  choice: '选择题',
+  choice: '单选题',
+  multi: '多选题',
   judge: '判断题',
   short: '简答题',
 }
@@ -277,22 +278,33 @@ const SessionDetailPage = () => {
                   {expandedIndex === review.orderIndex && review.question && (
                     <View className="mt-3 pt-3 border-t border-slate-100">
                       {/* 选项 */}
-                      {review.question.options && review.question.type === 'choice' && (
+                      {review.question.options && (review.question.type === 'choice' || review.question.type === 'multi') && (
                         <View className="space-y-1 mb-3">
-                          {review.question.options.map((opt) => (
-                            <View 
-                              key={opt.label}
-                              className={`p-2 rounded text-sm ${
-                                opt.label === review.question!.answer 
-                                  ? 'bg-emerald-50 text-emerald-700' 
-                                  : opt.label === review.userAnswer && !review.isCorrect
-                                  ? 'bg-red-50 text-red-700'
-                                  : 'bg-slate-50 text-slate-600'
-                              }`}
-                            >
-                              <Text className="block">{opt.label}. {opt.content}</Text>
-                            </View>
-                          ))}
+                          {(() => {
+                            const correctLabels = review.question!.type === 'multi' 
+                              ? review.question!.answer.split(',').map((a: string) => a.trim().toUpperCase())
+                              : [review.question!.answer]
+                            const userLabels = review.userAnswer 
+                              ? review.question!.type === 'multi'
+                                ? review.userAnswer.split(',').map((a: string) => a.trim().toUpperCase())
+                                : [review.userAnswer]
+                              : []
+                            return review.question!.options!.map((opt) => {
+                              const isCorrectOpt = correctLabels.includes(opt.label.toUpperCase())
+                              const isUserOpt = userLabels.includes(opt.label.toUpperCase())
+                              let bgClass = 'bg-slate-50 text-slate-600'
+                              if (isCorrectOpt) bgClass = 'bg-emerald-50 text-emerald-700'
+                              else if (isUserOpt && !review.isCorrect) bgClass = 'bg-red-50 text-red-700'
+                              return (
+                                <View 
+                                  key={opt.label}
+                                  className={`p-2 rounded text-sm ${bgClass}`}
+                                >
+                                  <Text className="block">{opt.label}. {opt.content}</Text>
+                                </View>
+                              )
+                            })
+                          })()}
                         </View>
                       )}
                       
@@ -301,12 +313,14 @@ const SessionDetailPage = () => {
                         <View className="flex items-center gap-2">
                           <Text className="text-slate-500">你的答案:</Text>
                           <Text className={review.isCorrect ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                            {review.userAnswer || '未作答'}
+                            {review.userAnswer ? (review.question!.type === 'multi' ? review.userAnswer.split(',').join('、') : review.userAnswer) : '未作答'}
                           </Text>
                         </View>
                         <View className="flex items-center gap-2">
                           <Text className="text-slate-500">正确答案:</Text>
-                          <Text className="text-emerald-600 font-medium">{review.question.answer}</Text>
+                          <Text className="text-emerald-600 font-medium">
+                            {review.question!.type === 'multi' ? review.question!.answer.split(',').join('、') : review.question!.answer}
+                          </Text>
                         </View>
                       </View>
                       

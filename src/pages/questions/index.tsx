@@ -27,7 +27,8 @@ interface Question {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  choice: '选择题',
+  choice: '单选题',
+  multi: '多选题',
   judge: '判断题',
   short: '简答题',
 }
@@ -189,9 +190,10 @@ const QuestionsPage = () => {
         <Tabs value={selectedType} onValueChange={setSelectedType}>
           <TabsList className="w-full bg-slate-100 h-10 rounded-lg p-1">
             <TabsTrigger value="all" className="flex-1 text-xs">全部</TabsTrigger>
-            <TabsTrigger value="choice" className="flex-1 text-xs">选择题</TabsTrigger>
-            <TabsTrigger value="judge" className="flex-1 text-xs">判断题</TabsTrigger>
-            <TabsTrigger value="short" className="flex-1 text-xs">简答题</TabsTrigger>
+            <TabsTrigger value="choice" className="flex-1 text-xs">单选</TabsTrigger>
+            <TabsTrigger value="multi" className="flex-1 text-xs">多选</TabsTrigger>
+            <TabsTrigger value="judge" className="flex-1 text-xs">判断</TabsTrigger>
+            <TabsTrigger value="short" className="flex-1 text-xs">简答</TabsTrigger>
           </TabsList>
         </Tabs>
       </View>

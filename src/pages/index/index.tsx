@@ -249,7 +249,7 @@ const IndexPage = () => {
             <CardContent className="p-4">
               <View className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary" className="text-xs">
-                  {dailyQuestion.type === 'choice' ? '选择题' : dailyQuestion.type === 'judge' ? '判断题' : '简答题'}
+                  {dailyQuestion.type === 'choice' ? '单选题' : dailyQuestion.type === 'multi' ? '多选题' : dailyQuestion.type === 'judge' ? '判断题' : '简答题'}
                 </Badge>
                 <Text className="text-xs text-slate-400">{dailyQuestion.subjectName}</Text>
               </View>

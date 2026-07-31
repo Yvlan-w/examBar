@@ -742,7 +742,7 @@ D. 硬件
                   {parsedQuestions.map((q, index) => (
                     <View key={index} className="p-3 bg-white rounded-lg">
                       <Text className="block text-xs text-slate-400 mb-1">
-                        {index + 1}. {q.type === 'choice' ? '选择题' : q.type === 'judge' ? '判断题' : '简答题'}
+                        {index + 1}. {q.type === 'choice' ? '单选题' : q.type === 'multi' ? '多选题' : q.type === 'judge' ? '判断题' : '简答题'}
                       </Text>
                       <Text className="block text-sm text-slate-700 line-clamp-2">{q.content}</Text>
                     </View>
