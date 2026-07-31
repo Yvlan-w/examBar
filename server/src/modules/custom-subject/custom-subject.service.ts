@@ -598,13 +598,117 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
     console.log(`[导入开始] 待插入题目: ${questionsData.length}, 待更新题目: ${questionsToUpdate?.length || 0}, 题库ID: ${subjectId}`);
 
     try {
-      if (questionsData.length > 0) {
-        const questionsToInsert = questionsData.map(q => {
-          const { createdAt, ...rest } = q;
-          return rest;
-        });
+      // 验证题库是否存在
+      const subjectCheck = await db.select().from(subjects).where(eq(subjects.id, subjectId));
+      if (subjectCheck.length === 0) {
+        console.error(`[导入失败] 题库不存在: ${subjectId}`);
+        throw new Error(`题库不存在，无法导入题目`);
+      }
+      console.log(`[导入验证] 题库存在: ${subjectCheck[0].name}`);
 
-        console.log(`[导入插入] 准备插入 ${questionsToInsert.length} 道题目`);
+      // 规范化题目数据
+      const normalizeQuestion = (q: any): any | null => {
+        if (!q || !q.content || !q.answer || !q.type) {
+          console.warn(`[数据验证] 题目缺少必要字段: id=${q?.id}, content=${!!q?.content}, answer=${!!q?.answer}, type=${!!q?.type}`);
+          return null;
+        }
+
+        // 规范化 type 字段
+        const validTypes = ['choice', 'multi', 'judge', 'short'];
+        let normalizedType = q.type;
+        if (!validTypes.includes(normalizedType)) {
+          if (normalizedType === 'single') normalizedType = 'choice';
+          else if (normalizedType === 'multiple') normalizedType = 'multi';
+          else if (normalizedType === 'truefalse' || normalizedType === 'boolean') normalizedType = 'judge';
+          else normalizedType = 'choice';
+        }
+
+        // 规范化 difficulty 字段
+        const validDifficulties = ['easy', 'medium', 'hard'];
+        let normalizedDifficulty = q.difficulty || 'easy';
+        if (!validDifficulties.includes(normalizedDifficulty)) {
+          if (normalizedDifficulty === '简单' || normalizedDifficulty === '容易') normalizedDifficulty = 'easy';
+          else if (normalizedDifficulty === '中等' || normalizedDifficulty === '一般') normalizedDifficulty = 'medium';
+          else if (normalizedDifficulty === '困难' || normalizedDifficulty === '难') normalizedDifficulty = 'hard';
+          else normalizedDifficulty = 'easy';
+        }
+
+        // 处理 options 字段
+        let normalizedOptions = q.options;
+        if (normalizedOptions && typeof normalizedOptions === 'string') {
+          try {
+            normalizedOptions = JSON.parse(normalizedOptions);
+          } catch {
+            normalizedOptions = null;
+          }
+        }
+        if (normalizedOptions && !Array.isArray(normalizedOptions)) {
+          normalizedOptions = null;
+        }
+
+        // 清理 createdAt，只保留数据库 schema 中的字段
+        const { createdAt, year, ...otherFields } = q;
+        
+        // 处理 year 字段
+        let normalizedYear = year;
+        if (normalizedYear !== undefined && normalizedYear !== null) {
+          const yearNum = typeof normalizedYear === 'number' ? normalizedYear : parseInt(String(normalizedYear), 10);
+          if (!isNaN(yearNum) && yearNum > 1900 && yearNum < 2100) {
+            normalizedYear = yearNum;
+          } else {
+            normalizedYear = undefined;
+          }
+        }
+
+        const result: any = {
+          id: q.id,
+          content: q.content,
+          type: normalizedType,
+          options: normalizedOptions,
+          answer: q.answer,
+          analysis: q.analysis || '',
+          difficulty: normalizedDifficulty,
+          subjectId: q.subjectId,
+          subjectName: q.subjectName,
+        };
+        
+        if (normalizedYear !== undefined) {
+          result.year = normalizedYear;
+        }
+        
+        return result;
+      };
+
+      if (questionsData.length > 0) {
+        const questionsToInsert: any[] = [];
+        let skippedCount = 0;
+
+        for (const q of questionsData) {
+          const normalized = normalizeQuestion(q);
+          if (normalized) {
+            // 确保 id 存在且不超过32字符
+            if (!normalized.id) {
+              console.warn(`[数据验证] 题目缺少id，跳过: ${normalized.content?.substring(0, 50)}`);
+              skippedCount++;
+              continue;
+            }
+            if (normalized.id.length > 32) {
+              console.warn(`[数据验证] 题目id过长(${normalized.id.length}>32): ${normalized.id}`);
+              normalized.id = normalized.id.substring(normalized.id.length - 32);
+            }
+            // 确保 subjectId 正确
+            normalized.subjectId = subjectId;
+            questionsToInsert.push(normalized);
+          } else {
+            skippedCount++;
+          }
+        }
+
+        if (skippedCount > 0) {
+          console.warn(`[数据验证] ${skippedCount} 道题目因缺少必要字段被跳过`);
+        }
+
+        console.log(`[导入插入] 准备插入 ${questionsToInsert.length} 道题目（已验证）`);
         
         // 逐条插入以便捕获具体错误
         let successCount = 0;
@@ -615,8 +719,8 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
             successCount++;
           } catch (insertError: any) {
             failedCount++;
-            console.error(`[导入插入失败] 题目ID: ${q.id}, 错误: ${insertError.message || insertError}`);
-            // 继续处理其他题目
+            console.error(`[导入插入失败] 题目ID: ${q.id}, type: ${q.type}, 错误: ${insertError.message || insertError}`);
+            console.error(`[导入插入失败详情] 题目数据:`, JSON.stringify(q).substring(0, 500));
           }
         }
         
@@ -634,6 +738,11 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         
         for (const q of questionsToUpdate) {
           const { id, createdAt, ...rest } = q;
+          if (!id) {
+            updateFailedCount++;
+            console.warn(`[导入更新失败] 题目缺少id`);
+            continue;
+          }
           try {
             await db.update(questions)
               .set(rest)

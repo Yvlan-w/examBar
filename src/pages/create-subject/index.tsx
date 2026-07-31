@@ -420,7 +420,7 @@ const CreateSubjectPage = () => {
   }
 
   const handleImportQuestions = async () => {
-    console.log('[导入开始] parsedQuestions:', parsedQuestions.length, 'questionsToUpdate:', questionsToUpdate.length)
+    console.log('[导入开始] parsedQuestions:', parsedQuestions.length, 'questionsToUpdate:', questionsToUpdate.length, 'subjectId:', selectedSubject?.id)
     
     if (parsedQuestions.length === 0 && questionsToUpdate.length === 0) {
       Taro.showToast({ title: '没有可导入的题目', icon: 'none' })
@@ -435,20 +435,47 @@ const CreateSubjectPage = () => {
       setParsing(true)
       setLoadingText('正在导入题目...')
       
+      const payload = { 
+        questions: parsedQuestions, 
+        questionsToUpdate,
+        subjectId: selectedSubject.id 
+      }
+      console.log('[导入请求] 发送数据:', JSON.stringify({
+        questionCount: payload.questions.length,
+        updateCount: payload.questionsToUpdate?.length || 0,
+        subjectId: payload.subjectId,
+        sampleQuestion: payload.questions[0] ? {
+          id: payload.questions[0].id,
+          type: payload.questions[0].type,
+          difficulty: payload.questions[0].difficulty,
+          hasContent: !!payload.questions[0].content,
+          hasAnswer: !!payload.questions[0].answer,
+          hasOptions: !!payload.questions[0].options,
+          hasSubjectId: !!payload.questions[0].subjectId,
+          hasSubjectName: !!payload.questions[0].subjectName,
+        } : null
+      }))
+
       const res = await Network.request({
         url: '/api/custom-subjects/import',
         method: 'POST',
-        data: { 
-          questions: parsedQuestions, 
-          questionsToUpdate,
-          subjectId: selectedSubject.id 
-        },
+        data: payload,
       })
 
-      console.log('[导入响应]', res.data)
+      console.log('[导入响应] statusCode:', res.statusCode, 'data:', res.data)
       
+      // 检查 HTTP 状态码
+      if (res.statusCode >= 400) {
+        const errMsg = res.data?.message || res.data?.msg || `服务器错误(${res.statusCode})`
+        console.error('[导入失败] HTTP错误:', errMsg)
+        Taro.showToast({ title: errMsg, icon: 'none' })
+        return
+      }
+      
+      // 检查业务状态码
       if (res.data?.code === 200) {
         const { insertedCount = 0, updatedCount = 0 } = res.data?.data || {}
+        console.log('[导入成功] 新增:', insertedCount, '更新:', updatedCount)
         
         if (insertedCount === 0 && updatedCount === 0) {
           Taro.showToast({ title: '没有成功导入任何题目', icon: 'none' })
@@ -481,11 +508,14 @@ const CreateSubjectPage = () => {
         setSelectedSubject(null)
         loadSubjects()
       } else {
-        Taro.showToast({ title: res.data?.msg || '导入失败', icon: 'none' })
+        const errMsg = res.data?.msg || '导入失败，请重试'
+        console.error('[导入业务错误]', errMsg, res.data)
+        Taro.showToast({ title: errMsg, icon: 'none' })
       }
     } catch (e: any) {
-      console.error('[导入错误]', e)
-      const errorMsg = e?.message || '导入失败，请重试'
+      console.error('[导入异常]', e)
+      console.error('[导入异常详情] message:', e?.message, 'stack:', e?.stack)
+      const errorMsg = e?.message || '网络错误，请重试'
       Taro.showToast({ title: errorMsg, icon: 'none' })
     } finally {
       setParsing(false)
