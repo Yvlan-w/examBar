@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, ScrollView } from '@tarojs/components'
+import { View, Text, ScrollView, RichText } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -7,6 +7,23 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronLeft, CircleCheck, CircleX, Clock, BookOpen, Target, ChartBarIncreasing } from 'lucide-react-taro'
+
+/**
+ * Markdown 转 HTML（支持图片）
+ */
+function parseMarkdown(md: string): string {
+  if (!md) return ''
+  let html = md
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
+  })
+  html = html.replace(/\n/g, '<br/>')
+  return html
+}
+
+function hasMarkdownImage(content: string): boolean {
+  return /!\[[^\]]*\]\([^)]+\)/.test(content)
+}
 
 interface QuestionReview {
   orderIndex: number
@@ -300,7 +317,14 @@ const SessionDetailPage = () => {
                                   key={opt.label}
                                   className={`p-2 rounded text-sm ${bgClass}`}
                                 >
-                                  <Text className="block">{opt.label}. {opt.content}</Text>
+                                  {hasMarkdownImage(opt.content) ? (
+                                    <View className="text-sm">
+                                      <Text className="block font-medium">{opt.label}.</Text>
+                                      <RichText nodes={parseMarkdown(opt.content)} />
+                                    </View>
+                                  ) : (
+                                    <Text className="block">{opt.label}. {opt.content}</Text>
+                                  )}
                                 </View>
                               )
                             })
@@ -331,9 +355,15 @@ const SessionDetailPage = () => {
                             <Target size={12} color="#2563EB" className="inline mr-1" />
                             解析
                           </Text>
-                          <Text className="block text-sm text-slate-700 leading-relaxed">
-                            {review.question.analysis}
-                          </Text>
+                          {hasMarkdownImage(review.question.analysis) ? (
+                            <View className="text-sm text-slate-700 leading-relaxed overflow-hidden">
+                              <RichText nodes={parseMarkdown(review.question.analysis)} />
+                            </View>
+                          ) : (
+                            <Text className="block text-sm text-slate-700 leading-relaxed">
+                              {review.question.analysis}
+                            </Text>
+                          )}
                         </View>
                       )}
                       

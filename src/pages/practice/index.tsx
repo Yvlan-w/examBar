@@ -15,12 +15,17 @@ import { CircleCheck, CircleX, Star, Clock, Sparkles } from 'lucide-react-taro'
 
 /**
  * 简单的 Markdown 转 HTML 函数
- * 支持常见的 Markdown 语法：标题、加粗、斜体、列表、换行等
+ * 支持常见的 Markdown 语法：标题、加粗、斜体、列表、换行、图片等
  */
 function parseMarkdown(md: string): string {
   if (!md) return ''
   
   let html = md
+  
+  // 处理图片 ![alt](url)
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
+  })
   
   // 处理代码块 ```code```
   html = html.replace(/```[\s\S]*?```/g, (match) => {
@@ -54,6 +59,13 @@ function parseMarkdown(md: string): string {
   html = html.replace(/\n/g, '<br/>')
   
   return html
+}
+
+/**
+ * 检查选项内容是否包含 Markdown 图片语法
+ */
+function hasMarkdownImage(content: string): boolean {
+  return /!\[[^\]]*\]\([^)]+\)/.test(content)
 }
 
 interface Question {
@@ -551,7 +563,13 @@ const PracticePage = () => {
                   >
                     {!showResult && isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
                   </View>
-                  <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                  {hasMarkdownImage(option.content) ? (
+                    <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                      <RichText nodes={parseMarkdown(option.content)} />
+                    </View>
+                  ) : (
+                    <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                  )}
                   {isAnswer && <CircleCheck size={18} color="#059669" />}
                   {isWrong && <CircleX size={18} color="#DC2626" />}
                 </View>
@@ -573,11 +591,11 @@ const PracticePage = () => {
               return (
                 <View
                   key={option.label}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${optionStyle}`}
+                  className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-colors ${optionStyle}`}
                   onClick={() => handleOptionSelect(option.label)}
                 >
                   <View
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 flex-shrink-0 ${
                       isSelected && !showResult
                         ? 'border-blue-500 text-blue-600 bg-blue-100'
                         : isAnswer
@@ -589,7 +607,13 @@ const PracticePage = () => {
                   >
                     {option.label}
                   </View>
-                  <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                  {hasMarkdownImage(option.content) ? (
+                    <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                      <RichText nodes={parseMarkdown(option.content)} />
+                    </View>
+                  ) : (
+                    <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                  )}
                   {isAnswer && <CircleCheck size={18} color="#059669" />}
                   {isWrong && <CircleX size={18} color="#DC2626" />}
                 </View>
@@ -622,9 +646,15 @@ const PracticePage = () => {
                   正确答案：{currentQuestion.type === 'multi' ? currentQuestion.answer.split(',').join('、') : currentQuestion.answer}
                 </Text>
                 {currentQuestion.analysis && (
-                  <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
-                    {currentQuestion.analysis}
-                  </Text>
+                  hasMarkdownImage(currentQuestion.analysis) ? (
+                    <View className="text-sm text-slate-600 leading-relaxed mt-2 overflow-hidden">
+                      <RichText nodes={parseMarkdown(currentQuestion.analysis)} />
+                    </View>
+                  ) : (
+                    <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
+                      {currentQuestion.analysis}
+                    </Text>
+                  )
                 )}
               </CardContent>
             </Card>

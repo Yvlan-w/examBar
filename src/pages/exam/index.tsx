@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, RichText } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,6 +12,28 @@ import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
 import { loginWithProfile } from '@/utils/auth'
 import { Clock, CircleAlert, User, CircleCheck } from 'lucide-react-taro'
+
+/**
+ * 简单的 Markdown 转 HTML 函数（支持图片）
+ */
+function parseMarkdown(md: string): string {
+  if (!md) return ''
+  let html = md
+  // 处理图片 ![alt](url)
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
+  })
+  // 处理换行
+  html = html.replace(/\n/g, '<br/>')
+  return html
+}
+
+/**
+ * 检查是否包含 Markdown 图片
+ */
+function hasMarkdownImage(content: string): boolean {
+  return /!\[[^\]]*\]\([^)]+\)/.test(content)
+}
 
 interface Question {
   id: string
@@ -424,18 +446,24 @@ const ExamPage = () => {
                   return (
                     <View
                       key={option.label}
-                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                      className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-colors ${
                         isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
                       }`}
                       onClick={() => handleMultiSelectAnswer(currentQuestion.id, option.label)}
                     >
-                      <View className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border-2 ${
+                      <View className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium border-2 flex-shrink-0 ${
                         isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
                       }`}
                       >
                         {isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
                       </View>
-                      <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                      {hasMarkdownImage(option.content) ? (
+                        <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                          <RichText nodes={parseMarkdown(option.content)} />
+                        </View>
+                      ) : (
+                        <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                      )}
                     </View>
                   )
                 })}
@@ -447,18 +475,24 @@ const ExamPage = () => {
                   return (
                     <View
                       key={option.label}
-                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${
+                      className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-colors ${
                         isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-slate-200'
                       }`}
                       onClick={() => handleSelectAnswer(currentQuestion.id, option.label)}
                     >
-                      <View className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 ${
+                      <View className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border-2 flex-shrink-0 ${
                         isSelected ? 'border-blue-500 text-blue-600 bg-blue-100' : 'border-slate-300 text-slate-500'
                       }`}
                       >
                         {option.label}
                       </View>
-                      <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                      {hasMarkdownImage(option.content) ? (
+                        <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                          <RichText nodes={parseMarkdown(option.content)} />
+                        </View>
+                      ) : (
+                        <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
+                      )}
                     </View>
                   )
                 })}

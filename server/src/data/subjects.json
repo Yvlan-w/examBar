@@ -1,0 +1,30 @@
+[
+  {
+    "id": "s1",
+    "name": "金融市场基础知识",
+    "icon": "market",
+    "questionCount": 1702,
+    "color": "blue"
+  },
+  {
+    "id": "s2",
+    "name": "证券市场基本法律法规",
+    "icon": "law",
+    "questionCount": 1130,
+    "color": "rose"
+  },
+  {
+    "id": "s3",
+    "name": "证券投资顾问业务",
+    "icon": "investment",
+    "questionCount": 977,
+    "color": "emerald"
+  },
+  {
+    "id": "s4",
+    "name": "证券公司高级管理人员",
+    "icon": "risk",
+    "questionCount": 1131,
+    "color": "purple"
+  }
+]

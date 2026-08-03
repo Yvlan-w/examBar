@@ -124,6 +124,40 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * 上传题目图片到指定路径（如 questions/s3/xxx）
+   * @param fileBuffer 文件 Buffer
+   * @param uploadKey 上传路径（如 questions/s3/s3_q163/img0.jpeg）
+   * @param contentType 内容类型
+   * @returns 上传后的 URL 和 key
+   */
+  async uploadQuestionImage(fileBuffer: Buffer, uploadKey: string, contentType: string = 'image/png'): Promise<{ url: string; key: string }> {
+    try {
+      console.log(`[Storage] 上传题目图片: ${uploadKey}`);
+      
+      const uploadResult = await this.storage.uploadFile({
+        fileContent: fileBuffer,
+        fileName: uploadKey,
+        contentType,
+      });
+      console.log('[Storage] 上传结果:', uploadResult);
+      
+      const actualKey = typeof uploadResult === 'string' ? uploadResult : uploadKey;
+      
+      // 生成长期有效的预签名 URL（365天）
+      const presignedUrl = await this.storage.generatePresignedUrl({
+        key: actualKey,
+        expireTime: 60 * 60 * 24 * 365,
+      });
+      console.log(`[Storage] 生成 URL 成功: ${presignedUrl.substring(0, 80)}...`);
+      
+      return { url: presignedUrl, key: actualKey };
+    } catch (error) {
+      console.error('[Storage] 上传题目图片失败:', error);
+      throw new Error('题目图片上传失败');
+    }
+  }
+
+  /**
    * 将 PDF 文件逐页渲染为图片并上传到 TOS
    * 使用 pdfjs-dist + @napi-rs/canvas 纯 Node.js 实现，无需系统依赖
    * @param pdfUrl PDF 文件的预签名 URL
