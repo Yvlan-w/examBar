@@ -690,11 +690,12 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 
   // 分批解析配置
   private static readonly MAX_IMAGES_PER_BATCH = 8;
+  private static readonly MIN_IMAGES_PER_BATCH = 3;
   private static readonly TOTAL_PAGE_THRESHOLD = 8;
 
   /**
    * 快速分析图片集合并识别题目边界
-   * 使用LLM快速判断每页是否包含完整题目
+   * 返回不完整页面的索引数组（作为拆分点）
    */
   private async analyzeImageBoundaries(imageUrls: string[]): Promise<number[]> {
     console.log(`[智能分页] 开始分析 ${imageUrls.length} 张图片的题目边界...`);
@@ -737,29 +738,160 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       
       if (!jsonMatch) {
         console.warn('[智能分页] 无法解析LLM响应，默认均匀分页');
-        return this.getDefaultBoundaries(imageUrls.length);
+        return this.getDefaultSplitPoints(imageUrls.length, []);
       }
 
       const boundaries = JSON.parse(jsonMatch[0]);
-      console.log('[智能分页] 分析完成，每页边界状态:', boundaries);
+      console.log('[智能分页] 每页边界状态:', boundaries.map((b: any, i: number) => `页${i}:${b.complete}`));
 
-      // 验证并返回完整边界信息
-      const completedPages: number[] = [];
+      // 找出所有不完整页面的索引（作为拆分点）
+      const incompletePages: number[] = [];
       for (let i = 0; i < boundaries.length; i++) {
-        if (boundaries[i]?.complete !== false) {
-          completedPages.push(i);
+        if (boundaries[i]?.complete === false) {
+          incompletePages.push(i);
         }
       }
 
-      return completedPages.length > 0 ? completedPages : this.getDefaultBoundaries(imageUrls.length);
+      console.log(`[智能分页] 发现 ${incompletePages.length} 个不完整页面:`, incompletePages);
+      
+      // 根据不完整页面计算最优拆分点
+      return this.getDefaultSplitPoints(imageUrls.length, incompletePages);
     } catch (error) {
       console.error('[智能分页] 分析失败，使用默认分页:', error);
-      return this.getDefaultBoundaries(imageUrls.length);
+      return this.getDefaultSplitPoints(imageUrls.length, []);
     }
   }
 
   /**
-   * 获取默认的均匀分页点
+   * 根据不完整页面计算最优拆分点
+   * 规则：
+   * 1. 不完整页面是强制拆分点（在该页之前拆分）
+   * 2. 每个批次至少包含 MIN_IMAGES_PER_BATCH 张图片
+   * 3. 每个批次最多包含 MAX_IMAGES_PER_BATCH 张图片
+   * 4. 过小的批次会被合并到相邻批次
+   */
+  private getDefaultSplitPoints(totalPages: number, incompletePages: number[]): number[] {
+    const MIN_SIZE = CustomSubjectService.MIN_IMAGES_PER_BATCH;
+    const MAX_SIZE = CustomSubjectService.MAX_IMAGES_PER_BATCH;
+    
+    // 如果没有不完整页面，按固定大小分组
+    if (incompletePages.length === 0) {
+      const splitPoints: number[] = [];
+      for (let i = MAX_SIZE - 1; i < totalPages; i += MAX_SIZE) {
+        splitPoints.push(Math.min(i, totalPages - 1));
+      }
+      if (splitPoints.length === 0 || splitPoints[splitPoints.length - 1] !== totalPages - 1) {
+        splitPoints.push(totalPages - 1);
+      }
+      console.log(`[智能分页] 无不完整页面，按 ${MAX_SIZE} 页一组，分为 ${splitPoints.length} 组`);
+      return Array.from(new Set(splitPoints)).sort((a, b) => a - b);
+    }
+
+    // 构建初始分组：以不完整页面为拆分点
+    const rawGroups: number[][] = [];
+    let startIdx = 0;
+    
+    for (const incompletePage of incompletePages) {
+      // 在不完整页面之前拆分
+      const endIdx = Math.min(incompletePage + 1, totalPages);
+      if (endIdx > startIdx) {
+        rawGroups.push([startIdx, endIdx]);
+        startIdx = endIdx;
+      }
+    }
+    // 添加最后一组
+    if (startIdx < totalPages) {
+      rawGroups.push([startIdx, totalPages]);
+    }
+
+    console.log(`[智能分页] 初始分组（基于不完整页面）: ${rawGroups.map(g => `${g[0]}-${g[1]}`)}`);
+
+    // 合并过小的批次
+    const mergedGroups: number[][] = [];
+    let tempGroup: number[] | null = null;
+
+    for (const group of rawGroups) {
+      const groupSize = group[1] - group[0];
+      
+      if (tempGroup) {
+        // 当前批次 + 临时批次
+        const combinedSize = group[1] - tempGroup[0];
+        
+        if (combinedSize <= MAX_SIZE) {
+          // 合并后不超过最大限制，合并
+          tempGroup = [tempGroup[0], group[1]];
+        } else {
+          // 合并后超过最大限制，保存临时批次，开始新的
+          mergedGroups.push(tempGroup);
+          tempGroup = [...group];
+        }
+      } else {
+        if (groupSize < MIN_SIZE && mergedGroups.length > 0) {
+          // 当前批次太小，合并到上一个已保存的批次
+          const lastGroup = mergedGroups[mergedGroups.length - 1];
+          const combinedSize = group[1] - lastGroup[0];
+          
+          if (combinedSize <= MAX_SIZE) {
+            // 合并后不超过最大限制
+            mergedGroups[mergedGroups.length - 1] = [lastGroup[0], group[1]];
+          } else {
+            // 合并后超过最大限制，仍然单独保留
+            mergedGroups.push([...group]);
+          }
+        } else {
+          tempGroup = [...group];
+        }
+      }
+    }
+    
+    if (tempGroup) {
+      // 检查最后的临时批次是否需要合并到上一个
+      if (mergedGroups.length > 0) {
+        const lastGroup = mergedGroups[mergedGroups.length - 1];
+        const combinedSize = tempGroup[1] - lastGroup[0];
+        const tempSize = tempGroup[1] - tempGroup[0];
+        
+        // 如果临时批次太小，且合并后不超过最大限制
+        if (tempSize < MIN_SIZE && combinedSize <= MAX_SIZE) {
+          mergedGroups[mergedGroups.length - 1] = [lastGroup[0], tempGroup[1]];
+        } else {
+          mergedGroups.push(tempGroup);
+        }
+      } else {
+        mergedGroups.push(tempGroup);
+      }
+    }
+
+    console.log(`[智能分页] 合并后分组: ${mergedGroups.map(g => `${g[0]}-${g[1]}(${g[1]-g[0]}页)`)}`);
+
+    // 处理过大的批次（按最大限制拆分）
+    const finalGroups: number[][] = [];
+    for (const group of mergedGroups) {
+      const [start, end] = group;
+      const size = end - start;
+      
+      if (size <= MAX_SIZE) {
+        finalGroups.push([start, end]);
+      } else {
+        // 过大的批次，按 MAX_SIZE 拆分
+        let groupStart = start;
+        while (groupStart < end) {
+          const groupEnd = Math.min(groupStart + MAX_SIZE, end);
+          finalGroups.push([groupStart, groupEnd]);
+          groupStart = groupEnd;
+        }
+      }
+    }
+
+    console.log(`[智能分页] 最终分组: ${finalGroups.map(g => `${g[0]}-${g[1]}(${g[1]-g[0]}页)`)}`);
+
+    // 转换为拆分点（每个批次的最后一页索引）
+    const splitPoints = finalGroups.map(g => g[1] - 1);
+    return splitPoints;
+  }
+
+  /**
+   * 旧版默认均匀分页（保留兼容性）
    */
   private getDefaultBoundaries(totalPages: number): number[] {
     const boundaries: number[] = [];
