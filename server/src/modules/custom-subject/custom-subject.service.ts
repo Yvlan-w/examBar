@@ -5,12 +5,108 @@ import { eq, and, count, or, inArray } from 'drizzle-orm';
 import { LLMClient } from 'coze-coding-dev-sdk';
 import { StorageService } from '../storage/storage.service';
 
+interface ParseJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: { questions: any[]; questionsToUpdate?: any[]; tempFileKeys?: string[] };
+  error?: string;
+  createdAt: number;
+  progress?: string;
+}
+
 @Injectable()
 export class CustomSubjectService {
   private llmClient: LLMClient;
+  private parseJobs = new Map<string, ParseJob>();
+  private readonly JOB_TTL = 30 * 60 * 1000; // 30 分钟过期
 
   constructor(private readonly storageService: StorageService) {
     this.llmClient = new LLMClient();
+    // 定时清理过期任务
+    setInterval(() => this.cleanupExpiredJobs(), 5 * 60 * 1000);
+  }
+
+  private cleanupExpiredJobs() {
+    const now = Date.now();
+    for (const [id, job] of this.parseJobs) {
+      if (now - job.createdAt > this.JOB_TTL) {
+        this.parseJobs.delete(id);
+      }
+    }
+  }
+
+  /**
+   * 创建异步解析任务
+   */
+  async createParseJob(
+    fileContent: string,
+    subjectId: string,
+    subjectName: string,
+    urls?: string[],
+    tempFileKeys?: string[],
+    nickname: string = 'user'
+  ): Promise<string> {
+    const jobId = `parse_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+    
+    const job: ParseJob = {
+      id: jobId,
+      status: 'pending',
+      createdAt: Date.now(),
+      progress: '任务已创建，等待处理...',
+    };
+    this.parseJobs.set(jobId, job);
+
+    // 异步执行解析（不 await）
+    this.executeParseJob(jobId, fileContent, subjectId, subjectName, urls, tempFileKeys, nickname)
+      .catch(err => {
+        console.error(`[异步解析任务异常] jobId: ${jobId}`, err);
+        const job = this.parseJobs.get(jobId);
+        if (job) {
+          job.status = 'failed';
+          job.error = err.message || '解析异常';
+        }
+      });
+
+    return jobId;
+  }
+
+  private async executeParseJob(
+    jobId: string,
+    fileContent: string,
+    subjectId: string,
+    subjectName: string,
+    urls?: string[],
+    tempFileKeys?: string[],
+    nickname?: string
+  ) {
+    const job = this.parseJobs.get(jobId);
+    if (!job) return;
+
+    try {
+      job.status = 'processing';
+      job.progress = '开始解析...';
+      console.log(`[异步解析任务] ${jobId} 开始处理`);
+
+      const result = await this.parseFileToQuestions(
+        fileContent, subjectId, subjectName, urls, tempFileKeys, nickname
+      );
+
+      job.status = 'completed';
+      job.result = result;
+      job.progress = `解析完成，共 ${result.questions.length} 题`;
+      console.log(`[异步解析任务] ${jobId} 完成，解析出 ${result.questions.length} 题`);
+    } catch (error: any) {
+      job.status = 'failed';
+      job.error = error.message || '解析失败';
+      console.error(`[异步解析任务] ${jobId} 失败:`, error.message);
+    }
+  }
+
+  /**
+   * 查询解析任务状态
+   */
+  getParseJobStatus(jobId: string): ParseJob | null {
+    return this.parseJobs.get(jobId) || null;
   }
 
   async getUniqueName(name: string, userId: number): Promise<string> {

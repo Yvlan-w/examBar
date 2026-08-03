@@ -152,6 +152,47 @@ const CreateSubjectPage = () => {
     setTempFileKeys([])
   }
 
+  // 异步轮询解析结果
+  const pollParseResult = async (jobId: string): Promise<any> => {
+    const maxAttempts = 60 // 最多轮询 60 次（约 5 分钟）
+    const interval = 5000 // 每 5 秒轮询一次
+    const startTime = Date.now()
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      setLoadingText(`AI 智能解析中... (${elapsed}s)`)
+
+      try {
+        const res = await Network.request({
+          url: `/api/custom-subjects/parse-status/${jobId}`,
+        })
+
+        if (res.data?.code === 200) {
+          const job = res.data.data
+          console.log(`[轮询 ${attempt + 1}] status: ${job.status}, progress: ${job.progress}`)
+
+          if (job.status === 'completed') {
+            return job.result
+          }
+          if (job.status === 'failed') {
+            throw new Error(job.error || '解析失败')
+          }
+          // pending / processing → 继续等待
+        } else if (res.data?.code === 404) {
+          throw new Error('解析任务不存在或已过期')
+        }
+      } catch (pollError: any) {
+        // 轮询请求本身失败（网络问题），不立即中断，继续重试
+        console.warn(`[轮询 ${attempt + 1}] 请求失败:`, pollError?.errMsg || pollError?.message)
+      }
+
+      // 等待下一次轮询
+      await new Promise(resolve => setTimeout(resolve, interval))
+    }
+
+    throw new Error('解析超时，请稍后重试')
+  }
+
   const handleUploadImage = () => {
     Taro.chooseImage({
       count: 9,
@@ -199,14 +240,14 @@ const CreateSubjectPage = () => {
             console.warn(`[图片上传警告] ${failedUploads.length}/${tempFilePaths.length} 张图片上传失败`)
           }
 
-          setLoadingText('AI 智能解析中，请稍候...')
           const urls = uploadedResults.map(r => r.url)
           const keys = uploadedResults.map(r => r.key)
           
-          console.log('[图片解析] 上传成功', urls.length, '张图片，开始AI解析')
+          console.log('[图片解析] 上传成功', urls.length, '张图片，提交异步解析任务')
           
-          const parseRes = await Network.request({
-            url: '/api/custom-subjects/parse-url',
+          // 提交异步解析任务
+          const submitRes = await Network.request({
+            url: '/api/custom-subjects/parse-async',
             method: 'POST',
             data: {
               urls,
@@ -216,28 +257,45 @@ const CreateSubjectPage = () => {
               nickname: user?.nickName || 'user',
             },
           })
+
+          console.log('[异步解析任务] 提交响应:', submitRes.data)
+
+          if (submitRes.data?.code !== 200 || !submitRes.data?.data?.jobId) {
+            setParsing(false)
+            Taro.showToast({ title: submitRes.data?.msg || '提交解析任务失败', icon: 'none' })
+            return
+          }
+
+          const jobId = submitRes.data.data.jobId
+          console.log('[异步解析任务] jobId:', jobId)
+
+          // 轮询等待结果
+          const result = await pollParseResult(jobId)
           
-          console.log('[图片解析响应]', parseRes.data)
+          console.log('[异步解析任务] 最终结果:', result)
           setParsing(false)
           
-          if (parseRes.data?.code === 200) {
-            const newCount = parseRes.data?.data?.length || 0
-            const updateCount = parseRes.data?.questionsToUpdate?.length || 0
-            setParsedQuestions(parseRes.data?.data || [])
-            setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
-            setTempFileKeys(parseRes.data?.tempFileKeys || [])
+          if (result) {
+            const newCount = result.questions?.length || 0
+            const updateCount = result.questionsToUpdate?.length || 0
+            setParsedQuestions(result.questions || [])
+            setQuestionsToUpdate(result.questionsToUpdate || [])
+            setTempFileKeys(result.tempFileKeys || [])
             const msg = updateCount > 0 
               ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
               : `解析出 ${newCount} 道题目`
             Taro.showToast({ title: msg, icon: 'success' })
           } else {
-            Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
+            Taro.showToast({ title: '解析结果为空', icon: 'none' })
           }
         } catch (e: any) {
           setParsing(false)
-          console.error('[图片上传错误]', e)
-          const errorMsg = e?.message || '上传失败，请重试'
-          Taro.showToast({ title: errorMsg, icon: 'none' })
+          const errMsg = e?.errMsg || e?.message || e?.msg || JSON.stringify(e)
+          console.error('========== [图片上传/解析错误] ==========')
+          console.error('[错误对象]', e)
+          console.error('[错误消息]', errMsg)
+          console.error('=========================================')
+          Taro.showToast({ title: errMsg || '上传失败，请重试', icon: 'none', duration: 3000 })
         }
       },
       fail: (err) => {
@@ -288,9 +346,9 @@ const CreateSubjectPage = () => {
             
             console.log('[文字文件] 内容长度:', content.length)
             
-            setLoadingText('AI 智能解析中，请稍候...')
-            const parseRes = await Network.request({
-              url: '/api/custom-subjects/parse',
+            // 提交异步解析任务
+            const submitRes = await Network.request({
+              url: '/api/custom-subjects/parse-async',
               method: 'POST',
               data: {
                 fileContent: content,
@@ -299,21 +357,30 @@ const CreateSubjectPage = () => {
                 nickname: user?.nickName || 'user',
               },
             })
-            
-            console.log('[文字解析响应]', parseRes.data)
+
+            console.log('[异步解析任务] 提交响应:', submitRes.data)
+
+            if (submitRes.data?.code !== 200 || !submitRes.data?.data?.jobId) {
+              setParsing(false)
+              Taro.showToast({ title: submitRes.data?.msg || '提交解析任务失败', icon: 'none' })
+              return
+            }
+
+            const result = await pollParseResult(submitRes.data.data.jobId)
+            console.log('[异步解析任务] 最终结果:', result)
             setParsing(false)
             
-            if (parseRes.data?.code === 200) {
-              const newCount = parseRes.data?.data?.length || 0
-              const updateCount = parseRes.data?.questionsToUpdate?.length || 0
-              setParsedQuestions(parseRes.data?.data || [])
-              setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
+            if (result) {
+              const newCount = result.questions?.length || 0
+              const updateCount = result.questionsToUpdate?.length || 0
+              setParsedQuestions(result.questions || [])
+              setQuestionsToUpdate(result.questionsToUpdate || [])
               const msg = updateCount > 0 
                 ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
                 : `解析出 ${newCount} 道题目`
               Taro.showToast({ title: msg, icon: 'success' })
             } else {
-              Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
+              Taro.showToast({ title: '解析结果为空', icon: 'none' })
             }
           } else if (fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
             const fileType = fileName.endsWith('.pdf') ? 'PDF' : (fileName.endsWith('.docx') ? 'DOCX' : 'DOC')
@@ -327,9 +394,9 @@ const CreateSubjectPage = () => {
             const uploadData = JSON.parse(uploadRes.data)
             
             if (uploadData.code === 200) {
-              setLoadingText(fileType === 'PDF' ? 'PDF 转图片中，请稍候...' : 'AI 智能解析中，请稍候...')
-              const parseRes = await Network.request({
-                url: '/api/custom-subjects/parse-url',
+              // 提交异步解析任务
+              const submitRes = await Network.request({
+                url: '/api/custom-subjects/parse-async',
                 method: 'POST',
                 data: {
                   url: uploadData.data.url,
@@ -339,34 +406,52 @@ const CreateSubjectPage = () => {
                   nickname: user?.nickName || 'user',
                 },
               })
-              
-              console.log(`[${fileType}解析响应]`, parseRes.data)
+
+              console.log('[异步解析任务] 提交响应:', submitRes.data)
+
+              if (submitRes.data?.code !== 200 || !submitRes.data?.data?.jobId) {
+                setParsing(false)
+                Taro.showToast({ title: submitRes.data?.msg || '提交解析任务失败', icon: 'none' })
+                return
+              }
+
+              const result = await pollParseResult(submitRes.data.data.jobId)
+              console.log(`[${fileType}异步解析] 最终结果:`, result)
               setParsing(false)
               
-              if (parseRes.data?.code === 200) {
-                const newCount = parseRes.data?.data?.length || 0
-                const updateCount = parseRes.data?.questionsToUpdate?.length || 0
-                setParsedQuestions(parseRes.data?.data || [])
-                setQuestionsToUpdate(parseRes.data?.questionsToUpdate || [])
-                setTempFileKeys(parseRes.data?.tempFileKeys || [])
+              if (result) {
+                const newCount = result.questions?.length || 0
+                const updateCount = result.questionsToUpdate?.length || 0
+                setParsedQuestions(result.questions || [])
+                setQuestionsToUpdate(result.questionsToUpdate || [])
+                setTempFileKeys(result.tempFileKeys || [])
                 const msg = updateCount > 0 
                   ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
                   : `解析出 ${newCount} 道题目`
                 Taro.showToast({ title: msg, icon: 'success' })
               } else {
-                Taro.showToast({ title: parseRes.data?.msg || '解析失败', icon: 'none' })
+                Taro.showToast({ title: '解析结果为空', icon: 'none' })
               }
             } else {
+              setParsing(false)
               Taro.showToast({ title: '上传失败', icon: 'none' })
             }
           } else {
+            setParsing(false)
             Taro.showToast({ title: '不支持的文件格式', icon: 'none' })
           }
         } catch (e: any) {
           setParsing(false)
-          console.error('[文件上传错误]', e)
-          const errorMsg = e?.message || '处理失败，请重试'
-          Taro.showToast({ title: errorMsg, icon: 'none' })
+          const errMsg = e?.errMsg || e?.message || e?.msg || JSON.stringify(e)
+          console.error('========== [文件上传/解析错误] ==========')
+          console.error('[错误对象]', e)
+          console.error('[错误消息]', errMsg)
+          console.error('=========================================')
+          const isTimeout = errMsg.includes('timeout') || errMsg.includes('超时')
+          const displayMsg = isTimeout 
+            ? 'AI 解析超时，请尝试使用文字导入或减少文件大小' 
+            : (errMsg || '处理失败，请重试')
+          Taro.showToast({ title: displayMsg, icon: 'none', duration: 3000 })
         }
       },
       fail: (err) => {
@@ -387,9 +472,9 @@ const CreateSubjectPage = () => {
 
     try {
       setParsing(true)
-      setLoadingText('AI 智能解析中，请稍候...')
-      const res = await Network.request({
-        url: '/api/custom-subjects/parse',
+      // 提交异步解析任务
+      const submitRes = await Network.request({
+        url: '/api/custom-subjects/parse-async',
         method: 'POST',
         data: {
           fileContent: fileContent.trim(),
@@ -399,21 +484,34 @@ const CreateSubjectPage = () => {
         },
       })
 
+      console.log('[异步解析任务] 提交响应:', submitRes.data)
+
+      if (submitRes.data?.code !== 200 || !submitRes.data?.data?.jobId) {
+        setParsing(false)
+        Taro.showToast({ title: submitRes.data?.msg || '提交解析任务失败', icon: 'none' })
+        return
+      }
+
+      const result = await pollParseResult(submitRes.data.data.jobId)
+      console.log('[异步解析任务] 最终结果:', result)
       setParsing(false)
       
-      if (res.data?.code === 200) {
-        const newCount = res.data?.data?.length || 0
-        const updateCount = res.data?.questionsToUpdate?.length || 0
-        setParsedQuestions(res.data?.data || [])
-        setQuestionsToUpdate(res.data?.questionsToUpdate || [])
+      if (result) {
+        const newCount = result.questions?.length || 0
+        const updateCount = result.questionsToUpdate?.length || 0
+        setParsedQuestions(result.questions || [])
+        setQuestionsToUpdate(result.questionsToUpdate || [])
         const msg = updateCount > 0 
           ? `解析出 ${newCount} 题，更新 ${updateCount} 题` 
           : `解析出 ${newCount} 道题目`
         Taro.showToast({ title: msg, icon: 'success' })
+      } else {
+        Taro.showToast({ title: '解析结果为空', icon: 'none' })
       }
-    } catch (e) {
-      console.error('parseFile error:', e)
-      Taro.showToast({ title: '解析失败', icon: 'none' })
+    } catch (e: any) {
+      const errMsg = e?.errMsg || e?.message || e?.msg || '解析失败'
+      console.error('[解析错误]', e)
+      Taro.showToast({ title: errMsg, icon: 'none' })
     } finally {
       setParsing(false)
     }

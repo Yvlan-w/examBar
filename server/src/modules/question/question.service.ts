@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { questions, subjects, answerRecords, favoriteRecords } from '@/db/schema';
-import { eq, and, count, desc, or, isNotNull, sql } from 'drizzle-orm';
+import { questions, subjects, answerRecords, favoriteRecords, customSubjects } from '@/db/schema';
+import { eq, and, count, desc, or, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   subjects as seedSubjects,
   questions as seedQuestions,
@@ -44,8 +44,28 @@ export class QuestionService implements OnModuleInit {
     }
   }
 
-  async getSubjects() {
-    const result = await db.select().from(subjects);
+  async getSubjects(userId?: number) {
+    // 系统题库（不在 customSubjects 表中）对所有用户可见
+    // 自定义题库：仅 isPublic=true 或 userId 匹配的可见
+    const result = await db
+      .select({
+        id: subjects.id,
+        name: subjects.name,
+        icon: subjects.icon,
+        questionCount: subjects.questionCount,
+        color: subjects.color,
+        createdAt: subjects.createdAt,
+      })
+      .from(subjects)
+      .leftJoin(customSubjects, eq(subjects.id, customSubjects.id))
+      .where(
+        or(
+          isNull(customSubjects.id),        // 系统题库
+          eq(customSubjects.isPublic, true),  // 公开自定义题库
+          userId ? eq(customSubjects.userId, userId) : sql`false` // 用户自己创建的
+        )
+      );
+
     return result;
   }
 

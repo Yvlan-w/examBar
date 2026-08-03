@@ -7,9 +7,9 @@ export class QuestionController {
 
   @Get('subjects')
   @HttpCode(200)
-  async getSubjects() {
-    console.log('[API] GET /api/subjects');
-    const data = await this.questionService.getSubjects();
+  async getSubjects(@Query('userId') userId?: number) {
+    console.log(`[API] GET /api/subjects userId=${userId}`);
+    const data = await this.questionService.getSubjects(userId);
     console.log(`[API] subjects 返回 ${data.length} 个科目`);
     return { code: 200, msg: 'success', data };
   }

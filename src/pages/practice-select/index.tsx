@@ -39,7 +39,7 @@ const PracticeSelectPage = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState('all')
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const { isLoggedIn } = useUserStore()
+  const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
     initPage()
@@ -56,7 +56,7 @@ const PracticeSelectPage = () => {
   const loadSubjects = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/subjects' })
+      const res = await Network.request({ url: '/api/subjects', data: { userId: user?.id } })
       console.log('subjects:', res.data)
       setSubjects(res.data?.data || [])
       if (res.data?.data?.length > 0) {
