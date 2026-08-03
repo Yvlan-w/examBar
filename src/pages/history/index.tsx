@@ -106,7 +106,7 @@ const HistoryPage = () => {
       console.log('[History] 开始加载数据...')
       
       const [subjectsRes, yearsRes] = await Promise.all([
-        Network.request({ url: '/api/subjects' }),
+        Network.request({ url: '/api/subjects', data: { userId: useUserStore.getState().user?.id } }),
         Network.request({ url: '/api/years' }),
       ])
       

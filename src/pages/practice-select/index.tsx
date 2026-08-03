@@ -39,7 +39,7 @@ const PracticeSelectPage = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState('all')
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const { isLoggedIn, user } = useUserStore()
+  const { isLoggedIn } = useUserStore()
 
   useEffect(() => {
     initPage()
@@ -56,7 +56,9 @@ const PracticeSelectPage = () => {
   const loadSubjects = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/subjects', data: { userId: user?.id } })
+      // 直接从 store 获取最新 user，避免闭包陷阱
+      const currentUser = useUserStore.getState().user
+      const res = await Network.request({ url: '/api/subjects', data: { userId: currentUser?.id } })
       console.log('subjects:', res.data)
       setSubjects(res.data?.data || [])
       if (res.data?.data?.length > 0) {

@@ -102,7 +102,7 @@ const IndexPage = () => {
     try {
       setLoading(true)
       const [subjectsRes, dailyRes, statsRes] = await Promise.all([
-        Network.request({ url: '/api/subjects' }),
+        Network.request({ url: '/api/subjects', data: { userId: useUserStore.getState().user?.id } }),
         Network.request({ url: '/api/questions/daily' }),
         Network.request({ url: '/api/stats/overview', data: { userId: user?.id } }),
       ])

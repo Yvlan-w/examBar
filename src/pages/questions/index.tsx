@@ -94,7 +94,7 @@ const QuestionsPage = () => {
   const loadSubjects = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/subjects' })
+      const res = await Network.request({ url: '/api/subjects', data: { userId: useUserStore.getState().user?.id } })
       console.log('subjects:', res.data)
       setSubjects(res.data?.data || [])
     } catch (e) {

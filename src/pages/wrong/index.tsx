@@ -100,7 +100,7 @@ const WrongPage = () => {
   const loadSubjects = async () => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/subjects' })
+      const res = await Network.request({ url: '/api/subjects', data: { userId: useUserStore.getState().user?.id } })
       setSubjects(res.data?.data || [])
       if ((res.data?.data || []).length > 0) {
         setSelectedSubject((res.data?.data || [])[0].id)

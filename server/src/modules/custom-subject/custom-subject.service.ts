@@ -553,11 +553,44 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 
       let parsedQuestions: any[] = [];
       try {
-        const jsonMatch = content.match(/\[.*\]/s);
+        // 清理 LLM 返回内容：去除 markdown 代码块标记
+        let cleanedContent = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+        
+        // 提取 JSON 数组
+        const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
         console.log('[JSON解析] 找到JSON匹配:', !!jsonMatch);
+        
         if (jsonMatch) {
-          console.log('[JSON解析] 匹配内容:', jsonMatch[0]);
-          parsedQuestions = JSON.parse(jsonMatch[0]);
+          let jsonStr = jsonMatch[0];
+          
+          // 修复常见的 JSON 格式问题
+          // 1. 移除尾随逗号（对象和数组中）
+          jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+          // 2. 修复字符串内未转义的换行符
+          jsonStr = jsonStr.replace(/"([^"]*?)":\s*"([^"]*?)(\n)([^"]*?)"/g, (match) => {
+            return match.replace(/\n/g, '\\n');
+          });
+          
+          try {
+            parsedQuestions = JSON.parse(jsonStr);
+          } catch (parseError) {
+            console.warn('[JSON解析] 标准解析失败，尝试逐题提取...');
+            console.log('[JSON解析] 原始内容片段(2000-2300):', jsonStr.substring(2000, 2300));
+            
+            // 降级方案：用正则逐题提取
+            const questionMatches = jsonStr.match(/\{[^{}]*"content"[^{}]*\}/g);
+            if (questionMatches) {
+              for (const qStr of questionMatches) {
+                try {
+                  let cleaned = qStr.replace(/,\s*([}\]])/g, '$1');
+                  parsedQuestions.push(JSON.parse(cleaned));
+                } catch {
+                  console.warn('[JSON解析] 单题解析失败，跳过');
+                }
+              }
+              console.log(`[JSON解析] 逐题提取成功: ${parsedQuestions.length} 题`);
+            }
+          }
         }
       } catch (e) {
         console.error('[JSON解析] 解析失败:', e);
