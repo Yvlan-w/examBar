@@ -82,13 +82,22 @@ export class CustomSubjectService {
     const job = this.parseJobs.get(jobId);
     if (!job) return;
 
+    // 进度回调函数
+    const onProgress = (progress: string) => {
+      const currentJob = this.parseJobs.get(jobId);
+      if (currentJob) {
+        currentJob.progress = progress;
+      }
+      console.log(`[异步解析任务] ${jobId} 进度: ${progress}`);
+    };
+
     try {
       job.status = 'processing';
       job.progress = '开始解析...';
       console.log(`[异步解析任务] ${jobId} 开始处理`);
 
       const result = await this.parseFileToQuestions(
-        fileContent, subjectId, subjectName, urls, tempFileKeys, nickname
+        fileContent, subjectId, subjectName, urls, tempFileKeys, nickname, onProgress
       );
 
       job.status = 'completed';
@@ -98,6 +107,7 @@ export class CustomSubjectService {
     } catch (error: any) {
       job.status = 'failed';
       job.error = error.message || '解析失败';
+      job.progress = `解析失败: ${error.message || error}`;
       console.error(`[异步解析任务] ${jobId} 失败:`, error.message);
     }
   }
@@ -296,7 +306,8 @@ export class CustomSubjectService {
     subjectName: string,
     urls?: string[],
     tempFileKeys?: string[],
-    nickname: string = 'user'
+    nickname: string = 'user',
+    onProgress?: (progress: string) => void
   ): Promise<{ questions: any[]; questionsToUpdate?: any[]; tempFileKeys?: string[] }> {
     let finalTempFileKeys = tempFileKeys || [];
     
@@ -443,31 +454,37 @@ export class CustomSubjectService {
         }
       }
 
-      let userMessageContent: string | { type: 'image_url'; image_url: { url: string; detail?: 'high' | 'low' } }[];
+      let parsedQuestions: any[] = [];
       
       if (finalUrls && finalUrls.length > 0) {
-        userMessageContent = finalUrls.map((url) => ({
-          type: 'image_url' as const,
-          image_url: {
-            url,
-            detail: 'high' as const,
-          },
-        }));
         console.log(`[LLM请求] 使用图片模式，共 ${finalUrls.length} 张图片`);
+        
+        // 判断是否需要分批解析
+        if (finalUrls.length > CustomSubjectService.TOTAL_PAGE_THRESHOLD) {
+          console.log(`[LLM请求] 图片数量超过 ${CustomSubjectService.TOTAL_PAGE_THRESHOLD}，启用分批解析`);
+          parsedQuestions = await this.parseImagesInBatches(finalUrls, onProgress);
+        } else {
+          // 单批次直接解析
+          console.log(`[LLM请求] 单批次解析，共 ${finalUrls.length} 张图片`);
+          onProgress?.('解析中...');
+          parsedQuestions = await this.parseBatch(finalUrls, 0, 1);
+        }
       } else {
         // 防御性检查：确保 finalFileContent 不为 undefined 或空
-        userMessageContent = finalFileContent || '';
         console.log(`[LLM请求] 使用文本模式，文本长度: ${(finalFileContent || '').length} chars`);
         
         if (!finalFileContent || finalFileContent.trim().length === 0) {
           console.warn('[LLM请求] ⚠️ 文本内容为空，可能无法解析题目');
         }
-      }
 
-      const messages = [
-        {
-          role: 'system' as const,
-          content: `你是一个专业的题目解析助手。请将以下文本或图片内容解析为结构化的题目数据。
+        // 文本模式保持原有逻辑
+        const userMessageContent = finalFileContent || '';
+        onProgress?.('解析中...');
+        
+        const messages = [
+          {
+            role: 'system' as const,
+            content: `你是一个专业的题目解析助手。请将以下文本内容解析为结构化的题目数据。
 # 硬性强制输出规则【最高优先级，必须遵守】
 1. 最终输出**只能返回纯净JSON**，不要任何前置说明、解释、markdown、注释、换行说明、结束语；不能出现\`\`\`json代码块标记。
 2. 严格遵守字段结构，不新增字段、不缺失字段、不修改key名称。
@@ -506,7 +523,6 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 1. 题干、选项文字做清洗：去除空格、乱码、多余换行；保证文本通顺；
 2. 若原始素材缺失标准答案，尽可能基于专业知识给出合理参考答案，但是必须给出参考来源，不得编造事实；无法判断时在analysis注明「原题未提供标准答案，解析仅供参考」；
 3. 不要自行编造不存在的题干与选项；识别不到有效题目返回空数组 []。
-4. 如果提供了多张图片，请按图片顺序解析所有题目，合并成一个数组返回，不要丢失任何图片中的题目。
 
 模板标准样例：
 [
@@ -524,44 +540,35 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         "difficulty": "easy"
     }
 ]
-
 `,
-        },
-        {
-          role: 'user' as const,
-          content: userMessageContent,
-        },
-      ];
+          },
+          {
+            role: 'user' as const,
+            content: userMessageContent,
+          },
+        ];
 
-      console.log('[LLM请求] 消息数量:', messages.length);
-      console.log('[LLM请求] 用户消息类型:', Array.isArray(userMessageContent) ? `视觉输入(${userMessageContent.length}张)` : '文本');
-      if (Array.isArray(userMessageContent)) {
-        userMessageContent.forEach((part, index) => {
-          const url = part.image_url?.url || '';
-          const urlType = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url.split('?')[0]) ? '图片' : '转换图片';
-          console.log(`[LLM请求] ${urlType}${index + 1} URL:`, url.substring(0, 100) + (url.length > 100 ? '...' : ''));
+        console.log('[LLM请求] 消息数量:', messages.length);
+
+        const response = await this.llmClient.invoke(messages, {
+          model: 'doubao-seed-2-0-lite-260215',
         });
-      }
+        const content = response.content || '';
 
-      const response = await this.llmClient.invoke(messages, {
-        model: 'doubao-seed-2-0-lite-260215',
-      });
-      const content = response.content || '';
+        console.log('\n[LLM响应] 原始内容长度:', content.length);
+        console.log('[LLM响应] 原始内容:', content);
 
-      console.log('\n[LLM响应] 原始内容长度:', content.length);
-      console.log('[LLM响应] 原始内容:', content);
-
-      let parsedQuestions: any[] = [];
-      try {
-        const jsonMatch = content.match(/\[.*\]/s);
-        console.log('[JSON解析] 找到JSON匹配:', !!jsonMatch);
-        
-        if (jsonMatch) {
-          console.log('[JSON解析] 匹配内容:', jsonMatch[0]);
-          parsedQuestions = JSON.parse(jsonMatch[0]);
+        try {
+          const jsonMatch = content.match(/\[.*\]/s);
+          console.log('[JSON解析] 找到JSON匹配:', !!jsonMatch);
+          
+          if (jsonMatch) {
+            console.log('[JSON解析] 匹配内容:', jsonMatch[0]);
+            parsedQuestions = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.error('[JSON解析] 解析失败:', e);
         }
-      } catch (e) {
-        console.error('[JSON解析] 解析失败:', e);
       }
 
       console.log('[解析结果] 解析出题目数量:', parsedQuestions.length);
@@ -679,6 +686,290 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       console.error('[获取URL失败]', error);
       throw error;
     }
+  }
+
+  // 分批解析配置
+  private static readonly MAX_IMAGES_PER_BATCH = 8;
+  private static readonly TOTAL_PAGE_THRESHOLD = 8;
+
+  /**
+   * 快速分析图片集合并识别题目边界
+   * 使用LLM快速判断每页是否包含完整题目
+   */
+  private async analyzeImageBoundaries(imageUrls: string[]): Promise<number[]> {
+    console.log(`[智能分页] 开始分析 ${imageUrls.length} 张图片的题目边界...`);
+
+    try {
+      // 使用LLM快速分析每页的内容和边界
+      const messages = [
+        {
+          role: 'system' as const,
+          content: `你是一个文档分析专家。请分析每一页图片，判断该页是否以完整的题目结束。
+你需要返回一个JSON数组，每个元素对应一页的分析结果。
+
+分析规则：
+1. 如果该页最后一个题目是完整的（题干和选项都在本页），标记为{"complete": true}
+2. 如果该页最后一个题目不完整（题干在本页，选项在下一页），标记为{"complete": false}
+3. 如果该页没有题目，标记为{"complete": true}
+
+输出格式：严格返回JSON数组，如 [{"complete":true}, {"complete":false}, ...]
+只能返回JSON，不要其他内容。`,
+        },
+        {
+          role: 'user' as const,
+          content: imageUrls.map((url) => ({
+            type: 'image_url' as const,
+            image_url: { url, detail: 'low' as const },
+          })),
+        },
+      ];
+
+      const response = await this.llmClient.invoke(messages, {
+        model: 'doubao-seed-2-0-lite-260215',
+      });
+
+      let content = response.content || '';
+      console.log('[智能分页] LLM响应:', content.substring(0, 500));
+
+      // 清理并解析JSON
+      content = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      
+      if (!jsonMatch) {
+        console.warn('[智能分页] 无法解析LLM响应，默认均匀分页');
+        return this.getDefaultBoundaries(imageUrls.length);
+      }
+
+      const boundaries = JSON.parse(jsonMatch[0]);
+      console.log('[智能分页] 分析完成，每页边界状态:', boundaries);
+
+      // 验证并返回完整边界信息
+      const completedPages: number[] = [];
+      for (let i = 0; i < boundaries.length; i++) {
+        if (boundaries[i]?.complete !== false) {
+          completedPages.push(i);
+        }
+      }
+
+      return completedPages.length > 0 ? completedPages : this.getDefaultBoundaries(imageUrls.length);
+    } catch (error) {
+      console.error('[智能分页] 分析失败，使用默认分页:', error);
+      return this.getDefaultBoundaries(imageUrls.length);
+    }
+  }
+
+  /**
+   * 获取默认的均匀分页点
+   */
+  private getDefaultBoundaries(totalPages: number): number[] {
+    const boundaries: number[] = [];
+    const batchSize = CustomSubjectService.MAX_IMAGES_PER_BATCH;
+    for (let i = batchSize - 1; i < totalPages; i += batchSize) {
+      boundaries.push(Math.min(i, totalPages - 1));
+    }
+    if (boundaries.length === 0 || boundaries[boundaries.length - 1] !== totalPages - 1) {
+      boundaries.push(totalPages - 1);
+    }
+    return Array.from(new Set(boundaries)).sort((a, b) => a - b);
+  }
+
+  /**
+   * 根据边界将图片分成批次
+   */
+  private splitImagesByBoundaries(imageUrls: string[], boundaries: number[]): string[][] {
+    const batches: string[][] = [];
+    let startIdx = 0;
+
+    for (const boundary of boundaries) {
+      const endIdx = Math.min(boundary + 1, imageUrls.length);
+      const batch = imageUrls.slice(startIdx, endIdx);
+      if (batch.length > 0) {
+        batches.push(batch);
+      }
+      startIdx = endIdx;
+    }
+
+    // 处理剩余的图片
+    if (startIdx < imageUrls.length) {
+      batches.push(imageUrls.slice(startIdx));
+    }
+
+    console.log(`[智能分页] 分为 ${batches.length} 个批次，每批:`, batches.map(b => b.length));
+    return batches;
+  }
+
+  /**
+   * 解析单个批次的图片
+   */
+  private async parseBatch(
+    batchImages: string[],
+    batchIndex: number,
+    totalBatches: number
+  ): Promise<any[]> {
+    console.log(`[批次解析] 开始解析第 ${batchIndex + 1}/${totalBatches} 批，共 ${batchImages.length} 张图片`);
+
+    const systemPrompt = totalBatches > 1
+      ? `你是一个专业的题目解析助手。请将以下图片内容解析为结构化的题目数据。
+
+# 当前上下文
+这是第 ${batchIndex + 1}/${totalBatches} 批图片。
+${batchIndex > 0 ? '注意：第一个题目可能不完整，请忽略不完整的题目。' : ''}
+${batchIndex < totalBatches - 1 ? '注意：最后一个题目可能不完整，请忽略不完整的题目。' : ''}
+
+# 硬性强制输出规则【最高优先级，必须遵守】
+1. 最终输出**只能返回纯净JSON数组**，不要任何前置说明、解释、markdown、注释。
+2. 严格遵守字段结构，不新增字段、不缺失字段、不修改key名称。
+3. 对于不完整的题目（题干或选项缺失），直接忽略，不要返回。
+
+# 题型定义
+可选type枚举：choice / multi / judge / short
+1. choice 单项选择题
+    options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
+    answer：选项label字符串，例"A"/"B"
+2. multi 多项/不定项选择题
+    options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
+    answer：多个选项label用逗号分隔，例"A,B,C"
+3. judge 判断题
+    options固定为：[{"label":"A","content":"正确"},{"label":"B","content":"错误"}]
+    answer："A"代表正确，"B"代表错误
+4. short 简答题
+    options：空数组 []
+    answer：文字形式参考答案
+
+# 单题字段规范
+{
+  "content": "完整题干文本",
+  "type": "choice | multi | judge | short",
+  "options": [],
+  "answer": "答案",
+  "analysis": "专业解析",
+  "difficulty": "easy | medium | hard"
+}`
+      : `你是一个专业的题目解析助手。请将以下图片内容解析为结构化的题目数据。
+
+# 硬性强制输出规则【最高优先级，必须遵守】
+1. 最终输出**只能返回纯净JSON数组**，不要任何前置说明、解释、markdown、注释。
+2. 严格遵守字段结构，不新增字段、不缺失字段、不修改key名称。
+
+# 题型定义
+可选type枚举：choice / multi / judge / short
+1. choice 单项选择题
+    options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
+    answer：选项label字符串，例"A"/"B"
+2. multi 多项/不定项选择题
+    options：数组，{"label":"A","content":"选项文本"}，严格沿用原题选项标识
+    answer：多个选项label用逗号分隔，例"A,B,C"
+3. judge 判断题
+    options固定为：[{"label":"A","content":"正确"},{"label":"B","content":"错误"}]
+    answer："A"代表正确，"B"代表错误
+4. short 简答题
+    options：空数组 []
+    answer：文字形式参考答案
+
+# 单题字段规范
+{
+  "content": "完整题干文本",
+  "type": "choice | multi | judge | short",
+  "options": [],
+  "answer": "答案",
+  "analysis": "专业解析",
+  "difficulty": "easy | medium | hard"
+}`;
+
+    const messages = [
+      {
+        role: 'system' as const,
+        content: systemPrompt,
+      },
+      {
+        role: 'user' as const,
+        content: batchImages.map((url) => ({
+          type: 'image_url' as const,
+          image_url: { url, detail: 'high' as const },
+        })),
+      },
+    ];
+
+    try {
+      const response = await this.llmClient.invoke(messages, {
+        model: 'doubao-seed-2-0-lite-260215',
+      });
+
+      let content = response.content || '';
+      console.log(`[批次解析] 第${batchIndex + 1}批 LLM响应长度: ${content.length}`);
+
+      // 清理并解析JSON
+      content = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      
+      // 移除尾随逗号
+      content = content.replace(/,\s*([}\]])/g, '$1');
+      
+      // 修复字符串内未转义的换行符
+      content = content.replace(/"([^"]*?)":\s*"([^"]*?)(\n)([^"]*?)"/g, (match) => {
+        return match.replace(/\n/g, '\\n');
+      });
+
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      
+      if (!jsonMatch) {
+        console.warn(`[批次解析] 第${batchIndex + 1}批 无法解析JSON`);
+        return [];
+      }
+
+      let parsed = JSON.parse(jsonMatch[0]);
+      
+      // 过滤掉不完整的题目（缺少必要字段）
+      const validQuestions = parsed.filter((q: any) => 
+        q && q.content && q.answer && q.type && q.content.trim().length > 10
+      );
+
+      console.log(`[批次解析] 第${batchIndex + 1}批 解析出 ${validQuestions.length} 道有效题目`);
+      return validQuestions;
+    } catch (error) {
+      console.error(`[批次解析] 第${batchIndex + 1}批 解析失败:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * 分批解析图片
+   */
+  private async parseImagesInBatches(
+    imageUrls: string[],
+    onProgress?: (progress: string) => void
+  ): Promise<any[]> {
+    const totalImages = imageUrls.length;
+
+    // 单批次直接解析
+    if (totalImages <= CustomSubjectService.MAX_IMAGES_PER_BATCH) {
+      onProgress?.('解析中...');
+      return this.parseBatch(imageUrls, 0, 1);
+    }
+
+    // 多批次：先分析边界
+    onProgress?.('分析文档结构...');
+    const boundaries = await this.analyzeImageBoundaries(imageUrls);
+    
+    // 根据边界分批
+    const batches = this.splitImagesByBoundaries(imageUrls, boundaries);
+    const allQuestions: any[] = [];
+
+    for (let i = 0; i < batches.length; i++) {
+      onProgress?.(`解析中 (${i + 1}/${batches.length})...`);
+      
+      // 批次间稍作间隔，避免LLM限流
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const batchQuestions = await this.parseBatch(batches[i], i, batches.length);
+      allQuestions.push(...batchQuestions);
+      
+      console.log(`[分批解析] 累计解析 ${allQuestions.length} 题`);
+    }
+
+    console.log(`[分批解析] 全部完成，共 ${allQuestions.length} 题`);
+    return allQuestions;
   }
 
   async cleanUpTempFiles(keys?: string[]): Promise<void> {
