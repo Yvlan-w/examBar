@@ -23,7 +23,7 @@ function parseMarkdown(md: string): string {
   let html = md
   
   // 处理图片 ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
     return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
   })
   
@@ -405,10 +405,10 @@ const PracticePage = () => {
     setSelectedAnswer(label)
   }
 
-  const handleMultiSelect = (questionId: string, label: string) => {
+  const handleMultiSelect = (qId: string, label: string) => {
     if (showResult || submittedRef.current) return
     setSelectedMultiAnswers((prev) => {
-      const current = prev[questionId] || []
+      const current = prev[qId] || []
       const index = current.indexOf(label)
       let newAnswers: string[]
       if (index > -1) {
@@ -416,7 +416,7 @@ const PracticePage = () => {
       } else {
         newAnswers = [...current, label]
       }
-      return { ...prev, [questionId]: newAnswers }
+      return { ...prev, [qId]: newAnswers }
     })
   }
 

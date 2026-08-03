@@ -20,7 +20,7 @@ function parseMarkdown(md: string): string {
   if (!md) return ''
   let html = md
   // 处理图片 ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
     return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
   })
   // 处理换行

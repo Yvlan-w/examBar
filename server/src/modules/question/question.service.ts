@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { questions, subjects, answerRecords, favoriteRecords, customSubjects } from '@/db/schema';
+import { questions, subjects, answerRecords, favoriteRecords, customSubjects, sessionQuestions, subjectStats } from '@/db/schema';
 import { eq, and, count, desc, or, isNotNull, isNull, sql, inArray } from 'drizzle-orm';
 import {
   subjects as seedSubjects,
@@ -63,8 +63,10 @@ export class QuestionService implements OnModuleInit {
       if (qIds.length > 0) {
         await db.delete(answerRecords).where(inArray(answerRecords.questionId, qIds));
         await db.delete(favoriteRecords).where(inArray(favoriteRecords.questionId, qIds));
+        await db.delete(sessionQuestions).where(inArray(sessionQuestions.questionId, qIds));
       }
       await db.delete(questions).where(inArray(questions.subjectId, staleSubjectIds));
+      await db.delete(subjectStats).where(inArray(subjectStats.subjectId, staleSubjectIds));
       await db.delete(subjects).where(inArray(subjects.id, staleSubjectIds));
       console.log(`[Seed] 旧预设题库已清除`);
     }
@@ -386,9 +388,9 @@ export class QuestionService implements OnModuleInit {
     return result;
   }
 
-  async getQuestions(subjectId?: string, type?: string, difficulty?: string) {
+  async getQuestions(filterSubjectId?: string, type?: string, difficulty?: string) {
     const conditions: any[] = [];
-    if (subjectId) conditions.push(eq(questions.subjectId, subjectId));
+    if (filterSubjectId) conditions.push(eq(questions.subjectId, filterSubjectId));
     if (type && type !== 'all') conditions.push(eq(questions.type, type));
     if (difficulty && difficulty !== 'all') conditions.push(eq(questions.difficulty, difficulty));
 
