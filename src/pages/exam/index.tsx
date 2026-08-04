@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text, RichText } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,28 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
 import { loginWithProfile } from '@/utils/auth'
 import { Clock, CircleAlert, User, CircleCheck } from 'lucide-react-taro'
-
-/**
- * 简单的 Markdown 转 HTML 函数（支持图片）
- */
-function parseMarkdown(md: string): string {
-  if (!md) return ''
-  let html = md
-  // 处理图片 ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
-    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
-  })
-  // 处理换行
-  html = html.replace(/\n/g, '<br/>')
-  return html
-}
-
-/**
- * 检查是否包含 Markdown 图片
- */
-function hasMarkdownImage(content: string): boolean {
-  return /!\[[^\]]*\]\([^)]+\)/.test(content)
-}
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 interface Question {
   id: string
@@ -415,15 +394,10 @@ const ExamPage = () => {
             </View>
             <Card className="border-0 shadow-sm mb-4">
               <CardContent className="p-4">
-                {hasMarkdownImage(currentQuestion.content) ? (
-                  <View className="text-base text-slate-800 leading-relaxed overflow-hidden">
-                    <RichText nodes={parseMarkdown(currentQuestion.content)} />
-                  </View>
-                ) : (
-                  <Text className="block text-base text-slate-800 leading-relaxed">
-                    {currentQuestion.content}
-                  </Text>
-                )}
+                <MarkdownRenderer
+                  content={currentQuestion.content}
+                  className='text-base text-slate-800 leading-relaxed'
+                />
               </CardContent>
             </Card>
 
@@ -463,13 +437,9 @@ const ExamPage = () => {
                       >
                         {isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
                       </View>
-                      {hasMarkdownImage(option.content) ? (
-                        <View className="flex-1 text-sm text-slate-700 overflow-hidden">
-                          <RichText nodes={parseMarkdown(option.content)} />
-                        </View>
-                      ) : (
-                        <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
-                      )}
+                      <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                        <MarkdownRenderer content={option.content} />
+                      </View>
                     </View>
                   )
                 })}
@@ -492,13 +462,9 @@ const ExamPage = () => {
                       >
                         {option.label}
                       </View>
-                      {hasMarkdownImage(option.content) ? (
-                        <View className="flex-1 text-sm text-slate-700 overflow-hidden">
-                          <RichText nodes={parseMarkdown(option.content)} />
-                        </View>
-                      ) : (
-                        <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
-                      )}
+                      <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                        <MarkdownRenderer content={option.content} />
+                      </View>
                     </View>
                   )
                 })}

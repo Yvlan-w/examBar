@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { View, Text, RichText } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,60 +12,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
 import { CircleCheck, CircleX, Star, Clock, Sparkles } from 'lucide-react-taro'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 /**
- * 简单的 Markdown 转 HTML 函数
- * 支持常见的 Markdown 语法：标题、加粗、斜体、列表、换行、图片等
+ * 简化的 Markdown 转 HTML 函数（仅用于 AI 解析等场景）
  */
 function parseMarkdown(md: string): string {
   if (!md) return ''
-  
   let html = md
-  
-  // 处理图片 ![alt](url)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
     return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
   })
-  
-  // 处理代码块 ```code```
-  html = html.replace(/```[\s\S]*?```/g, (match) => {
-    const code = match.replace(/```\w*\n?/g, '').replace(/\n?```$/, '')
-    return `<pre style="background:#f5f5f5;padding:8px;border-radius:4px;overflow-x:auto;"><code>${code}</code></pre>`
-  })
-  
-  // 处理标题 (h1-h3)
-  html = html.replace(/^### (.*$)/gm, '<h3 style="font-size:14px;font-weight:600;margin:8px 0 4px;">$1</h3>')
-  html = html.replace(/^## (.*$)/gm, '<h2 style="font-size:15px;font-weight:600;margin:10px 0 5px;">$1</h2>')
-  html = html.replace(/^# (.*$)/gm, '<h1 style="font-size:16px;font-weight:700;margin:12px 0 6px;">$1</h1>')
-  
-  // 处理无序列表
-  html = html.replace(/^- (.*$)/gm, '<li style="margin:2px 0;padding-left:4px;">$1</li>')
-  html = html.replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:4px 0;padding-left:16px;">$&</ul>')
-  
-  // 处理有序列表
-  html = html.replace(/^\d+\. (.*$)/gm, '<li style="margin:2px 0;padding-left:4px;">$1</li>')
-  html = html.replace(/(<li.*<\/li>\n?)+/g, '<ol style="margin:4px 0;padding-left:20px;">$&</ol>')
-  
-  // 处理加粗 **text**
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:600;">$1</strong>')
-  
-  // 处理斜体 *text*
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
-  
-  // 处理行内代码 `code`
-  html = html.replace(/`(.*?)`/g, '<code style="background:#f0f0f0;padding:2px 4px;border-radius:3px;font-size:0.9em;">$1</code>')
-  
-  // 处理换行
   html = html.replace(/\n/g, '<br/>')
-  
   return html
-}
-
-/**
- * 检查选项内容是否包含 Markdown 图片语法
- */
-function hasMarkdownImage(content: string): boolean {
-  return /!\[[^\]]*\]\([^)]+\)/.test(content)
 }
 
 interface Question {
@@ -497,15 +456,9 @@ const PracticePage = () => {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <View className="flex items-start justify-between gap-3">
-              {hasMarkdownImage(currentQuestion.content) ? (
-                <View className="flex-1 text-base text-slate-800 leading-relaxed font-medium overflow-hidden">
-                  <RichText nodes={parseMarkdown(currentQuestion.content)} />
-                </View>
-              ) : (
-                <Text className="flex-1 text-base text-slate-800 leading-relaxed font-medium">
-                  {currentQuestion.content}
-                </Text>
-              )}
+              <View className="flex-1 text-base text-slate-800 leading-relaxed font-medium overflow-hidden">
+                <MarkdownRenderer content={currentQuestion.content} />
+              </View>
               <View
                 className="flex-shrink-0 mt-1 active:opacity-70"
                 onClick={toggleFavorite}
@@ -569,13 +522,9 @@ const PracticePage = () => {
                   >
                     {!showResult && isSelected ? <CircleCheck size={16} color="#2563EB" /> : option.label}
                   </View>
-                  {hasMarkdownImage(option.content) ? (
-                    <View className="flex-1 text-sm text-slate-700 overflow-hidden">
-                      <RichText nodes={parseMarkdown(option.content)} />
-                    </View>
-                  ) : (
-                    <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
-                  )}
+                  <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                    <MarkdownRenderer content={option.content} />
+                  </View>
                   {isAnswer && <CircleCheck size={18} color="#059669" />}
                   {isWrong && <CircleX size={18} color="#DC2626" />}
                 </View>
@@ -613,13 +562,9 @@ const PracticePage = () => {
                   >
                     {option.label}
                   </View>
-                  {hasMarkdownImage(option.content) ? (
-                    <View className="flex-1 text-sm text-slate-700 overflow-hidden">
-                      <RichText nodes={parseMarkdown(option.content)} />
-                    </View>
-                  ) : (
-                    <Text className="flex-1 text-sm text-slate-700">{option.content}</Text>
-                  )}
+                  <View className="flex-1 text-sm text-slate-700 overflow-hidden">
+                    <MarkdownRenderer content={option.content} />
+                  </View>
                   {isAnswer && <CircleCheck size={18} color="#059669" />}
                   {isWrong && <CircleX size={18} color="#DC2626" />}
                 </View>
@@ -652,15 +597,9 @@ const PracticePage = () => {
                   正确答案：{currentQuestion.type === 'multi' ? currentQuestion.answer.split(',').join('、') : currentQuestion.answer}
                 </Text>
                 {currentQuestion.analysis && (
-                  hasMarkdownImage(currentQuestion.analysis) ? (
-                    <View className="text-sm text-slate-600 leading-relaxed mt-2 overflow-hidden">
-                      <RichText nodes={parseMarkdown(currentQuestion.analysis)} />
-                    </View>
-                  ) : (
-                    <Text className="block text-sm text-slate-600 leading-relaxed mt-2">
-                      {currentQuestion.analysis}
-                    </Text>
-                  )
+                  <View className="text-sm text-slate-600 leading-relaxed mt-2 overflow-hidden">
+                    <MarkdownRenderer content={currentQuestion.analysis} />
+                  </View>
                 )}
               </CardContent>
             </Card>
@@ -673,10 +612,7 @@ const PracticePage = () => {
                     <Text className="text-sm font-semibold text-blue-700">AI 智能解析</Text>
                   </View>
                   <View className="bg-white rounded-lg p-3">
-                    <RichText 
-                      nodes={aiAnalysisHtml}
-                      className="text-sm text-slate-700 leading-relaxed"
-                    />
+                    <MarkdownRenderer content={aiAnalysis} className='text-sm text-slate-700 leading-relaxed' />
                   </View>
                 </CardContent>
               </Card>

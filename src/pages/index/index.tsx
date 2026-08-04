@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, RichText } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 import {
   BookOpen,
   PenTool,
@@ -20,23 +21,6 @@ import {
   Star,
   Plus,
 } from 'lucide-react-taro'
-
-/**
- * 简单的 Markdown 转 HTML 函数
- */
-function parseMarkdown(md: string): string {
-  if (!md) return ''
-  let html = md
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
-    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
-  })
-  html = html.replace(/\n/g, '<br/>')
-  return html
-}
-
-function hasMarkdownImage(content: string): boolean {
-  return /!\[[^\]]*\]\([^)]+\)/.test(content)
-}
 
 interface Subject {
   id: string
@@ -270,13 +254,7 @@ const IndexPage = () => {
                 </Badge>
                 <Text className="text-xs text-slate-400">{dailyQuestion.subjectName}</Text>
               </View>
-              {hasMarkdownImage(dailyQuestion.content) ? (
-                <View className="text-sm text-slate-700 leading-relaxed overflow-hidden">
-                  <RichText nodes={parseMarkdown(dailyQuestion.content)} />
-                </View>
-              ) : (
-                <Text className="block text-sm text-slate-700 leading-relaxed">{dailyQuestion.content}</Text>
-              )}
+              <MarkdownRenderer content={dailyQuestion.content} className='text-sm text-slate-700 leading-relaxed overflow-hidden' />
             </CardContent>
           </Card>
         ) : (
