@@ -415,9 +415,15 @@ const ExamPage = () => {
             </View>
             <Card className="border-0 shadow-sm mb-4">
               <CardContent className="p-4">
-                <Text className="block text-base text-slate-800 leading-relaxed">
-                  {currentQuestion.content}
-                </Text>
+                {hasMarkdownImage(currentQuestion.content) ? (
+                  <View className="text-base text-slate-800 leading-relaxed overflow-hidden">
+                    <RichText nodes={parseMarkdown(currentQuestion.content)} />
+                  </View>
+                ) : (
+                  <Text className="block text-base text-slate-800 leading-relaxed">
+                    {currentQuestion.content}
+                  </Text>
+                )}
               </CardContent>
             </Card>
 

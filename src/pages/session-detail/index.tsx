@@ -286,9 +286,15 @@ const SessionDetailPage = () => {
                   
                   {/* 题目内容 */}
                   {review.question && (
-                    <Text className="block text-sm text-slate-800 leading-relaxed line-clamp-2">
-                      {review.question.content}
-                    </Text>
+                    hasMarkdownImage(review.question.content) ? (
+                      <View className="flex-1 text-sm text-slate-800 leading-relaxed overflow-hidden">
+                        <RichText nodes={parseMarkdown(review.question.content)} />
+                      </View>
+                    ) : (
+                      <Text className="block text-sm text-slate-800 leading-relaxed line-clamp-2">
+                        {review.question.content}
+                      </Text>
+                    )
                   )}
                   
                   {/* 展开详情 */}

@@ -149,7 +149,7 @@ export class QuestionService implements OnModuleInit {
         const questionImageUrls: string[] = [];  // 题干图片 URL 列表
         const analysisImageUrls: string[] = [];  // 解析图片 URL 列表
         
-        // 题目 ID 格式: s3_q163, 需要转换为数据库 ID 格式: question_s3_163
+        // 题目 ID 格式: s3_q163，数据库中也是原始ID格式
         const dbQuestionId = this.convertToDbQuestionId(questionId);
         if (!dbQuestionId) continue;
 
@@ -169,7 +169,9 @@ export class QuestionService implements OnModuleInit {
             );
             
             // 根据类型分类存储 URL
-            if (image.type === 'option') {
+            if (image.type === 'stem') {
+              questionImageUrls.push(url);
+            } else if (image.type === 'option') {
               if (image.optionLabel) {
                 optionImageUrls[image.optionLabel] = url;
               } else {
@@ -205,17 +207,15 @@ export class QuestionService implements OnModuleInit {
 
   /**
    * 将映射文件中的题目 ID 转换为数据库中的题目 ID
-   * 映射文件格式: s3_q163 -> 数据库格式: question_s3_163
+   * 映射文件格式: s3_q163 -> 数据库格式也是 s3_q163（直接使用原始ID）
    */
   private convertToDbQuestionId(mappingId: string): string | null {
-    // 匹配 s1_q123, s2_q456, s3_q789, s4_q012
+    // 验证格式: s1_q123, s2_q456, s3_q789, s4_q012
     const match = mappingId.match(/^(s[1-4])_q(\d+)$/);
     if (!match) return null;
     
-    const subjectCode = match[1];
-    const num = match[2];
-    
-    return `question_${subjectCode}_${num}`;
+    // 数据库中使用的就是原始ID格式，不需要转换
+    return mappingId;
   }
 
   /**
@@ -326,9 +326,18 @@ export class QuestionService implements OnModuleInit {
 
         if (question.length > 0) {
           const q = question[0];
-          const hasImages = mapping.hasOptionImages || mapping.hasAnalysisImages;
+          const hasImages = mapping.hasStemImages || mapping.hasOptionImages || mapping.hasAnalysisImages;
           
           if (!hasImages) continue;
+          
+          // 检查是否有题干图片但未更新
+          if (mapping.hasStemImages) {
+            const hasStemImages = q.content && q.content.includes('![');
+            if (!hasStemImages) {
+              needsUpload = true;
+              break;
+            }
+          }
           
           // 检查是否有选项图片但未更新
           if (mapping.hasOptionImages) {

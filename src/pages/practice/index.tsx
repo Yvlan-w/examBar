@@ -497,9 +497,15 @@ const PracticePage = () => {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
             <View className="flex items-start justify-between gap-3">
-              <Text className="flex-1 text-base text-slate-800 leading-relaxed font-medium">
-                {currentQuestion.content}
-              </Text>
+              {hasMarkdownImage(currentQuestion.content) ? (
+                <View className="flex-1 text-base text-slate-800 leading-relaxed font-medium overflow-hidden">
+                  <RichText nodes={parseMarkdown(currentQuestion.content)} />
+                </View>
+              ) : (
+                <Text className="flex-1 text-base text-slate-800 leading-relaxed font-medium">
+                  {currentQuestion.content}
+                </Text>
+              )}
               <View
                 className="flex-shrink-0 mt-1 active:opacity-70"
                 onClick={toggleFavorite}

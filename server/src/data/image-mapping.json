@@ -6,12 +6,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_0.png",
-        "relativePath": "images/s1_analysis_0.png",
+        "fileName": "s1_analysis_1.png",
+        "relativePath": "images/s1_analysis_1.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q72/s1_analysis_0.png"
+        "uploadKey": "questions/s1/s1_q72/s1_analysis_1.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -22,12 +23,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_1.png",
-        "relativePath": "images/s1_analysis_1.png",
+        "fileName": "s1_analysis_2.png",
+        "relativePath": "images/s1_analysis_2.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q101/s1_analysis_1.png"
+        "uploadKey": "questions/s1/s1_q101/s1_analysis_2.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -38,12 +40,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_2.png",
-        "relativePath": "images/s1_analysis_2.png",
+        "fileName": "s1_analysis_3.png",
+        "relativePath": "images/s1_analysis_3.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q104/s1_analysis_2.png"
+        "uploadKey": "questions/s1/s1_q104/s1_analysis_3.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -54,12 +57,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_3.png",
-        "relativePath": "images/s1_analysis_3.png",
+        "fileName": "s1_analysis_4.png",
+        "relativePath": "images/s1_analysis_4.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q126/s1_analysis_3.png"
+        "uploadKey": "questions/s1/s1_q126/s1_analysis_4.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -70,12 +74,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_4.png",
-        "relativePath": "images/s1_analysis_4.png",
+        "fileName": "s1_analysis_5.png",
+        "relativePath": "images/s1_analysis_5.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q146/s1_analysis_4.png"
+        "uploadKey": "questions/s1/s1_q146/s1_analysis_5.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -86,12 +91,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_5.png",
-        "relativePath": "images/s1_analysis_5.png",
+        "fileName": "s1_analysis_6.png",
+        "relativePath": "images/s1_analysis_6.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q162/s1_analysis_5.png"
+        "uploadKey": "questions/s1/s1_q162/s1_analysis_6.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -102,12 +108,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_6.png",
-        "relativePath": "images/s1_analysis_6.png",
+        "fileName": "s1_analysis_7.png",
+        "relativePath": "images/s1_analysis_7.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q167/s1_analysis_6.png"
+        "uploadKey": "questions/s1/s1_q167/s1_analysis_7.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -118,12 +125,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_7.png",
-        "relativePath": "images/s1_analysis_7.png",
+        "fileName": "s1_analysis_8.png",
+        "relativePath": "images/s1_analysis_8.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q178/s1_analysis_7.png"
+        "uploadKey": "questions/s1/s1_q178/s1_analysis_8.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -134,12 +142,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_8.png",
-        "relativePath": "images/s1_analysis_8.png",
+        "fileName": "s1_analysis_9.png",
+        "relativePath": "images/s1_analysis_9.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q215/s1_analysis_8.png"
+        "uploadKey": "questions/s1/s1_q215/s1_analysis_9.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -150,12 +159,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_9.png",
-        "relativePath": "images/s1_analysis_9.png",
+        "fileName": "s1_analysis_10.png",
+        "relativePath": "images/s1_analysis_10.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q216/s1_analysis_9.png"
+        "uploadKey": "questions/s1/s1_q216/s1_analysis_10.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -166,12 +176,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_10.png",
-        "relativePath": "images/s1_analysis_10.png",
+        "fileName": "s1_analysis_11.png",
+        "relativePath": "images/s1_analysis_11.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q248/s1_analysis_10.png"
+        "uploadKey": "questions/s1/s1_q248/s1_analysis_11.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -182,12 +193,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_11.png",
-        "relativePath": "images/s1_analysis_11.png",
+        "fileName": "s1_analysis_12.png",
+        "relativePath": "images/s1_analysis_12.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q265/s1_analysis_11.png"
+        "uploadKey": "questions/s1/s1_q265/s1_analysis_12.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -198,12 +210,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_12.png",
-        "relativePath": "images/s1_analysis_12.png",
+        "fileName": "s1_analysis_13.png",
+        "relativePath": "images/s1_analysis_13.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q266/s1_analysis_12.png"
+        "uploadKey": "questions/s1/s1_q266/s1_analysis_13.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -214,12 +227,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_13.png",
-        "relativePath": "images/s1_analysis_13.png",
+        "fileName": "s1_analysis_14.png",
+        "relativePath": "images/s1_analysis_14.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q503/s1_analysis_13.png"
+        "uploadKey": "questions/s1/s1_q503/s1_analysis_14.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -230,12 +244,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_14.png",
-        "relativePath": "images/s1_analysis_14.png",
+        "fileName": "s1_analysis_15.png",
+        "relativePath": "images/s1_analysis_15.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q519/s1_analysis_14.png"
+        "uploadKey": "questions/s1/s1_q519/s1_analysis_15.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -246,12 +261,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_15.png",
-        "relativePath": "images/s1_analysis_15.png",
+        "fileName": "s1_analysis_16.png",
+        "relativePath": "images/s1_analysis_16.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q579/s1_analysis_15.png"
+        "uploadKey": "questions/s1/s1_q579/s1_analysis_16.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -262,12 +278,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_16.png",
-        "relativePath": "images/s1_analysis_16.png",
+        "fileName": "s1_analysis_17.png",
+        "relativePath": "images/s1_analysis_17.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q769/s1_analysis_16.png"
+        "uploadKey": "questions/s1/s1_q769/s1_analysis_17.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -278,12 +295,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_17.png",
-        "relativePath": "images/s1_analysis_17.png",
+        "fileName": "s1_analysis_18.png",
+        "relativePath": "images/s1_analysis_18.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q837/s1_analysis_17.png"
+        "uploadKey": "questions/s1/s1_q837/s1_analysis_18.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -294,12 +312,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_18.png",
-        "relativePath": "images/s1_analysis_18.png",
+        "fileName": "s1_analysis_19.png",
+        "relativePath": "images/s1_analysis_19.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q933/s1_analysis_18.png"
+        "uploadKey": "questions/s1/s1_q933/s1_analysis_19.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -310,19 +329,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_19.png",
-        "relativePath": "images/s1_analysis_19.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q940/s1_analysis_19.png"
-      },
-      {
-        "type": "analysis",
         "fileName": "s1_analysis_20.png",
         "relativePath": "images/s1_analysis_20.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q940/s1_analysis_20.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_21.png",
+        "relativePath": "images/s1_analysis_21.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q940/s1_analysis_21.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -333,12 +353,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_21.png",
-        "relativePath": "images/s1_analysis_21.png",
+        "fileName": "s1_analysis_22.png",
+        "relativePath": "images/s1_analysis_22.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q950/s1_analysis_21.png"
+        "uploadKey": "questions/s1/s1_q950/s1_analysis_22.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -349,19 +370,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_22.png",
-        "relativePath": "images/s1_analysis_22.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q954/s1_analysis_22.png"
-      },
-      {
-        "type": "analysis",
         "fileName": "s1_analysis_23.png",
         "relativePath": "images/s1_analysis_23.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q954/s1_analysis_23.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_24.png",
+        "relativePath": "images/s1_analysis_24.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q954/s1_analysis_24.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -372,12 +394,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_24.png",
-        "relativePath": "images/s1_analysis_24.png",
+        "fileName": "s1_analysis_25.png",
+        "relativePath": "images/s1_analysis_25.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1063/s1_analysis_24.png"
+        "uploadKey": "questions/s1/s1_q1063/s1_analysis_25.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -388,12 +411,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_25.png",
-        "relativePath": "images/s1_analysis_25.png",
+        "fileName": "s1_analysis_26.png",
+        "relativePath": "images/s1_analysis_26.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1066/s1_analysis_25.png"
+        "uploadKey": "questions/s1/s1_q1066/s1_analysis_26.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -404,12 +428,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_26.png",
-        "relativePath": "images/s1_analysis_26.png",
+        "fileName": "s1_analysis_27.png",
+        "relativePath": "images/s1_analysis_27.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1101/s1_analysis_26.png"
+        "uploadKey": "questions/s1/s1_q1101/s1_analysis_27.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -420,12 +445,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_27.png",
-        "relativePath": "images/s1_analysis_27.png",
+        "fileName": "s1_analysis_28.png",
+        "relativePath": "images/s1_analysis_28.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1198/s1_analysis_27.png"
+        "uploadKey": "questions/s1/s1_q1198/s1_analysis_28.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -436,12 +462,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_28.png",
-        "relativePath": "images/s1_analysis_28.png",
+        "fileName": "s1_analysis_29.png",
+        "relativePath": "images/s1_analysis_29.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1242/s1_analysis_28.png"
+        "uploadKey": "questions/s1/s1_q1242/s1_analysis_29.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -452,12 +479,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_29.png",
-        "relativePath": "images/s1_analysis_29.png",
+        "fileName": "s1_analysis_30.png",
+        "relativePath": "images/s1_analysis_30.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1297/s1_analysis_29.png"
+        "uploadKey": "questions/s1/s1_q1297/s1_analysis_30.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -468,12 +496,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_30.png",
-        "relativePath": "images/s1_analysis_30.png",
+        "fileName": "s1_analysis_31.png",
+        "relativePath": "images/s1_analysis_31.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1298/s1_analysis_30.png"
+        "uploadKey": "questions/s1/s1_q1298/s1_analysis_31.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -484,12 +513,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_31.png",
-        "relativePath": "images/s1_analysis_31.png",
+        "fileName": "s1_analysis_32.png",
+        "relativePath": "images/s1_analysis_32.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1299/s1_analysis_31.png"
+        "uploadKey": "questions/s1/s1_q1299/s1_analysis_32.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -498,13 +528,6 @@
     "num": 1306,
     "subject": "s1",
     "images": [
-      {
-        "type": "analysis",
-        "fileName": "s1_analysis_32.png",
-        "relativePath": "images/s1_analysis_32.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1306/s1_analysis_32.png"
-      },
       {
         "type": "analysis",
         "fileName": "s1_analysis_33.png",
@@ -518,8 +541,16 @@
         "relativePath": "images/s1_analysis_34.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q1306/s1_analysis_34.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_35.png",
+        "relativePath": "images/s1_analysis_35.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q1306/s1_analysis_35.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -530,12 +561,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_35.png",
-        "relativePath": "images/s1_analysis_35.png",
+        "fileName": "s1_analysis_36.png",
+        "relativePath": "images/s1_analysis_36.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1310/s1_analysis_35.png"
+        "uploadKey": "questions/s1/s1_q1310/s1_analysis_36.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -546,12 +578,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_36.png",
-        "relativePath": "images/s1_analysis_36.png",
+        "fileName": "s1_analysis_37.png",
+        "relativePath": "images/s1_analysis_37.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1450/s1_analysis_36.png"
+        "uploadKey": "questions/s1/s1_q1450/s1_analysis_37.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -562,19 +595,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_37.png",
-        "relativePath": "images/s1_analysis_37.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1451/s1_analysis_37.png"
-      },
-      {
-        "type": "analysis",
         "fileName": "s1_analysis_38.png",
         "relativePath": "images/s1_analysis_38.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q1451/s1_analysis_38.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_39.png",
+        "relativePath": "images/s1_analysis_39.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q1451/s1_analysis_39.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -585,19 +619,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_39.png",
-        "relativePath": "images/s1_analysis_39.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1452/s1_analysis_39.png"
-      },
-      {
-        "type": "analysis",
         "fileName": "s1_analysis_40.png",
         "relativePath": "images/s1_analysis_40.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q1452/s1_analysis_40.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_41.png",
+        "relativePath": "images/s1_analysis_41.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q1452/s1_analysis_41.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -608,19 +643,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_41.png",
-        "relativePath": "images/s1_analysis_41.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1576/s1_analysis_41.png"
-      },
-      {
-        "type": "analysis",
         "fileName": "s1_analysis_42.png",
         "relativePath": "images/s1_analysis_42.png",
         "contentType": "image/png",
         "uploadKey": "questions/s1/s1_q1576/s1_analysis_42.png"
+      },
+      {
+        "type": "analysis",
+        "fileName": "s1_analysis_43.png",
+        "relativePath": "images/s1_analysis_43.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s1/s1_q1576/s1_analysis_43.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -631,12 +667,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s1_analysis_43.png",
-        "relativePath": "images/s1_analysis_43.png",
+        "fileName": "s1_analysis_44.png",
+        "relativePath": "images/s1_analysis_44.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s1/s1_q1679/s1_analysis_43.png"
+        "uploadKey": "questions/s1/s1_q1679/s1_analysis_44.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -647,12 +684,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s2_analysis_0.png",
-        "relativePath": "images/s2_analysis_0.png",
+        "fileName": "s2_analysis_45.png",
+        "relativePath": "images/s2_analysis_45.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s2/s2_q1053/s2_analysis_0.png"
+        "uploadKey": "questions/s2/s2_q1053/s2_analysis_45.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -663,19 +701,11 @@
     "images": [
       {
         "type": "option",
-        "fileName": "s3_option_0.jpg",
-        "relativePath": "images/s3_option_0.jpg",
-        "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q163/s3_option_0.jpg",
-        "optionLabel": "A"
-      },
-      {
-        "type": "option",
         "fileName": "s3_option_1.jpg",
         "relativePath": "images/s3_option_1.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q163/s3_option_1.jpg",
-        "optionLabel": "B"
+        "optionLabel": "A"
       },
       {
         "type": "option",
@@ -683,7 +713,7 @@
         "relativePath": "images/s3_option_2.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q163/s3_option_2.jpg",
-        "optionLabel": "C"
+        "optionLabel": "B"
       },
       {
         "type": "option",
@@ -691,9 +721,18 @@
         "relativePath": "images/s3_option_3.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q163/s3_option_3.jpg",
+        "optionLabel": "C"
+      },
+      {
+        "type": "option",
+        "fileName": "s3_option_4.jpg",
+        "relativePath": "images/s3_option_4.jpg",
+        "contentType": "image/jpeg",
+        "uploadKey": "questions/s3/s3_q163/s3_option_4.jpg",
         "optionLabel": "D"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": false
   },
@@ -704,19 +743,11 @@
     "images": [
       {
         "type": "option",
-        "fileName": "s3_option_4.jpg",
-        "relativePath": "images/s3_option_4.jpg",
-        "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q164/s3_option_4.jpg",
-        "optionLabel": "A"
-      },
-      {
-        "type": "option",
         "fileName": "s3_option_5.jpg",
         "relativePath": "images/s3_option_5.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q164/s3_option_5.jpg",
-        "optionLabel": "B"
+        "optionLabel": "A"
       },
       {
         "type": "option",
@@ -724,7 +755,7 @@
         "relativePath": "images/s3_option_6.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q164/s3_option_6.jpg",
-        "optionLabel": "C"
+        "optionLabel": "B"
       },
       {
         "type": "option",
@@ -732,16 +763,25 @@
         "relativePath": "images/s3_option_7.jpg",
         "contentType": "image/jpeg",
         "uploadKey": "questions/s3/s3_q164/s3_option_7.jpg",
+        "optionLabel": "C"
+      },
+      {
+        "type": "option",
+        "fileName": "s3_option_8.jpg",
+        "relativePath": "images/s3_option_8.jpg",
+        "contentType": "image/jpeg",
+        "uploadKey": "questions/s3/s3_q164/s3_option_8.jpg",
         "optionLabel": "D"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_2.png",
-        "relativePath": "images/s3_analysis_2.png",
+        "fileName": "s3_analysis_48.png",
+        "relativePath": "images/s3_analysis_48.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q164/s3_analysis_2.png"
+        "uploadKey": "questions/s3/s3_q164/s3_analysis_48.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": true
   },
@@ -751,15 +791,15 @@
     "subject": "s3",
     "images": [
       {
-        "type": "option",
-        "fileName": "s3_option_8.png",
-        "relativePath": "images/s3_option_8.png",
+        "type": "stem",
+        "fileName": "s3_stem_1.png",
+        "relativePath": "images/s3_stem_1.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q249/s3_option_8.png",
-        "optionLabel": null
+        "uploadKey": "questions/s3/s3_q249/s3_stem_1.png"
       }
     ],
-    "hasOptionImages": true,
+    "hasStemImages": true,
+    "hasOptionImages": false,
     "hasAnalysisImages": false
   },
   "s3_q284": {
@@ -777,12 +817,13 @@
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_13.png",
-        "relativePath": "images/s3_analysis_13.png",
+        "fileName": "s3_analysis_59.png",
+        "relativePath": "images/s3_analysis_59.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q284/s3_analysis_13.png"
+        "uploadKey": "questions/s3/s3_q284/s3_analysis_59.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": true
   },
@@ -825,26 +866,27 @@
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_14.jpg",
-        "relativePath": "images/s3_analysis_14.jpg",
+        "fileName": "s3_analysis_60.jpg",
+        "relativePath": "images/s3_analysis_60.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q297/s3_analysis_14.jpg"
+        "uploadKey": "questions/s3/s3_q297/s3_analysis_60.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_15.jpg",
-        "relativePath": "images/s3_analysis_15.jpg",
+        "fileName": "s3_analysis_61.jpg",
+        "relativePath": "images/s3_analysis_61.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q297/s3_analysis_15.jpg"
+        "uploadKey": "questions/s3/s3_q297/s3_analysis_61.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_16.jpg",
-        "relativePath": "images/s3_analysis_16.jpg",
+        "fileName": "s3_analysis_62.jpg",
+        "relativePath": "images/s3_analysis_62.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q297/s3_analysis_16.jpg"
+        "uploadKey": "questions/s3/s3_q297/s3_analysis_62.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": true
   },
@@ -863,12 +905,13 @@
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_30.jpg",
-        "relativePath": "images/s3_analysis_30.jpg",
+        "fileName": "s3_analysis_76.jpg",
+        "relativePath": "images/s3_analysis_76.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q534/s3_analysis_30.jpg"
+        "uploadKey": "questions/s3/s3_q534/s3_analysis_76.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": true
   },
@@ -910,6 +953,7 @@
         "optionLabel": "D"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": true,
     "hasAnalysisImages": false
   },
@@ -920,12 +964,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_0.png",
-        "relativePath": "images/s3_analysis_0.png",
+        "fileName": "s3_analysis_46.png",
+        "relativePath": "images/s3_analysis_46.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q148/s3_analysis_0.png"
+        "uploadKey": "questions/s3/s3_q148/s3_analysis_46.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -936,12 +981,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_1.png",
-        "relativePath": "images/s3_analysis_1.png",
+        "fileName": "s3_analysis_47.png",
+        "relativePath": "images/s3_analysis_47.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q162/s3_analysis_1.png"
+        "uploadKey": "questions/s3/s3_q162/s3_analysis_47.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -952,19 +998,30 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_3.png",
-        "relativePath": "images/s3_analysis_3.png",
+        "fileName": "s3_analysis_49.png",
+        "relativePath": "images/s3_analysis_49.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q167/s3_analysis_3.png"
-      },
-      {
-        "type": "analysis",
-        "fileName": "s3_analysis_4.png",
-        "relativePath": "images/s3_analysis_4.png",
-        "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q167/s3_analysis_4.png"
+        "uploadKey": "questions/s3/s3_q167/s3_analysis_49.png"
       }
     ],
+    "hasStemImages": false,
+    "hasOptionImages": false,
+    "hasAnalysisImages": true
+  },
+  "s3_q1820": {
+    "id": "s3_q1820",
+    "num": 1820,
+    "subject": "s3",
+    "images": [
+      {
+        "type": "analysis",
+        "fileName": "s3_analysis_50.png",
+        "relativePath": "images/s3_analysis_50.png",
+        "contentType": "image/png",
+        "uploadKey": "questions/s3/s3_q1820/s3_analysis_50.png"
+      }
+    ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -975,19 +1032,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_5.jpg",
-        "relativePath": "images/s3_analysis_5.jpg",
+        "fileName": "s3_analysis_51.jpg",
+        "relativePath": "images/s3_analysis_51.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q170/s3_analysis_5.jpg"
+        "uploadKey": "questions/s3/s3_q170/s3_analysis_51.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_6.jpg",
-        "relativePath": "images/s3_analysis_6.jpg",
+        "fileName": "s3_analysis_52.jpg",
+        "relativePath": "images/s3_analysis_52.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q170/s3_analysis_6.jpg"
+        "uploadKey": "questions/s3/s3_q170/s3_analysis_52.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -998,12 +1056,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_7.png",
-        "relativePath": "images/s3_analysis_7.png",
+        "fileName": "s3_analysis_53.png",
+        "relativePath": "images/s3_analysis_53.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q171/s3_analysis_7.png"
+        "uploadKey": "questions/s3/s3_q171/s3_analysis_53.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1014,12 +1073,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_8.jpg",
-        "relativePath": "images/s3_analysis_8.jpg",
+        "fileName": "s3_analysis_54.jpg",
+        "relativePath": "images/s3_analysis_54.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q178/s3_analysis_8.jpg"
+        "uploadKey": "questions/s3/s3_q178/s3_analysis_54.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1030,33 +1090,34 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_9.jpg",
-        "relativePath": "images/s3_analysis_9.jpg",
+        "fileName": "s3_analysis_55.jpg",
+        "relativePath": "images/s3_analysis_55.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q262/s3_analysis_9.jpg"
+        "uploadKey": "questions/s3/s3_q262/s3_analysis_55.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_10.jpg",
-        "relativePath": "images/s3_analysis_10.jpg",
+        "fileName": "s3_analysis_56.jpg",
+        "relativePath": "images/s3_analysis_56.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q262/s3_analysis_10.jpg"
+        "uploadKey": "questions/s3/s3_q262/s3_analysis_56.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_11.jpg",
-        "relativePath": "images/s3_analysis_11.jpg",
+        "fileName": "s3_analysis_57.jpg",
+        "relativePath": "images/s3_analysis_57.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q262/s3_analysis_11.jpg"
+        "uploadKey": "questions/s3/s3_q262/s3_analysis_57.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_12.jpg",
-        "relativePath": "images/s3_analysis_12.jpg",
+        "fileName": "s3_analysis_58.jpg",
+        "relativePath": "images/s3_analysis_58.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q262/s3_analysis_12.jpg"
+        "uploadKey": "questions/s3/s3_q262/s3_analysis_58.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1067,19 +1128,20 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_17.jpg",
-        "relativePath": "images/s3_analysis_17.jpg",
+        "fileName": "s3_analysis_63.jpg",
+        "relativePath": "images/s3_analysis_63.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q308/s3_analysis_17.jpg"
+        "uploadKey": "questions/s3/s3_q308/s3_analysis_63.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_18.jpg",
-        "relativePath": "images/s3_analysis_18.jpg",
+        "fileName": "s3_analysis_64.jpg",
+        "relativePath": "images/s3_analysis_64.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q308/s3_analysis_18.jpg"
+        "uploadKey": "questions/s3/s3_q308/s3_analysis_64.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1090,12 +1152,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_19.jpg",
-        "relativePath": "images/s3_analysis_19.jpg",
+        "fileName": "s3_analysis_65.jpg",
+        "relativePath": "images/s3_analysis_65.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q342/s3_analysis_19.jpg"
+        "uploadKey": "questions/s3/s3_q342/s3_analysis_65.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1106,12 +1169,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_20.jpg",
-        "relativePath": "images/s3_analysis_20.jpg",
+        "fileName": "s3_analysis_66.jpg",
+        "relativePath": "images/s3_analysis_66.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q347/s3_analysis_20.jpg"
+        "uploadKey": "questions/s3/s3_q347/s3_analysis_66.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1122,12 +1186,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_21.png",
-        "relativePath": "images/s3_analysis_21.png",
+        "fileName": "s3_analysis_67.png",
+        "relativePath": "images/s3_analysis_67.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q449/s3_analysis_21.png"
+        "uploadKey": "questions/s3/s3_q449/s3_analysis_67.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1138,12 +1203,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_22.png",
-        "relativePath": "images/s3_analysis_22.png",
+        "fileName": "s3_analysis_68.png",
+        "relativePath": "images/s3_analysis_68.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q456/s3_analysis_22.png"
+        "uploadKey": "questions/s3/s3_q456/s3_analysis_68.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1154,12 +1220,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_23.jpg",
-        "relativePath": "images/s3_analysis_23.jpg",
+        "fileName": "s3_analysis_69.jpg",
+        "relativePath": "images/s3_analysis_69.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q464/s3_analysis_23.jpg"
+        "uploadKey": "questions/s3/s3_q464/s3_analysis_69.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1170,12 +1237,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_24.png",
-        "relativePath": "images/s3_analysis_24.png",
+        "fileName": "s3_analysis_70.png",
+        "relativePath": "images/s3_analysis_70.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q469/s3_analysis_24.png"
+        "uploadKey": "questions/s3/s3_q469/s3_analysis_70.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1186,12 +1254,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_25.png",
-        "relativePath": "images/s3_analysis_25.png",
+        "fileName": "s3_analysis_71.png",
+        "relativePath": "images/s3_analysis_71.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q481/s3_analysis_25.png"
+        "uploadKey": "questions/s3/s3_q481/s3_analysis_71.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1202,12 +1271,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_26.jpg",
-        "relativePath": "images/s3_analysis_26.jpg",
+        "fileName": "s3_analysis_72.jpg",
+        "relativePath": "images/s3_analysis_72.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q513/s3_analysis_26.jpg"
+        "uploadKey": "questions/s3/s3_q513/s3_analysis_72.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1218,26 +1288,27 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_27.jpg",
-        "relativePath": "images/s3_analysis_27.jpg",
+        "fileName": "s3_analysis_73.jpg",
+        "relativePath": "images/s3_analysis_73.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q516/s3_analysis_27.jpg"
+        "uploadKey": "questions/s3/s3_q516/s3_analysis_73.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_28.jpg",
-        "relativePath": "images/s3_analysis_28.jpg",
+        "fileName": "s3_analysis_74.jpg",
+        "relativePath": "images/s3_analysis_74.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q516/s3_analysis_28.jpg"
+        "uploadKey": "questions/s3/s3_q516/s3_analysis_74.jpg"
       },
       {
         "type": "analysis",
-        "fileName": "s3_analysis_29.jpg",
-        "relativePath": "images/s3_analysis_29.jpg",
+        "fileName": "s3_analysis_75.jpg",
+        "relativePath": "images/s3_analysis_75.jpg",
         "contentType": "image/jpeg",
-        "uploadKey": "questions/s3/s3_q516/s3_analysis_29.jpg"
+        "uploadKey": "questions/s3/s3_q516/s3_analysis_75.jpg"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1248,12 +1319,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_31.png",
-        "relativePath": "images/s3_analysis_31.png",
+        "fileName": "s3_analysis_77.png",
+        "relativePath": "images/s3_analysis_77.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q630/s3_analysis_31.png"
+        "uploadKey": "questions/s3/s3_q630/s3_analysis_77.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   },
@@ -1264,12 +1336,13 @@
     "images": [
       {
         "type": "analysis",
-        "fileName": "s3_analysis_32.png",
-        "relativePath": "images/s3_analysis_32.png",
+        "fileName": "s3_analysis_78.png",
+        "relativePath": "images/s3_analysis_78.png",
         "contentType": "image/png",
-        "uploadKey": "questions/s3/s3_q851/s3_analysis_32.png"
+        "uploadKey": "questions/s3/s3_q851/s3_analysis_78.png"
       }
     ],
+    "hasStemImages": false,
     "hasOptionImages": false,
     "hasAnalysisImages": true
   }
