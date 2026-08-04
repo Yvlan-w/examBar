@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
 import { Plus, Eye, EyeOff, Trash, Upload, BookOpen, Image as ImageIcon, FileText, FileUp } from 'lucide-react-taro'
+import { getPrivacySetting, openPrivacyContract } from '@/utils/privacy'
 
 interface CustomSubject {
   id: string
@@ -193,7 +194,20 @@ const CreateSubjectPage = () => {
     throw new Error('解析超时，请稍后重试')
   }
 
-  const handleUploadImage = () => {
+  const handleUploadImage = async () => {
+    // 微信小程序隐私检查 - 选择图片需要相册权限
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    if (isWeapp) {
+      const { needAuthorization } = await getPrivacySetting()
+      if (needAuthorization) {
+        const agreed = await openPrivacyContract()
+        if (!agreed) {
+          Taro.showToast({ title: '需要同意隐私协议才能使用此功能', icon: 'none' })
+          return
+        }
+      }
+    }
+
     Taro.chooseImage({
       count: 9,
       sizeType: ['compressed'],
@@ -304,7 +318,20 @@ const CreateSubjectPage = () => {
     })
   }
 
-  const handleUploadFile = () => {
+  const handleUploadFile = async () => {
+    // 微信小程序隐私检查 - 选择文件需要存储权限
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    if (isWeapp) {
+      const { needAuthorization } = await getPrivacySetting()
+      if (needAuthorization) {
+        const agreed = await openPrivacyContract()
+        if (!agreed) {
+          Taro.showToast({ title: '需要同意隐私协议才能使用此功能', icon: 'none' })
+          return
+        }
+      }
+    }
+
     Taro.chooseMessageFile({
       count: 1,
       type: 'file',

@@ -46,4 +46,7 @@ export default defineAppConfig({
       },
     ],
   },
+  // 微信小程序隐私协议配置
+  // https://developers.weixin.qq.com/doc/oplatform/Third-party_Platforms/2.0/product/privacy_setting.html
+  __usePrivacyCheck__: true,
 })

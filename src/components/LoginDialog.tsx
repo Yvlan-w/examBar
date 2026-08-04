@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User } from 'lucide-react-taro'
+import { getPrivacySetting, openPrivacyContract } from '@/utils/privacy'
 
 interface LoginDialogProps {
   open: boolean
@@ -91,6 +92,19 @@ export const LoginDialog = ({
     try {
       const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
       console.log('login env:', isWeapp ? 'weapp' : 'h5')
+      
+      // 微信小程序隐私检查
+      if (isWeapp) {
+        const { needAuthorization } = await getPrivacySetting()
+        if (needAuthorization) {
+          const agreed = await openPrivacyContract()
+          if (!agreed) {
+            Taro.showToast({ title: '需要同意隐私协议才能登录', icon: 'none' })
+            setLoginLoading(false)
+            return
+          }
+        }
+      }
       
       let loginCode = 'h5_login'
       
