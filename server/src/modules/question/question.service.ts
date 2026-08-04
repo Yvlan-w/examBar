@@ -49,7 +49,7 @@ export class QuestionService implements OnModuleInit {
       .where(isNull(customSubjects.id));
 
     const staleSubjectIds = existingSystemSubjects
-      .filter(s => !seedSubjectIds.includes(s.id))
+      .filter(s => seedSubjectIds.includes(s.id))
       .map(s => s.id);
 
     if (staleSubjectIds.length > 0) {
