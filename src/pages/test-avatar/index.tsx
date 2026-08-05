@@ -2,16 +2,10 @@ import { useState, useEffect } from 'react'
 // eslint-disable-next-line no-restricted-syntax
 import { View, Text, Image, Button as TaroButton } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { User } from 'lucide-react-taro'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 
 export default function TestAvatar() {
   const [avatarUrl, setAvatarUrl] = useState('')
   const [logText, setLogText] = useState('')
-  const [privacyAgreed, setPrivacyAgreed] = useState(false)
-  const [showPrivacyDialog, setShowPrivacyDialog] = useState(false)
-  const [sysInfo, setSysInfo] = useState({ platform: '', SDKVersion: '' })
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString()
@@ -22,127 +16,101 @@ export default function TestAvatar() {
   useEffect(() => {
     try {
       const info = Taro.getSystemInfoSync()
-      setSysInfo({ platform: info.platform || '', SDKVersion: info.SDKVersion || '' })
       addLog(`平台: ${info.platform}, SDK: ${info.SDKVersion}`)
-      checkPrivacy()
     } catch (e) {
       addLog(`init error: ${e}`)
     }
   }, [])
 
-  const checkPrivacy = () => {
-    if (Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) return
-    // @ts-ignore
-    if (typeof wx === 'undefined' || !wx.getPrivacySetting) {
-      addLog('wx.getPrivacySetting 不可用，可能基础库版本过低')
-      return
-    }
-    // @ts-ignore
-    wx.getPrivacySetting({
-      success(res: any) {
-        addLog(`隐私协议 needAuthorization: ${res.needAuthorization}`)
-        if (res.needAuthorization) {
-          addLog('⚠️ 需要用户同意隐私协议，chooseAvatar 才能生效')
-          setShowPrivacyDialog(true)
-        } else {
-          addLog('✓ 隐私协议已同意，chooseAvatar 可用')
-          setPrivacyAgreed(true)
-        }
-      },
-      fail(err: any) {
-        addLog(`隐私协议检查失败: ${JSON.stringify(err)}`)
-      },
-    })
+  // 场景A：极简按钮（无任何额外props）
+  const onChooseA = (e: any) => {
+    addLog(`A chooseAvatar: ${JSON.stringify(e?.detail || {})}`)
+    if (e.detail?.avatarUrl) setAvatarUrl(e.detail.avatarUrl)
   }
 
-  const onAgreePrivacy = () => {
-    addLog('用户同意了隐私协议')
-    setPrivacyAgreed(true)
-    setShowPrivacyDialog(false)
+  // 场景B：带 bindtap 验证触摸事件
+  const onTapB = () => {
+    addLog('B tap事件触发 - 按钮收到了触摸')
+  }
+  const onChooseB = (e: any) => {
+    addLog(`B chooseAvatar: ${JSON.stringify(e?.detail || {})}`)
+    if (e.detail?.avatarUrl) setAvatarUrl(e.detail.avatarUrl)
   }
 
-  const onChooseAvatar = (e: any) => {
-    addLog(`chooseAvatar triggered! detail=${JSON.stringify(e?.detail || {})}`)
-    const url = e.detail?.avatarUrl
-    if (url) {
-      setAvatarUrl(url)
-      addLog(`头像URL: ${url}`)
-    } else {
-      addLog('⚠️ avatarUrl 为空')
+  // 场景C：用 onClick 替代，走 chooseMedia 降级方案
+  const onChooseC = async () => {
+    addLog('C chooseMedia 降级方案启动')
+    try {
+      const res = await Taro.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album', 'camera'],
+        sizeType: ['compressed'],
+      })
+      if (res.tempFiles?.[0]?.tempFilePath) {
+        const url = res.tempFiles[0].tempFilePath
+        addLog(`C 选择图片: ${url}`)
+        setAvatarUrl(url)
+      }
+    } catch (err: any) {
+      addLog(`C chooseMedia 失败: ${JSON.stringify(err)}`)
     }
   }
 
   return (
     <View className="min-h-full bg-gray-50 p-4">
-      <Text className="block text-lg font-bold text-gray-800 mb-2">头像选择测试</Text>
+      <Text className="block text-lg font-bold text-gray-800 mb-4">头像选择诊断</Text>
 
-      {/* 诊断信息 */}
-      <View className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
-        <Text className="block text-xs font-semibold text-blue-800 mb-1">环境诊断</Text>
-        <Text className="block text-xs text-blue-700">平台: {sysInfo.platform || '...'}</Text>
-        <Text className="block text-xs text-blue-700">SDK: {sysInfo.SDKVersion || '...'}</Text>
-        <Text className="block text-xs text-blue-700">隐私协议: {privacyAgreed ? '✓ 已同意' : '✗ 未同意'}</Text>
+      {/* 场景A：极简按钮 */}
+      <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">A: 极简 chooseAvatar 按钮</Text>
+        <Text className="block text-xs text-gray-500 mb-3">无任何额外props，点击应弹出微信头像选择</Text>
+        <TaroButton openType="chooseAvatar" onChooseAvatar={onChooseA}>
+          <Text>选择头像A</Text>
+        </TaroButton>
       </View>
 
-      {/* 隐私同意弹窗 */}
-      <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">隐私协议</DialogTitle>
-            <DialogDescription className="text-center">
-              使用头像选择功能需要您同意隐私协议
-            </DialogDescription>
-          </DialogHeader>
-          <View className="flex flex-col gap-3 p-4">
-            <TaroButton
-              openType="agreePrivacyAuthorization"
-              onAgreePrivacyAuthorization={onAgreePrivacy}
-              plain
-              hoverClass="none"
-              className="w-full bg-blue-600 text-white rounded-lg py-3"
-              style={{ padding: 0, margin: 0, lineHeight: 'normal' }}
-            >
-              <Text className="text-white">同意并继续</Text>
-            </TaroButton>
-          </View>
-        </DialogContent>
-      </Dialog>
-
-      {/* 头像选择按钮（隐私同意后才能生效） */}
-      <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Text className="block text-sm font-semibold text-gray-700 mb-2">
-          点击选择头像 {privacyAgreed ? '' : '（需先同意隐私协议）'}
-        </Text>
+      {/* 场景B：验证 tap 事件 */}
+      <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">B: 验证 tap + chooseAvatar</Text>
+        <Text className="block text-xs text-gray-500 mb-3">如果tap触发但chooseAvatar没触发，说明open-type未生效</Text>
         <TaroButton
           openType="chooseAvatar"
-          onChooseAvatar={onChooseAvatar}
-          plain
-          hoverClass="none"
-          className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-          style={{ padding: 0, margin: 0, lineHeight: 'normal', overflow: 'hidden' }}
+          onChooseAvatar={onChooseB}
+          onClick={onTapB}
         >
-          <View style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-            {avatarUrl ? (
-              <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-            ) : (
-              <User size={32} color="#94A3B8" />
-            )}
-          </View>
+          <Text>选择头像B</Text>
         </TaroButton>
-        {avatarUrl && <Text className="block text-xs text-green-600 mt-2">✓ 选择成功</Text>}
       </View>
 
-      {/* 重新检查隐私协议 */}
-      <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Button onClick={checkPrivacy} variant="outline" className="w-full">
-          <Text>重新检查隐私协议状态</Text>
-        </Button>
+      {/* 场景C：chooseMedia 降级 */}
+      <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">C: chooseMedia 降级方案</Text>
+        <Text className="block text-xs text-gray-500 mb-3">用 Taro.chooseMedia 选图（非微信头像弹窗）</Text>
+        <View style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+          <View style={{ flex: 1 }}>
+            <TaroButton onClick={onChooseC}>
+              <Text>从相册选择</Text>
+            </TaroButton>
+          </View>
+        </View>
       </View>
+
+      {/* 结果展示 */}
+      {avatarUrl && (
+        <View className="bg-green-50 rounded-xl p-4 mb-3 flex items-center gap-3">
+          <Image src={avatarUrl} className="w-16 h-16 rounded-full" mode="aspectFill" />
+          <View>
+            <Text className="block text-sm text-green-700 font-semibold">✓ 头像已选择</Text>
+            <Text className="block text-xs text-gray-500 break-all">{avatarUrl}</Text>
+          </View>
+        </View>
+      )}
 
       {/* 日志区 */}
       <View className="bg-gray-900 rounded-xl p-4 mb-8">
-        <Text className="block text-xs text-green-400 font-mono mb-2">--- 日志 ---</Text>
-        <Text className="block text-xs text-gray-300 font-mono whitespace-pre-wrap">{logText || '等待...'}</Text>
+        <Text className="block text-xs text-green-400 font-mono mb-2">--- 诊断日志 ---</Text>
+        <Text className="block text-xs text-gray-300 font-mono whitespace-pre-wrap">{logText || "等待事件..."}</Text>
       </View>
     </View>
   )
