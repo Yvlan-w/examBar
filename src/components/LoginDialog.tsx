@@ -52,8 +52,7 @@ export const LoginDialog = ({
 
   const onChooseAvatar = async (e: any) => {
     console.log('choosing avatar')
-    const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl || (e.detail && e.detail.avatarUrl)
-    
+    const newAvatarUrl = e.detail?.avatarUrl
     if (!newAvatarUrl) {
       console.warn('[Avatar] chooseAvatar 未获取到头像路径, e:', e)
       Taro.showToast({ title: '选择头像失败，请重试', icon: 'none' })
