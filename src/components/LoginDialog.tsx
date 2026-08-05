@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Image, Button as TaroButton } from '@tarojs/components'
+import { View, Text, Image,Button as TaroButton} from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { useUserStore } from '@/store/user'
@@ -18,10 +18,6 @@ interface LoginDialogProps {
   onLoginSuccess?: () => void
 }
 
-const isWeapp = () => Taro.getEnv() === Taro.ENV_TYPE.WEAPP
-
-const AVATAR_SIZE = 80
-
 export const LoginDialog = ({
   open,
   onOpenChange,
@@ -33,7 +29,6 @@ export const LoginDialog = ({
   const [nickName, setNickName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
-  const [avatarPos, setAvatarPos] = useState({ top: 0, left: 0 })
   const { login } = useUserStore()
 
   useEffect(() => {
@@ -51,17 +46,6 @@ export const LoginDialog = ({
         } catch (e) {
           console.error('parse user data error:', e)
         }
-      }
-
-      if (isWeapp()) {
-        setTimeout(() => {
-          const query = Taro.createSelectorQuery()
-          query.select('#login-avatar-anchor').boundingClientRect((rect: any) => {
-            if (rect) {
-              setAvatarPos({ top: rect.top, left: rect.left })
-            }
-          }).exec()
-        }, 350)
       }
     }
   }, [open])
@@ -161,42 +145,36 @@ export const LoginDialog = ({
   }
 
   const handleLogin = async () => {
-    const loginIsWeapp = isWeapp()
-    console.log('login env:', loginIsWeapp ? 'weapp' : 'h5')
-    
-    if (loginIsWeapp) {
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    console.log('login env:', isWeapp ? 'weapp' : 'h5')
+
+    if (isWeapp) {
       try {
-        // @ts-ignore
-        if (typeof wx !== 'undefined' && openPrivacyContract) {
-          // @ts-ignore
-          openPrivacyContract({
-            success: () => {
-              console.log('[Privacy] 用户同意隐私协议')
-              doLogin()
-            },
-            fail: (err: any) => {
-              console.warn('[Privacy] 用户拒绝或取消隐私协议:', err)
-              Taro.showToast({ title: '需要同意隐私协议才能登录', icon: 'none' })
-            }
-          })
-          return
+        const agreed = await openPrivacyContract()
+        if (agreed) {
+          console.log('[Privacy] 用户同意隐私协议')
+          doLogin()
+        } else {
+          console.warn('[Privacy] 用户拒绝或取消隐私协议')
+          Taro.showToast({ title: '需要同意隐私协议才能登录', icon: 'none' })
         }
+        return
       } catch (e) {
         console.warn('[Privacy] openPrivacyContract 调用失败:', e)
       }
     }
-    
+
     doLogin()
   }
 
   const doLogin = async () => {
     setLoginLoading(true)
     try {
-      const doLoginIsWeapp = isWeapp()
+      const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
       
       let loginCode = 'h5_login'
       
-      if (doLoginIsWeapp) {
+      if (isWeapp) {
         const loginRes = await Taro.login()
         console.log('Taro.login result:', loginRes)
         if (loginRes.code) {
@@ -241,84 +219,64 @@ export const LoginDialog = ({
     Taro.setStorageSync('examBar_skip_login', Date.now().toString())
   }
 
-  const isWeappEnv = isWeapp()
-  const hasAvatarPos = avatarPos.top > 0 || avatarPos.left > 0
-
   return (
-    <>
-      {isWeappEnv && open && hasAvatarPos && (
-        <TaroButton
-          openType="chooseAvatar"
-          onChooseAvatar={onChooseAvatar}
-          style={{
-            position: 'fixed',
-            top: avatarPos.top,
-            left: avatarPos.left,
-            width: AVATAR_SIZE,
-            height: AVATAR_SIZE,
-            backgroundColor: 'transparent',
-            border: 'none',
-            zIndex: 10000,
-            padding: 0,
-            margin: 0,
-            lineHeight: 'normal',
-            overflow: 'visible',
-          }}
-        />
-      )}
-
-      <Dialog open={open} onOpenChange={onOpenChange} modal={!allowSkip}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <View className="flex flex-col items-center">
-              <DialogTitle className="text-lg font-bold text-center">{title}</DialogTitle>
-              <DialogDescription className="text-center mt-2">
-                {description}
-              </DialogDescription>
-            </View>
-          </DialogHeader>
-          <View className="p-4">
-            <View className="flex flex-col items-center gap-4">
-              <View
-                id="login-avatar-anchor"
-                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-              >
+    <Dialog open={open} onOpenChange={onOpenChange} modal={!allowSkip}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <View className="flex flex-col items-center">
+            <DialogTitle className="text-lg font-bold text-center">{title}</DialogTitle>
+            <DialogDescription className="text-center mt-2">
+              {description}
+            </DialogDescription>
+          </View>
+        </DialogHeader>
+        <View className="p-4">
+          <View className="flex flex-col items-center gap-4">
+            <TaroButton
+              openType="chooseAvatar"
+              onChooseAvatar={onChooseAvatar}
+              plain
+              hoverClass="none"
+              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              style={{ padding: 0, margin: 0, lineHeight: 'normal', overflow: 'hidden' }}
+            >
+              <View style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                 {avatarUrl ? (
                   <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
                 ) : (
                   <User size={32} color="#94A3B8" />
                 )}
               </View>
-              <Text className="text-sm text-gray-500">点击选择头像</Text>
-              {!isWeappEnv && (
-                <Text
-                  className="text-xs text-blue-500 underline"
-                  onClick={onChooseAvatarFallback}
-                >
-                  从相册选择
-                </Text>
-              )}
-              <Input
-                type="nickname"
-                className="w-full bg-gray-50 rounded-xl px-4 py-3"
-                placeholder="请输入昵称"
-                value={nickName}
-                onInput={onNickNameInput}
-              />
-            </View>
-          </View>
-          <DialogFooter className="flex flex-col gap-3">
-            <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-              <Text>{loginLoading ? '登录中...' : '登录'}</Text>
-            </Button>
-            {allowSkip && (
-              <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
-                <Text>暂不登录</Text>
-              </Button>
+            </TaroButton>
+            <Text className="text-sm text-gray-500">点击选择头像</Text>
+            {Taro.getEnv() !== Taro.ENV_TYPE.WEAPP && (
+              <Text
+                className="text-xs text-blue-500 underline"
+                onClick={onChooseAvatarFallback}
+              >
+                从相册选择
+              </Text>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+            <Input
+              type="nickname"
+              className="w-full bg-gray-50 rounded-xl px-4 py-3"
+              placeholder="请输入昵称"
+              value={nickName}
+              onInput={onNickNameInput}
+            />
+          </View>
+        </View>
+        <DialogFooter className="flex flex-col gap-3">
+          <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+            <Text>{loginLoading ? '登录中...' : '登录'}</Text>
+          </Button>
+          {allowSkip && (
+            <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
+              <Text>暂不登录</Text>
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
