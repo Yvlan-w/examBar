@@ -140,10 +140,6 @@ export const LoginDialog = ({
     }
   }
 
-  const onLongPressAvatar = () => {
-    onChooseAvatarFallback()
-  }
-
   const onNickNameInput = (e: any) => {
     setNickName(e.detail.value)
   }
@@ -248,38 +244,26 @@ export const LoginDialog = ({
         </DialogHeader>
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
-            <View className="relative">
-              {Taro.getEnv() === Taro.ENV_TYPE.WEAPP ? (
-                <View className="relative" onLongPress={onLongPressAvatar}>
-                  <TaroButton
-                    openType="chooseAvatar"
-                    onChooseAvatar={onChooseAvatar}
-                    className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden"
-                  >
-                    {avatarUrl ? (
-                      <Image src={avatarUrl} className="w-full h-full" mode="aspectFill" />
-                    ) : (
-                      <User size={32} color="#94A3B8" />
-                    )}
-                  </TaroButton>
-                </View>
+            <TaroButton
+              openType="chooseAvatar"
+              onChooseAvatar={onChooseAvatar}
+              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+            >
+              {avatarUrl ? (
+                <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
               ) : (
-                <View
-                  className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden active:bg-gray-100"
-                  onClick={onChooseAvatarFallback}
-                >
-                  {avatarUrl ? (
-                    <Image src={avatarUrl} className="w-full h-full" mode="aspectFill" />
-                  ) : (
-                    <User size={32} color="#94A3B8" />
-                  )}
-                </View>
+                <User size={32} color="#94A3B8" />
               )}
-            </View>
+            </TaroButton>
             <Text className="text-sm text-gray-500">点击选择头像</Text>
-            <View className="flex items-center gap-2">
-              <Text className="text-xs text-gray-400">长按头像可从相册选择</Text>
-            </View>
+            {Taro.getEnv() !== Taro.ENV_TYPE.WEAPP && (
+              <Text
+                className="text-xs text-blue-500 underline"
+                onClick={onChooseAvatarFallback}
+              >
+                从相册选择
+              </Text>
+            )}
             <Input
               type="nickname"
               className="w-full bg-gray-50 rounded-xl px-4 py-3"
