@@ -74,6 +74,7 @@ export class ExamSessionService {
     incrementCorrect?: boolean;
     addDuration?: number;
     addElapsedTime?: number;
+    remainingTime?: number;
   }) {
     const updates: any = {};
     
@@ -86,9 +87,13 @@ export class ExamSessionService {
     if (params.addElapsedTime) {
       updates.elapsedTime = sql`${examSessions.elapsedTime} + ${params.addElapsedTime}`;
     }
+    if (params.remainingTime !== undefined) {
+      updates.remainingTime = params.remainingTime;
+    }
     
     if (Object.keys(updates).length > 0) {
       await db.update(examSessions).set(updates).where(eq(examSessions.id, sessionId));
+      console.log(`[Session] 更新场次 ${sessionId}: remainingTime=${params.remainingTime}`);
     }
   }
 

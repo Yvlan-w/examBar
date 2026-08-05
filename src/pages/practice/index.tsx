@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
@@ -13,19 +13,6 @@ import { useUserStore } from '@/store/user'
 import { LoginDialog } from '@/components/LoginDialog'
 import { CircleCheck, CircleX, Star, Clock, Sparkles } from 'lucide-react-taro'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
-
-/**
- * 简化的 Markdown 转 HTML 函数（仅用于 AI 解析等场景）
- */
-function parseMarkdown(md: string): string {
-  if (!md) return ''
-  let html = md
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
-    return `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto;border-radius:4px;margin:8px 0;" />`
-  })
-  html = html.replace(/\n/g, '<br/>')
-  return html
-}
 
 interface Question {
   id: string
@@ -67,20 +54,21 @@ const PracticePage = () => {
   const { isLoggedIn, user } = useUserStore()
   const submittedRef = useRef(false)
 
-  // 将 Markdown 格式的 aiAnalysis 转换为 HTML
-  const aiAnalysisHtml = useMemo(() => {
-    if (!aiAnalysis) return ''
-    try {
-      return parseMarkdown(aiAnalysis)
-    } catch (e) {
-      console.error('Markdown parsing error:', e)
-      return aiAnalysis.replace(/\n/g, '<br/>')
-    }
-  }, [aiAnalysis])
-
   useEffect(() => {
     initPage()
   }, [])
+
+  // 启用退出提醒（仅在专项练习模式）
+  useEffect(() => {
+    if (mode === 'practice' && !loading && questions.length > 0) {
+      Taro.enableAlertBeforeUnload({
+        message: '您可以在"最近场次"中继续做题，确定要退出吗？',
+      })
+    }
+    return () => {
+      Taro.disableAlertBeforeUnload()
+    }
+  }, [mode, loading, questions])
 
   useEffect(() => {
     if (currentQuestion && !isFavorite) {

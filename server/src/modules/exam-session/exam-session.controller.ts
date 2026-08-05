@@ -27,6 +27,7 @@ export class ExamSessionController {
       incrementCorrect?: boolean;
       addDuration?: number;
       addElapsedTime?: number;
+      remainingTime?: number;
     },
   ) {
     await this.sessionService.updateSession(id, body);

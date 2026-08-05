@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro, { useRouter } from '@tarojs/taro'
+import Taro, { useRouter, useUnload } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -42,13 +42,50 @@ const ExamPage = () => {
   const [isContinueMode, setIsContinueMode] = useState(false)
   const { isLoggedIn, user } = useUserStore()
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const saveProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 保存考试进度（剩余时间）
+  const saveExamProgress = useCallback(async () => {
+    if (!currentSessionId || submitting) return
+    try {
+      await Network.request({
+        url: `/api/sessions/${currentSessionId}/update`,
+        method: 'POST',
+        data: { remainingTime: timeLeft },
+      })
+      console.log('[Exam] 保存进度: remainingTime=', timeLeft)
+    } catch (e) {
+      console.warn('[Exam] 保存进度失败:', e)
+    }
+  }, [currentSessionId, timeLeft, submitting])
 
   useEffect(() => {
     initPage()
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
+      if (saveProgressTimerRef.current) clearInterval(saveProgressTimerRef.current)
     }
   }, [])
+
+  // 定时保存进度（每30秒）
+  useEffect(() => {
+    if (!loading && currentSessionId && questions.length > 0) {
+      saveProgressTimerRef.current = setInterval(() => {
+        saveExamProgress()
+      }, 30000)
+    }
+    return () => {
+      if (saveProgressTimerRef.current) clearInterval(saveProgressTimerRef.current)
+    }
+  }, [loading, currentSessionId, questions, saveExamProgress])
+
+  // 页面卸载时保存进度
+  useUnload(() => {
+    if (currentSessionId && !submitting) {
+      // 使用同步请求保存进度
+      saveExamProgress()
+    }
+  })
 
   useEffect(() => {
     if (!loading && questions.length > 0) {
@@ -123,10 +160,13 @@ const ExamPage = () => {
         const nextIdx = data.nextIndex || 0
         setCurrentIndex(nextIdx)
         
-        // 恢复计时器：使用 duration - elapsedTime 作为剩余时间
+        // 恢复计时器：优先使用 remainingTime，否则使用 duration - elapsedTime
+        const sessionRemainingTime = data.session?.remainingTime
         const sessionDuration = data.session?.duration || initialDuration
         const sessionElapsedTime = data.session?.elapsedTime || 0
-        const remaining = Math.max(0, sessionDuration - sessionElapsedTime)
+        const remaining = sessionRemainingTime && sessionRemainingTime > 0 
+          ? sessionRemainingTime 
+          : Math.max(0, sessionDuration - sessionElapsedTime)
         setTimeLeft(remaining)
         
         console.log('[Exam] 恢复进度: 总题数', qList.length, '下一题:', nextIdx, '剩余时间:', remaining, '秒')

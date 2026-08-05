@@ -125,6 +125,36 @@ const runMigration = async () => {
       console.log('Inserted seed questions');
     }
 
+    // 添加 remaining_time 字段到 exam_sessions 表（如果不存在）
+    try {
+      await db.execute(sql`
+        ALTER TABLE exam_sessions 
+        ADD COLUMN IF NOT EXISTS remaining_time INTEGER DEFAULT 0
+      `);
+      console.log('Added remaining_time column to exam_sessions');
+    } catch (alterError) {
+      if (alterError.code === '42701') {
+        console.log('remaining_time column already exists, skipping');
+      } else {
+        console.warn('Failed to add remaining_time column:', alterError.message);
+      }
+    }
+
+    // 添加 session_id 字段到 answer_records 表（如果不存在）
+    try {
+      await db.execute(sql`
+        ALTER TABLE answer_records 
+        ADD COLUMN IF NOT EXISTS session_id VARCHAR(64) REFERENCES exam_sessions(id)
+      `);
+      console.log('Added session_id column to answer_records');
+    } catch (alterError) {
+      if (alterError.code === '42701') {
+        console.log('session_id column already exists, skipping');
+      } else {
+        console.warn('Failed to add session_id column:', alterError.message);
+      }
+    }
+
     console.log('Migration completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

@@ -208,31 +208,44 @@ export class StatsService {
         mode: examSessions.mode,
         totalQuestions: examSessions.totalQuestions,
         correctCount: examSessions.correctCount,
+        duration: examSessions.duration,
+        remainingTime: examSessions.remainingTime,
         completed: examSessions.completed,
         createdAt: examSessions.createdAt,
       }).from(examSessions).where(eq(examSessions.userId, userId)).orderBy(desc(examSessions.createdAt)).limit(10);
       
-      // 获取每个场次的已答题数
+      // 获取每个场次的已答题数（实时统计）
       const sessionIds = sessionRecords.map(r => r.id);
       let answeredCountMap = new Map<string, number>();
+      let correctCountMap = new Map<string, number>();
+      
       if (sessionIds.length > 0) {
-        const sqCounts = await db.select({
-          sessionId: sessionQuestions.sessionId,
-          count: sql`count(*)`,
-        }).from(sessionQuestions)
-          .where(and(inArray(sessionQuestions.sessionId, sessionIds), eq(sessionQuestions.answered, true)))
-          .groupBy(sessionQuestions.sessionId);
-        for (const sq of sqCounts) {
-          answeredCountMap.set(sq.sessionId, Number(sq.count));
+        // 从 answer_records 实时统计每个场次的答题数和正确数
+        const statsBySession = await db.select({
+          sessionId: answerRecords.sessionId,
+          total: sql<number>`count(*)`,
+          correct: sql<number>`sum(case when ${answerRecords.isCorrect} then 1 else 0 end)`,
+        }).from(answerRecords)
+          .where(inArray(answerRecords.sessionId, sessionIds))
+          .groupBy(answerRecords.sessionId);
+        
+        for (const stat of statsBySession) {
+          if (stat.sessionId) {
+            answeredCountMap.set(stat.sessionId, Number(stat.total));
+            correctCountMap.set(stat.sessionId, Number(stat.correct));
+          }
         }
       }
       
       recentRecords = sessionRecords.map((r) => {
         const total = r.totalQuestions || 0;
-        const correct = r.correctCount || 0;
-        const answeredCount = answeredCountMap.get(r.id) || correct; // 未答完时用correct数作为进度
+        // 使用实时统计的答题数和正确数
+        const answeredCount = answeredCountMap.get(r.id) || 0;
+        const correct = correctCountMap.get(r.id) || 0;
         const progress = total > 0 ? Math.round((answeredCount / total) * 100) : 0;
-        const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+        // 实时正确率：已答题中正确的比例
+        const accuracy = answeredCount > 0 ? Math.round((correct / answeredCount) * 100) : 0;
+        
         return {
           id: r.id,
           subjectName: r.subjectName || '未知科目',
@@ -244,6 +257,7 @@ export class StatsService {
           accuracy,
           createdAt: this.formatToShanghaiTime(r.createdAt),
           completed: r.completed,
+          remainingTime: r.remainingTime || 0,
         };
       });
       
