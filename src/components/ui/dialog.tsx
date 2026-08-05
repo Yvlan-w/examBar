@@ -1,9 +1,12 @@
 import * as React from "react"
 import { View } from "@tarojs/components"
+import Taro from "@tarojs/taro"
 import { X } from "lucide-react-taro"
 import { cn } from "@/lib/utils"
 import { Portal } from "@/components/ui/portal"
 import { useKeyboardOffset } from "@/lib/hooks/use-keyboard-offset"
+
+const isWeapp = () => Taro.getEnv() === Taro.ENV_TYPE.WEAPP
 
 const DialogContext = React.createContext<{
   open?: boolean
@@ -88,34 +91,6 @@ const DialogPortal = ({ children }: { children: React.ReactNode }) => {
     return <Portal>{children}</Portal>
 }
 
-const DialogOverlay = React.forwardRef<
-    React.ElementRef<typeof View>,
-    React.ComponentPropsWithoutRef<typeof View>
->(({ className, onClick, ...props }, ref) => {
-    const context = React.useContext(DialogContext)
-    const state = context?.open ? "open" : "closed"
-    const isModal = context?._dialogProps?.modal
-    return (
-        <View
-          ref={ref}
-          data-state={state}
-          className={cn(
-                "fixed inset-0 isolate z-50 bg-black bg-opacity-10 transition-opacity duration-100 supports-[backdrop-filter]:backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-                className
-            )}
-          onClick={(e) => {
-                e.stopPropagation()
-                onClick?.(e)
-                if (!isModal) {
-                    context?.onOpenChange?.(false)
-                }
-            }}
-          {...props}
-        />
-    )
-})
-DialogOverlay.displayName = "DialogOverlay"
-
 interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof View> {
     closeClassName?: string
 }
@@ -128,9 +103,12 @@ const DialogContent = React.forwardRef<
     const offset = useKeyboardOffset()
     const state = context?.open ? "open" : "closed"
     const isModal = context?._dialogProps?.modal
-    
-    return (
-        <DialogPortal>
+    const present = usePresence(context?.open, 200)
+
+    if (!present) return null
+
+    const content = (
+        <>
             <View
               className={cn(
                 "fixed inset-0 z-50 bg-black bg-opacity-10 transition-opacity duration-100",
@@ -176,8 +154,16 @@ const DialogContent = React.forwardRef<
                   )}
               </View>
             </View>
-        </DialogPortal>
+        </>
     )
+
+    // WeChat: render directly in component tree (no RootPortal)
+    // H5: use Portal (React DOM portal to body)
+    if (isWeapp()) {
+        return content
+    }
+
+    return <Portal>{content}</Portal>
 })
 DialogContent.displayName = "DialogContent"
 
@@ -258,7 +244,6 @@ DialogClose.displayName = "DialogClose"
 export {
   Dialog,
   DialogPortal,
-  DialogOverlay,
   DialogTrigger,
   DialogClose,
   DialogContent,
