@@ -83,11 +83,11 @@ export const MarkdownRenderer: React.FC<{
       {blocks.map((block, index) => {
         if (block.type === 'image' && block.url) {
           return (
-            <View key={index} className='my-2'>
+            <View key={index} className="my-2">
               <Image
                 src={block.url}
                 mode={imageMode}
-                className='w-full rounded-lg'
+                className="w-full rounded-lg"
               />
             </View>
           )
@@ -95,10 +95,10 @@ export const MarkdownRenderer: React.FC<{
           // 处理文本中的换行
           const lines = block.content.split('\n')
           return (
-            <Text key={index} className='block'>
+            <Text key={index} className="block">
               {lines.map((line, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <Text className='block'>{'\n'}</Text>}
+                  {i > 0 && <Text className="block">{'\n'}</Text>}
                   {line}
                 </React.Fragment>
               ))}

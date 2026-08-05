@@ -457,7 +457,7 @@ const ExamPage = () => {
               <CardContent className="p-4">
                 <MarkdownRenderer
                   content={currentQuestion.content}
-                  className='text-base text-slate-800 leading-relaxed'
+                  className="text-base text-slate-800 leading-relaxed"
                 />
               </CardContent>
             </Card>

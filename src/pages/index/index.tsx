@@ -254,7 +254,7 @@ const IndexPage = () => {
                 </Badge>
                 <Text className="text-xs text-slate-400">{dailyQuestion.subjectName}</Text>
               </View>
-              <MarkdownRenderer content={dailyQuestion.content} className='text-sm text-slate-700 leading-relaxed overflow-hidden' />
+              <MarkdownRenderer content={dailyQuestion.content} className="text-sm text-slate-700 leading-relaxed overflow-hidden" />
             </CardContent>
           </Card>
         ) : (

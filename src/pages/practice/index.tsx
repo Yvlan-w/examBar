@@ -600,7 +600,7 @@ const PracticePage = () => {
                     <Text className="text-sm font-semibold text-blue-700">AI 智能解析</Text>
                   </View>
                   <View className="bg-white rounded-lg p-3">
-                    <MarkdownRenderer content={aiAnalysis} className='text-sm text-slate-700 leading-relaxed' />
+                    <MarkdownRenderer content={aiAnalysis} className="text-sm text-slate-700 leading-relaxed" />
                   </View>
                 </CardContent>
               </Card>
