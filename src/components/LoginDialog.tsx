@@ -51,6 +51,7 @@ export const LoginDialog = ({
   }, [open])
 
   const onChooseAvatar = async (e: any) => {
+    console.log('choosing avatar')
     const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl || (e.detail && e.detail.avatarUrl)
     
     if (!newAvatarUrl) {
@@ -245,16 +246,17 @@ export const LoginDialog = ({
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
             <TaroButton
-              openType="chooseAvatar"
-              onChooseAvatar={onChooseAvatar}
-              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-            >
-              {avatarUrl ? (
-                <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-              ) : (
-                <User size={32} color="#94A3B8" />
-              )}
-            </TaroButton>
+                openType="chooseAvatar"
+                onChooseAvatar={onChooseAvatar}
+                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              >
+                {avatarUrl ? (
+                    <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
+                ) : (
+                  <User size={32} color="#94A3B8" />
+                )}
+                
+              </TaroButton>
             <Text className="text-sm text-gray-500">点击选择头像</Text>
             {Taro.getEnv() !== Taro.ENV_TYPE.WEAPP && (
               <Text
