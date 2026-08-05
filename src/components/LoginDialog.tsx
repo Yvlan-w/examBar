@@ -51,8 +51,8 @@ export const LoginDialog = ({
   }, [open])
 
   const onChooseAvatar = async (e: any) => {
-    console.log('choosing avatar')
-    const newAvatarUrl = e.detail?.avatarUrl
+    console.log('[Avatar] chooseAvatar triggered', e)
+    const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl
     if (!newAvatarUrl) {
       console.warn('[Avatar] chooseAvatar 未获取到头像路径, e:', e)
       Taro.showToast({ title: '选择头像失败，请重试', icon: 'none' })
@@ -245,10 +245,10 @@ export const LoginDialog = ({
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
             <TaroButton
-                openType="chooseAvatar"
-                onChooseAvatar={onChooseAvatar}
-                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-              >
+              openType="chooseAvatar"
+              onChooseAvatar={onChooseAvatar}
+              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+            >
                 {avatarUrl ? (
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
                 ) : (
