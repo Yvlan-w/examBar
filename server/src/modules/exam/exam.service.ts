@@ -190,6 +190,76 @@ export class ExamService {
   }
 
   /**
+   * 保存单题答案（实时保存进度）
+   */
+  async saveAnswer(sessionId: string, questionId: string, answer: string, userId?: number) {
+    const questionResult = await db.select().from(questions).where(eq(questions.id, questionId)).limit(1);
+    const question = questionResult[0];
+    if (!question) {
+      return { success: false, error: '题目不存在' };
+    }
+
+    let isCorrect = false;
+    if (question.type === 'multi') {
+      isCorrect = this.compareMultiAnswers(answer, question.answer);
+    } else if (question.type === 'short') {
+      isCorrect = false;
+    } else {
+      isCorrect = answer.trim().toUpperCase() === question.answer.trim().toUpperCase();
+    }
+
+    const createdAt = new Date();
+
+    // 查找是否已有答题记录（更新而非重复插入）
+    const existingRecord = await db.select().from(answerRecords)
+      .where(and(
+        eq(answerRecords.sessionId, sessionId),
+        eq(answerRecords.questionId, questionId),
+      ))
+      .limit(1);
+
+    if (existingRecord.length > 0) {
+      // 更新已有记录
+      await db.update(answerRecords)
+        .set({
+          userAnswer: answer,
+          isCorrect,
+        })
+        .where(eq(answerRecords.id, existingRecord[0].id));
+    } else {
+      // 插入新记录
+      await db.insert(answerRecords).values({
+        id: 'r' + Date.now() + Math.random().toString(36).substring(2, 6),
+        sessionId,
+        questionId,
+        userId: userId || null,
+        userAnswer: answer,
+        isCorrect,
+        mode: 'exam',
+        subjectId: question.subjectId,
+        subjectName: question.subjectName,
+        createdAt,
+      });
+    }
+
+    // 更新场次统计
+    if (sessionId) {
+      await this.examSessionService.markQuestionAnswered(sessionId, questionId);
+
+      // 重新统计正确数量
+      const allRecords = await db.select().from(answerRecords)
+        .where(eq(answerRecords.sessionId, sessionId));
+      const correctCount = allRecords.filter(r => r.isCorrect).length;
+
+      await db.update(examSessions)
+        .set({ correctCount })
+        .where(eq(examSessions.id, sessionId));
+    }
+
+    return { success: true, isCorrect };
+  }
+
+  /**
    * 比较多选题答案
    * 将答案拆分为数组，排序后比较
    * 支持多种格式：A,B,C 或 A B C 或 ["A","B","C"]

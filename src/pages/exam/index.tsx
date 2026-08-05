@@ -243,8 +243,27 @@ const ExamPage = () => {
     return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s)
   }
 
+  const saveAnswerProgress = async (questionId: string, answer: string) => {
+    if (!currentSessionId || !answer) return
+    try {
+      await Network.request({
+        url: '/api/exam/save-answer',
+        method: 'POST',
+        data: {
+          sessionId: currentSessionId,
+          questionId,
+          answer,
+          userId: user?.id,
+        },
+      })
+    } catch (e) {
+      console.warn('[Exam] 保存答案失败:', e)
+    }
+  }
+
   const handleSelectAnswer = (questionId: string, label: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: label }))
+    saveAnswerProgress(questionId, label)
   }
 
   const handleMultiSelectAnswer = (questionId: string, label: string) => {
@@ -257,8 +276,9 @@ const ExamPage = () => {
       } else {
         newAnswers = [...current, label]
       }
-      // 同步到 answers 用于提交
-      setAnswers((prev2) => ({ ...prev2, [questionId]: newAnswers.join(',') }))
+      const joined = newAnswers.join(',')
+      setAnswers((prev2) => ({ ...prev2, [questionId]: joined }))
+      if (joined) saveAnswerProgress(questionId, joined)
       return { ...prev, [questionId]: newAnswers }
     })
   }
@@ -267,6 +287,7 @@ const ExamPage = () => {
     setShortAnswers((prev) => ({ ...prev, [questionId]: value }))
     if (value.trim()) {
       setAnswers((prev) => ({ ...prev, [questionId]: value }))
+      saveAnswerProgress(questionId, value)
     }
   }
 

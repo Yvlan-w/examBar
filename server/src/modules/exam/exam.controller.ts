@@ -13,6 +13,20 @@ export class ExamController {
     return { code: 200, msg: 'success', data: result };
   }
 
+  @Post('save-answer')
+  @HttpCode(200)
+  async saveAnswer(
+    @Body() body: {
+      sessionId: string;
+      questionId: string;
+      answer: string;
+      userId?: number;
+    },
+  ) {
+    const result = await this.examService.saveAnswer(body.sessionId, body.questionId, body.answer, body.userId);
+    return { code: 200, msg: 'success', data: result };
+  }
+
   @Post('submit')
   @HttpCode(200)
   async submitExam(
