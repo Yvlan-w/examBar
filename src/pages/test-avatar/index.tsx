@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 // eslint-disable-next-line no-restricted-syntax
 import { View, Text, Image, Button as TaroButton } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { User } from 'lucide-react-taro'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,46 @@ export default function TestAvatar() {
   const [avatarUrl2, setAvatarUrl2] = useState('')
   const [avatarUrl3, setAvatarUrl3] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [logText, setLogText] = useState('点击按钮开始测试...')
+  const [logText, setLogText] = useState('')
+  const [sysInfo, setSysInfo] = useState<{
+    platform: string
+    SDKVersion: string
+    env: string
+  }>({ platform: '', SDKVersion: '', env: '' })
+
+  useEffect(() => {
+    try {
+      const info = Taro.getSystemInfoSync()
+      const env = Taro.getEnv()
+      setSysInfo({
+        platform: info.platform || 'unknown',
+        SDKVersion: info.SDKVersion || 'unknown',
+        env: env === Taro.ENV_TYPE.WEAPP ? 'weapp' : env === Taro.ENV_TYPE.WEB ? 'h5' : String(env),
+      })
+      addLog(`平台: ${info.platform}, SDK: ${info.SDKVersion}`)
+
+      // 检查隐私协议状态
+      if (env === Taro.ENV_TYPE.WEAPP) {
+        // @ts-ignore
+        if (typeof wx !== 'undefined' && wx.getPrivacySetting) {
+          // @ts-ignore
+          wx.getPrivacySetting({
+            success(res: any) {
+              addLog(`隐私协议 needAuthorization: ${res.needAuthorization}`)
+              if (res.needAuthorization) {
+                addLog('⚠️ 隐私协议未授权，chooseAvatar 可能静默失败')
+              }
+            },
+            fail(err: any) {
+              addLog(`隐私协议检查失败: ${JSON.stringify(err)}`)
+            },
+          })
+        }
+      }
+    } catch (e) {
+      addLog(`getSystemInfo error: ${e}`)
+    }
+  }, [])
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString()
@@ -18,48 +58,54 @@ export default function TestAvatar() {
     console.log('[TestAvatar]', msg)
   }
 
-  // 场景1：最简按钮（无样式、无子元素）
+  // 场景1：最简按钮
   const onChooseAvatar1 = (e: any) => {
-    addLog(`场景1 triggered! e.detail=${JSON.stringify(e?.detail || {})}`)
+    addLog(`场景1 triggered! detail=${JSON.stringify(e?.detail || {})}`)
     const url = e.detail?.avatarUrl
-    if (url) {
-      setAvatarUrl1(url)
-      addLog(`场景1 头像URL: ${url}`)
-    }
+    if (url) setAvatarUrl1(url)
   }
 
-  // 场景2：带样式和子元素（pointer-events:none 包装）
+  // 场景2：带样式+图标
   const onChooseAvatar2 = (e: any) => {
-    addLog(`场景2 triggered! e.detail=${JSON.stringify(e?.detail || {})}`)
+    addLog(`场景2 triggered! detail=${JSON.stringify(e?.detail || {})}`)
     const url = e.detail?.avatarUrl
-    if (url) {
-      setAvatarUrl2(url)
-      addLog(`场景2 头像URL: ${url}`)
-    }
+    if (url) setAvatarUrl2(url)
   }
 
-  // 场景3：在 Dialog 内
+  // 场景3：Dialog 内
   const onChooseAvatar3 = (e: any) => {
-    addLog(`场景3(Dialog内) triggered! e.detail=${JSON.stringify(e?.detail || {})}`)
+    addLog(`场景3(Dialog) triggered! detail=${JSON.stringify(e?.detail || {})}`)
     const url = e.detail?.avatarUrl
-    if (url) {
-      setAvatarUrl3(url)
-      addLog(`场景3 头像URL: ${url}`)
-    }
+    if (url) setAvatarUrl3(url)
   }
+
+  const isDevtools = sysInfo.platform === 'devtools'
 
   return (
     <View className="min-h-full bg-gray-50 p-4">
-      <Text className="block text-lg font-bold text-gray-800 mb-4">头像选择测试页</Text>
+      <Text className="block text-lg font-bold text-gray-800 mb-2">头像选择测试</Text>
+
+      {/* 诊断信息 */}
+      <View className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+        <Text className="block text-xs font-semibold text-blue-800 mb-1">环境诊断</Text>
+        <Text className="block text-xs text-blue-700">平台: {sysInfo.platform || '...'}</Text>
+        <Text className="block text-xs text-blue-700">SDK版本: {sysInfo.SDKVersion || '...'}</Text>
+        <Text className="block text-xs text-blue-700">环境: {sysInfo.env || '...'}</Text>
+        {isDevtools && (
+          <Text className="block text-xs text-red-600 font-bold mt-1">
+            ⚠️ 开发者工具不支持 chooseAvatar，必须真机调试！
+          </Text>
+        )}
+        {sysInfo.SDKVersion && sysInfo.SDKVersion < '2.21.2' && (
+          <Text className="block text-xs text-red-600 font-bold mt-1">
+            ⚠️ 基础库版本过低，需 ≥ 2.21.2（推荐 2.32.3+）
+          </Text>
+        )}
+      </View>
 
       {/* 场景1：最简按钮 */}
       <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Text className="block text-sm font-semibold text-gray-700 mb-2">
-          场景1：最简按钮（无样式无子元素）
-        </Text>
-        <Text className="block text-xs text-gray-500 mb-3">
-          点击下方文字按钮，应弹出微信头像选择
-        </Text>
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">场景1：最简按钮</Text>
         <TaroButton
           openType="chooseAvatar"
           onChooseAvatar={onChooseAvatar1}
@@ -71,19 +117,14 @@ export default function TestAvatar() {
         {avatarUrl1 && (
           <View className="mt-3 flex items-center gap-2">
             <Image src={avatarUrl1} className="w-12 h-12 rounded-full" mode="aspectFill" />
-            <Text className="text-xs text-green-600">✓ 选择成功</Text>
+            <Text className="text-xs text-green-600">✓ 成功</Text>
           </View>
         )}
       </View>
 
-      {/* 场景2：带样式和图标子元素 */}
+      {/* 场景2：带样式+图标 */}
       <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Text className="block text-sm font-semibold text-gray-700 mb-2">
-          场景2：带样式+图标（pointer-events:none 包装）
-        </Text>
-        <Text className="block text-xs text-gray-500 mb-3">
-          点击圆形区域，应弹出微信头像选择
-        </Text>
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">场景2：带样式+图标</Text>
         <TaroButton
           openType="chooseAvatar"
           onChooseAvatar={onChooseAvatar2}
@@ -100,19 +141,12 @@ export default function TestAvatar() {
             )}
           </View>
         </TaroButton>
-        {avatarUrl2 && (
-          <Text className="block text-xs text-green-600 mt-2">✓ 选择成功</Text>
-        )}
+        {avatarUrl2 && <Text className="block text-xs text-green-600 mt-2">✓ 成功</Text>}
       </View>
 
-      {/* 场景3：在 Dialog 内 */}
+      {/* 场景3：Dialog 内 */}
       <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Text className="block text-sm font-semibold text-gray-700 mb-2">
-          场景3：在 Dialog 内（与 LoginDialog 相同结构）
-        </Text>
-        <Text className="block text-xs text-gray-500 mb-3">
-          点击下方按钮打开 Dialog，然后点击 Dialog 内的头像区域
-        </Text>
+        <Text className="block text-sm font-semibold text-gray-700 mb-2">场景3：Dialog 内</Text>
         <Button onClick={() => setDialogOpen(true)}>
           <Text>打开 Dialog 测试</Text>
         </Button>
@@ -121,8 +155,8 @@ export default function TestAvatar() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">Dialog 内头像测试</DialogTitle>
-            <DialogDescription className="text-center">点击下方圆形区域选择头像</DialogDescription>
+            <DialogTitle className="text-center">Dialog 头像测试</DialogTitle>
+            <DialogDescription className="text-center">点击下方圆形区域</DialogDescription>
           </DialogHeader>
           <View className="p-4">
             <View className="flex flex-col items-center gap-4">
@@ -148,10 +182,10 @@ export default function TestAvatar() {
         </DialogContent>
       </Dialog>
 
-      {/* 日志输出区 */}
+      {/* 日志区 */}
       <View className="bg-gray-900 rounded-xl p-4 mb-8">
-        <Text className="block text-xs text-green-400 font-mono mb-2">--- 测试日志 ---</Text>
-        <Text className="block text-xs text-gray-300 font-mono whitespace-pre-wrap">{logText}</Text>
+        <Text className="block text-xs text-green-400 font-mono mb-2">--- 日志 ---</Text>
+        <Text className="block text-xs text-gray-300 font-mono whitespace-pre-wrap">{logText || '等待事件...'}</Text>
       </View>
     </View>
   )
