@@ -240,6 +240,21 @@ const ProfilePage = () => {
             
           </CardContent>
         </Card>
+
+        <Card className="border-0 shadow-sm mt-4">
+          <CardContent className="p-4">
+            <View
+              className="flex items-center justify-between"
+              onClick={() => Taro.navigateTo({ url: '/pages/test-avatar/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <CircleAlert size={20} color="#F59E0B" />
+                <Text className="text-sm text-slate-800">头像选择测试</Text>
+              </View>
+              <ChevronRight size={16} color="#94A3B8" />
+            </View>
+          </CardContent>
+        </Card>
       </View>
 
       <View className="px-4 mt-4">
