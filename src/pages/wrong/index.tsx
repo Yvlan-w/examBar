@@ -6,10 +6,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useUserStore } from '@/store/user'
-import { loginWithProfile } from '@/utils/auth'
-import { CircleAlert, BookOpen, ChevronRight, User } from 'lucide-react-taro'
+import { LoginDialog } from '@/components/LoginDialog'
+import { CircleAlert, BookOpen, ChevronRight } from 'lucide-react-taro'
 
 interface Subject {
   id: string
@@ -52,7 +51,6 @@ const WrongPage = () => {
   const [loading, setLoading] = useState(true)
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
   const { isLoggedIn, user } = useUserStore()
 
   useEffect(() => {
@@ -70,30 +68,6 @@ const WrongPage = () => {
       setShowLoginDialog(true)
     } else {
       loadSubjects()
-    }
-  }
-
-  const handleLogin = async () => {
-    setLoginLoading(true)
-    try {
-      const result = await loginWithProfile()
-      if (result.success) {
-        setShowLoginDialog(false)
-        loadSubjects()
-      } else {
-        Taro.showToast({
-          title: result.message || '登录失败',
-          icon: 'none',
-        })
-      }
-    } catch (e) {
-      console.error('login error:', e)
-      Taro.showToast({
-        title: '登录失败，请重试',
-        icon: 'none',
-      })
-    } finally {
-      setLoginLoading(false)
     }
   }
 
@@ -142,29 +116,14 @@ const WrongPage = () => {
   if (showLoginDialog) {
     return (
       <View className="min-h-full bg-slate-100 flex items-center justify-center">
-        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <View className="flex flex-col items-center">
-                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                  <User size={32} color="#2563EB" />
-                </View>
-                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
-                <DialogDescription className="text-center mt-2">
-                  需要登录后才能查看错题本
-                </DialogDescription>
-              </View>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col gap-3">
-              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
-                <Text>返回</Text>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <LoginDialog
+          open={showLoginDialog}
+          onOpenChange={setShowLoginDialog}
+          title="请先登录"
+          description="需要登录后才能查看错题本"
+          allowSkip={false}
+          onLoginSuccess={loadSubjects}
+        />
       </View>
     )
   }

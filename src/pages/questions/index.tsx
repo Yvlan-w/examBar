@@ -139,13 +139,7 @@ const QuestionsPage = () => {
       <View className="min-h-full bg-slate-100 flex items-center justify-center">
         <LoginDialog
           open={showLoginDialog}
-          onOpenChange={(open) => {
-            if (!open) {
-              Taro.navigateBack()
-            } else {
-              setShowLoginDialog(open)
-            }
-          }}
+          onOpenChange={setShowLoginDialog}
           title="请先登录"
           description="需要登录后才能查看题库"
           allowSkip={false}

@@ -8,6 +8,7 @@ import { useKeyboardOffset } from "@/lib/hooks/use-keyboard-offset"
 const DialogContext = React.createContext<{
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  _dialogProps?: { modal?: boolean }
 } | null>(null)
 
 const usePresence = (open: boolean | undefined, durationMs: number) => {
@@ -40,7 +41,7 @@ interface DialogProps {
   modal?: boolean
 }
 
-const Dialog = ({ children, open: openProp, defaultOpen, onOpenChange }: DialogProps) => {
+const Dialog = ({ children, open: openProp, defaultOpen, onOpenChange, modal }: DialogProps) => {
     const [openState, setOpenState] = React.useState(defaultOpen || false)
     const open = openProp !== undefined ? openProp : openState
     
@@ -52,7 +53,7 @@ const Dialog = ({ children, open: openProp, defaultOpen, onOpenChange }: DialogP
     }
 
     return (
-        <DialogContext.Provider value={{ open, onOpenChange: handleOpenChange }}>
+        <DialogContext.Provider value={{ open, onOpenChange: handleOpenChange, _dialogProps: { modal } }}>
             {children}
         </DialogContext.Provider>
     )
@@ -93,6 +94,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, onClick, ...props }, ref) => {
     const context = React.useContext(DialogContext)
     const state = context?.open ? "open" : "closed"
+    const isModal = context?._dialogProps?.modal
     return (
         <View
           ref={ref}
@@ -104,7 +106,9 @@ const DialogOverlay = React.forwardRef<
           onClick={(e) => {
                 e.stopPropagation()
                 onClick?.(e)
-                context?.onOpenChange?.(false)
+                if (!isModal) {
+                    context?.onOpenChange?.(false)
+                }
             }}
           {...props}
         />
@@ -123,44 +127,51 @@ const DialogContent = React.forwardRef<
     const context = React.useContext(DialogContext)
     const offset = useKeyboardOffset()
     const state = context?.open ? "open" : "closed"
+    const isModal = context?._dialogProps?.modal
     
     return (
         <DialogPortal>
             <View
-                className="fixed inset-0 z-50"
-                onClick={() => context?.onOpenChange?.(false)}
+              className="fixed inset-0 z-50"
+              onClick={() => {
+                    if (!isModal) {
+                        context?.onOpenChange?.(false)
+                    }
+                }}
             >
                 <DialogOverlay />
                 <View
-                    ref={ref}
-                    data-state={state}
-                    className={cn(
+                  ref={ref}
+                  data-state={state}
+                  className={cn(
                       "fixed left-[50%] top-[50%] z-[60] grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-xl",
                       className
                   )}
-                style={{
+                  style={{
                   ...(style as object),
                   top: offset > 0 ? `calc(50% - ${offset / 2}px)` : undefined
                 }}
-                onClick={(e) => e.stopPropagation()}
-                {...props}
-              >
+                  onClick={(e) => e.stopPropagation()}
+                  {...props}
+                >
                   {children}
-                  <View 
-                    data-slot="dialog-close"
-                    className={cn(
-                        "absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
-                        closeClassName
-                    )}
-                    data-state={state}
-                    onClick={(e) => {
-                          e.stopPropagation()
-                          context?.onOpenChange?.(false)
-                      }}
-                  >
-                      <X size={16} color="inherit" />
-                      <View className="sr-only">Close</View>
-                  </View>
+                  {!isModal && (
+                      <View 
+                        data-slot="dialog-close"
+                        className={cn(
+                            "absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+                            closeClassName
+                        )}
+                        data-state={state}
+                        onClick={(e) => {
+                              e.stopPropagation()
+                              context?.onOpenChange?.(false)
+                          }}
+                      >
+                          <X size={16} color="inherit" />
+                          <View className="sr-only">Close</View>
+                      </View>
+                  )}
               </View>
             </View>
         </DialogPortal>

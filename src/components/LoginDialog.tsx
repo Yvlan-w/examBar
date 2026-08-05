@@ -51,9 +51,15 @@ export const LoginDialog = ({
   }, [open])
 
   const onChooseAvatar = async (e: any) => {
-    const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl
+    const newAvatarUrl = e.detail?.avatarUrl || e.avatarUrl || (e.detail && e.detail.avatarUrl)
     
-    if (!newAvatarUrl) return
+    if (!newAvatarUrl) {
+      console.warn('[Avatar] chooseAvatar 未获取到头像路径, e:', e)
+      Taro.showToast({ title: '选择头像失败，请重试', icon: 'none' })
+      return
+    }
+    
+    console.log('[Avatar] 选中头像:', newAvatarUrl)
     
     if (newAvatarUrl.startsWith('wxfile://')) {
       Taro.showLoading({ title: '上传头像中...' })
@@ -64,23 +70,78 @@ export const LoginDialog = ({
           name: 'file',
         })
         
+        console.log('[Avatar] 上传结果:', uploadResult.statusCode)
+        
         if (uploadResult.statusCode === 200) {
           const data = typeof uploadResult.data === 'string' 
             ? JSON.parse(uploadResult.data) 
             : uploadResult.data
           if (data.success && data.data?.url) {
             setAvatarUrl(data.data.url)
+            console.log('[Avatar] 头像上传成功:', data.data.url)
+          } else {
+            throw new Error(data?.message || '上传返回数据异常')
           }
+        } else {
+          throw new Error('上传失败，状态码: ' + uploadResult.statusCode)
         }
       } catch (error) {
-        console.error('Upload avatar error:', error)
-        setAvatarUrl(newAvatarUrl)
+        console.error('[Avatar] Upload avatar error:', error)
+        Taro.showToast({ title: '头像上传失败，请重试', icon: 'none' })
       } finally {
         Taro.hideLoading()
       }
     } else {
       setAvatarUrl(newAvatarUrl)
     }
+  }
+
+  const onChooseAvatarFallback = async () => {
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+      })
+      if (res.tempFilePaths && res.tempFilePaths.length > 0) {
+        const filePath = res.tempFilePaths[0]
+        if (filePath.startsWith('wxfile://')) {
+          await uploadAvatarFile(filePath)
+        } else {
+          setAvatarUrl(filePath)
+        }
+      }
+    } catch (e) {
+      console.error('[Avatar] chooseImage error:', e)
+    }
+  }
+
+  const uploadAvatarFile = async (filePath: string) => {
+    Taro.showLoading({ title: '上传头像中...' })
+    try {
+      const uploadResult = await Network.uploadFile({
+        url: '/api/auth/upload-avatar',
+        filePath,
+        name: 'file',
+      })
+      if (uploadResult.statusCode === 200) {
+        const data = typeof uploadResult.data === 'string'
+          ? JSON.parse(uploadResult.data)
+          : uploadResult.data
+        if (data.success && data.data?.url) {
+          setAvatarUrl(data.data.url)
+        }
+      }
+    } catch (error) {
+      console.error('[Avatar] Upload error:', error)
+      Taro.showToast({ title: '头像上传失败', icon: 'none' })
+    } finally {
+      Taro.hideLoading()
+    }
+  }
+
+  const onLongPressAvatar = () => {
+    onChooseAvatarFallback()
   }
 
   const onNickNameInput = (e: any) => {
@@ -98,9 +159,9 @@ export const LoginDialog = ({
     if (isWeapp) {
       try {
         // @ts-ignore
-        if (typeof wx !== 'undefined' && wx.openPrivacyContract) {
+        if (typeof wx !== 'undefined' && openPrivacyContract) {
           // @ts-ignore
-          wx.openPrivacyContract({
+          openPrivacyContract({
             success: () => {
               console.log('[Privacy] 用户同意隐私协议')
               // 用户同意后再继续登录流程
@@ -175,7 +236,7 @@ export const LoginDialog = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={!allowSkip}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <View className="flex flex-col items-center">
@@ -187,21 +248,38 @@ export const LoginDialog = ({
         </DialogHeader>
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
-            <TaroButton
-                openType="chooseAvatar"
-                onChooseAvatar={onChooseAvatar}
-                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-              >
-                {avatarUrl ? (
-                  
-                    <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-                  
-                ) : (
-                  <User size={32} color="#94A3B8" />
-                )}
-                
-              </TaroButton>
+            <View className="relative">
+              {Taro.getEnv() === Taro.ENV_TYPE.WEAPP ? (
+                <View className="relative" onLongPress={onLongPressAvatar}>
+                  <TaroButton
+                    openType="chooseAvatar"
+                    onChooseAvatar={onChooseAvatar}
+                    className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden"
+                  >
+                    {avatarUrl ? (
+                      <Image src={avatarUrl} className="w-full h-full" mode="aspectFill" />
+                    ) : (
+                      <User size={32} color="#94A3B8" />
+                    )}
+                  </TaroButton>
+                </View>
+              ) : (
+                <View
+                  className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden active:bg-gray-100"
+                  onClick={onChooseAvatarFallback}
+                >
+                  {avatarUrl ? (
+                    <Image src={avatarUrl} className="w-full h-full" mode="aspectFill" />
+                  ) : (
+                    <User size={32} color="#94A3B8" />
+                  )}
+                </View>
+              )}
+            </View>
             <Text className="text-sm text-gray-500">点击选择头像</Text>
+            <View className="flex items-center gap-2">
+              <Text className="text-xs text-gray-400">长按头像可从相册选择</Text>
+            </View>
             <Input
               type="nickname"
               className="w-full bg-gray-50 rounded-xl px-4 py-3"

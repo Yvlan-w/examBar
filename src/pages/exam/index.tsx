@@ -6,12 +6,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useUserStore } from '@/store/user'
-import { loginWithProfile } from '@/utils/auth'
-import { Clock, CircleAlert, User, CircleCheck } from 'lucide-react-taro'
+import { LoginDialog } from '@/components/LoginDialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Clock, CircleAlert, CircleCheck } from 'lucide-react-taro'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 interface Question {
@@ -36,7 +36,6 @@ const ExamPage = () => {
   const [loading, setLoading] = useState(true)
   const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [isContinueMode, setIsContinueMode] = useState(false)
@@ -181,30 +180,6 @@ const ExamPage = () => {
       Taro.showToast({ title: '加载失败', icon: 'none' })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleLogin = async () => {
-    setLoginLoading(true)
-    try {
-      const result = await loginWithProfile()
-      if (result.success) {
-        setShowLoginDialog(false)
-        loadExamQuestions()
-      } else {
-        Taro.showToast({
-          title: result.message || '登录失败',
-          icon: 'none',
-        })
-      }
-    } catch (e) {
-      console.error('login error:', e)
-      Taro.showToast({
-        title: '登录失败，请重试',
-        icon: 'none',
-      })
-    } finally {
-      setLoginLoading(false)
     }
   }
 
@@ -354,29 +329,14 @@ const ExamPage = () => {
   if (showLoginDialog) {
     return (
       <View className="min-h-full bg-slate-100 flex items-center justify-center">
-        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <View className="flex flex-col items-center">
-                <View className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                  <User size={32} color="#2563EB" />
-                </View>
-                <DialogTitle className="text-lg font-bold text-center">请先登录</DialogTitle>
-                <DialogDescription className="text-center mt-2">
-                  需要登录后才能进行模拟考试
-                </DialogDescription>
-              </View>
-            </DialogHeader>
-            <DialogFooter className="flex flex-col gap-3">
-              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                <Text>{loginLoading ? '登录中...' : '微信登录'}</Text>
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => Taro.navigateBack()}>
-                <Text>返回</Text>
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <LoginDialog
+          open={showLoginDialog}
+          onOpenChange={setShowLoginDialog}
+          title="请先登录"
+          description="需要登录后才能进行模拟考试"
+          allowSkip={false}
+          onLoginSuccess={loadExamQuestions}
+        />
       </View>
     )
   }
