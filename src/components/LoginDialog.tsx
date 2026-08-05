@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User } from 'lucide-react-taro'
-import { getPrivacySetting, openPrivacyContract } from '@/utils/privacy'
+import { openPrivacyContract } from '@/utils/privacy'
 
 interface LoginDialogProps {
   open: boolean
@@ -88,23 +88,44 @@ export const LoginDialog = ({
   }
 
   const handleLogin = async () => {
+    // 关键：openPrivacyContract 必须在用户点击的同步调用栈中调用
+    // 不能先 await 其他异步操作，否则会脱离用户手势上下文
+    
+    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
+    console.log('login env:', isWeapp ? 'weapp' : 'h5')
+    
+    // 微信小程序：直接调用隐私授权（在用户手势上下文中）
+    if (isWeapp) {
+      try {
+        // @ts-ignore
+        if (typeof wx !== 'undefined' && wx.openPrivacyContract) {
+          // @ts-ignore
+          wx.openPrivacyContract({
+            success: () => {
+              console.log('[Privacy] 用户同意隐私协议')
+              // 用户同意后再继续登录流程
+              doLogin()
+            },
+            fail: (err: any) => {
+              console.warn('[Privacy] 用户拒绝或取消隐私协议:', err)
+              Taro.showToast({ title: '需要同意隐私协议才能登录', icon: 'none' })
+            }
+          })
+          return
+        }
+      } catch (e) {
+        console.warn('[Privacy] openPrivacyContract 调用失败:', e)
+      }
+    }
+    
+    // H5 端直接登录
+    doLogin()
+  }
+
+  const doLogin = async () => {
     setLoginLoading(true)
     try {
       const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
-      console.log('login env:', isWeapp ? 'weapp' : 'h5')
-      
-      // 微信小程序隐私检查
-      if (isWeapp) {
-        const { needAuthorization } = await getPrivacySetting()
-        if (needAuthorization) {
-          const agreed = await openPrivacyContract()
-          if (!agreed) {
-            Taro.showToast({ title: '需要同意隐私协议才能登录', icon: 'none' })
-            setLoginLoading(false)
-            return
-          }
-        }
-      }
       
       let loginCode = 'h5_login'
       
@@ -167,10 +188,10 @@ export const LoginDialog = ({
         <View className="p-4">
           <View className="flex flex-col items-center gap-4">
             <TaroButton
-              openType="chooseAvatar"
-              onChooseAvatar={onChooseAvatar}
-              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-            >
+                openType="chooseAvatar"
+                onChooseAvatar={onChooseAvatar}
+                className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              >
                 {avatarUrl ? (
                   
                     <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
