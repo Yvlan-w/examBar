@@ -36,17 +36,20 @@ export const LoginDialog = ({
   const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
 
   useEffect(() => {
-    if (!open) return
-
-    // 恢复已存储的用户信息
-    const storedUser = Taro.getStorageSync('examBar_user')
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        if (userData.nickName) setNickName(userData.nickName)
-        if (userData.avatarUrl?.startsWith('http')) setAvatarUrl(userData.avatarUrl)
-      } catch (e) {
-        console.error('parse user data error:', e)
+    if (open) {
+      const storedUser = Taro.getStorageSync('examBar_user')
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          if (userData.nickName) {
+            setNickName(userData.nickName)
+          }
+          if (userData.avatarUrl && userData.avatarUrl.startsWith('http')) {
+            setAvatarUrl(userData.avatarUrl)
+          }
+        } catch (e) {
+          console.error('parse user data error:', e)
+        }
       }
     }
 
@@ -134,6 +137,7 @@ export const LoginDialog = ({
 
       if (isWeapp) {
         const loginRes = await Taro.login()
+        console.log('Taro.login result:', loginRes)
         if (loginRes.code) {
           loginCode = loginRes.code
         }
@@ -217,8 +221,6 @@ export const LoginDialog = ({
                 <TaroButton
                   openType="chooseAvatar"
                   onChooseAvatar={onChooseAvatar}
-                  plain
-                  hoverClass="none"
                   className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
                   style={{ padding: 0, margin: 0, lineHeight: 'normal', overflow: 'hidden' }}
                 >
