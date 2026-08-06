@@ -13,7 +13,6 @@ export default defineAppConfig({
     'pages/favorites/index',
     'pages/create-subject/index',
     'pages/session-detail/index',
-    'pages/test-avatar/index',
   ],
   window: {
     backgroundTextStyle: 'light',

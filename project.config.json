@@ -1,8 +1,8 @@
 {
   "miniprogramRoot": "./dist",
   "projectname": "coze-mini-program",
-  "description": "test",
-  "appid": "touristappid",
+  "description": "ExamBar",
+  "appid": "wx62db801c395fe911",
   "setting": {
     "urlCheck": true,
     "es6": false,
