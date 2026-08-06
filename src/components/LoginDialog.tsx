@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User } from 'lucide-react-taro'
-import { getPrivacySetting } from '@/utils/privacy'
 
 interface LoginDialogProps {
   open: boolean
@@ -30,7 +29,6 @@ export const LoginDialog = ({
   const [nickName, setNickName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
-  const [needPrivacyAuth, setNeedPrivacyAuth] = useState(false)
   const { login } = useUserStore()
 
   const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
@@ -52,36 +50,7 @@ export const LoginDialog = ({
         }
       }
     }
-
-    // 检查隐私授权状态
-    if (isWeapp) {
-      getPrivacySetting().then(({ needAuthorization }) => {
-        setNeedPrivacyAuth(needAuthorization)
-      })
-    }
   }, [open])
-
-  // 用户点击「同意并继续」按钮
-  const onAgreePrivacy = () => {
-    console.log('[Privacy] 用户同意了隐私协议')
-    setNeedPrivacyAuth(false)
-  }
-
-  // 打开隐私协议页面查看
-  const handleViewPrivacy = () => {
-    // @ts-ignore
-    if (typeof wx !== 'undefined' && wx.openPrivacyContract) {
-      // @ts-ignore
-      wx.openPrivacyContract({
-        success() {
-          console.log('[Privacy] openPrivacyContract success')
-        },
-        fail(err: any) {
-          console.warn('[Privacy] openPrivacyContract fail:', err)
-        },
-      })
-    }
-  }
 
   const onChooseAvatar = async (e: any) => {
     console.log('[Avatar] chooseAvatar triggered', e)
@@ -187,73 +156,42 @@ export const LoginDialog = ({
           </View>
         </DialogHeader>
 
-        {/* 隐私授权步骤：未同意时显示 */}
-        {needPrivacyAuth && (
-          <View className="p-4">
-            <View className="flex flex-col items-center gap-4">
-              <Text className="block text-sm text-gray-600 text-center">
-                使用本小程序需要您同意隐私保护指引
-              </Text>
-              <Text
-                className="block text-xs text-blue-500 underline"
-                onClick={handleViewPrivacy}
-              >
-                查看隐私保护指引
-              </Text>
-              {/* 关键：用原生按钮 open-type="agreePrivacyAuthorization" 完成授权 */}
-              <TaroButton
-                openType="agreePrivacyAuthorization"
-                onAgreePrivacyAuthorization={onAgreePrivacy}
-                className="w-full bg-blue-600 rounded-lg"
-                style={{ padding: 0, margin: 0, lineHeight: 'normal' }}
-              >
-                <Text className="text-white">同意并继续</Text>
-              </TaroButton>
-            </View>
-          </View>
-        )}
-
-        {/* 登录表单：隐私已同意后显示 */}
-        {!needPrivacyAuth && (
-          <>
-            <View className="p-4">
-              <View className="flex flex-col items-center gap-4">
-                <TaroButton
-                  openType="chooseAvatar"
-                  onChooseAvatar={onChooseAvatar}
-                  className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
-                  style={{ padding: 0, margin: 0, lineHeight: 'normal', overflow: 'hidden' }}
-                >
-                  <View style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
-                    {avatarUrl ? (
-                      <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
-                    ) : (
-                      <User size={32} color="#94A3B8" />
-                    )}
-                  </View>
-                </TaroButton>
-                <Text className="text-sm text-gray-500">点击选择头像</Text>
-                <Input
-                  type="nickname"
-                  className="w-full bg-gray-50 rounded-xl px-4 py-3"
-                  placeholder="请输入昵称"
-                  value={nickName}
-                  onInput={onNickNameInput}
-                />
+        <View className="p-4">
+          <View className="flex flex-col items-center gap-4">
+            <TaroButton
+              openType="chooseAvatar"
+              onChooseAvatar={onChooseAvatar}
+              className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50"
+              style={{ padding: 0, margin: 0, lineHeight: 'normal', overflow: 'hidden' }}
+            >
+              <View style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                {avatarUrl ? (
+                  <Image src={avatarUrl} className="w-full h-full rounded-full" mode="aspectFill" />
+                ) : (
+                  <User size={32} color="#94A3B8" />
+                )}
               </View>
-            </View>
-            <DialogFooter className="flex flex-col gap-3">
-              <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
-                <Text>{loginLoading ? '登录中...' : '登录'}</Text>
-              </Button>
-              {allowSkip && (
-                <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
-                  <Text>暂不登录</Text>
-                </Button>
-              )}
-            </DialogFooter>
-          </>
-        )}
+            </TaroButton>
+            <Text className="text-sm text-gray-500">点击选择头像</Text>
+            <Input
+              type="nickname"
+              className="w-full bg-gray-50 rounded-xl px-4 py-3"
+              placeholder="请输入昵称"
+              value={nickName}
+              onInput={onNickNameInput}
+            />
+          </View>
+        </View>
+        <DialogFooter className="flex flex-col gap-3">
+          <Button className="w-full bg-blue-600" onClick={handleLogin} disabled={loginLoading}>
+            <Text>{loginLoading ? '登录中...' : '登录'}</Text>
+          </Button>
+          {allowSkip && (
+            <Button variant="outline" className="w-full" onClick={handleSkipLogin}>
+              <Text>暂不登录</Text>
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

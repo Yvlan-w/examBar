@@ -66,7 +66,7 @@ const IndexPage = () => {
   const [stats, setStats] = useState<StudyStats>({ todayCount: 0, totalDays: 0, streak: 0 })
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const { isLoggedIn, login, user } = useUserStore()
+  const { isLoggedIn, user } = useUserStore()
   
 
   useEffect(() => {
@@ -78,24 +78,6 @@ const IndexPage = () => {
   })
 
   const initApp = async () => {
-    const storedUser = Taro.getStorageSync('examBar_user')
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        login(userData)
-      } catch (e) {
-        console.error('parse user data error:', e)
-      }
-    }
-
-    if (!isLoggedIn) {
-      const lastSkipTime = Taro.getStorageSync('examBar_skip_login')
-      const skipDuration = lastSkipTime ? Date.now() - parseInt(lastSkipTime) : Infinity
-      if (skipDuration > 30 * 60 * 1000) {
-        setShowLoginDialog(true)
-      }
-    }
-
     loadData()
   }
 

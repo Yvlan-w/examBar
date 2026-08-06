@@ -1,7 +1,6 @@
 import Taro from '@tarojs/taro'
 import { Network } from '@/network'
 import { useUserStore } from '@/store/user'
-import { getPrivacySetting, openPrivacyContract } from './privacy'
 
 export const STORAGE_KEY_USER = 'examBar_user'
 export const STORAGE_KEY_USER_ID = 'examBar_userId'
@@ -65,19 +64,6 @@ export const getUserProfile = async (): Promise<{ nickName?: string; avatarUrl?:
   try {
     console.log('Getting user profile...')
     
-    // 微信小程序隐私检查
-    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
-    if (isWeapp) {
-      const { needAuthorization } = await getPrivacySetting()
-      if (needAuthorization) {
-        const agreed = await openPrivacyContract()
-        if (!agreed) {
-          console.warn('User rejected privacy agreement for getUserProfile')
-          return null
-        }
-      }
-    }
-    
     const res = await Taro.getUserProfile({
       desc: '用于完善会员资料',
     })
@@ -113,19 +99,6 @@ export const updateUserProfile = async (userId: number, nickName: string, avatar
 export const loginWithWechat = async (): Promise<LoginResult> => {
   try {
     console.log('Starting wechat login...')
-    
-    // 微信小程序隐私检查
-    const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
-    if (isWeapp) {
-      const { needAuthorization } = await getPrivacySetting()
-      if (needAuthorization) {
-        const agreed = await openPrivacyContract()
-        if (!agreed) {
-          console.warn('User rejected privacy agreement for login')
-          return { success: false, message: '需要同意隐私协议才能登录' }
-        }
-      }
-    }
     
     const loginRes = await Taro.login()
     console.log('Taro.login result:', loginRes)
@@ -263,18 +236,6 @@ export const loginWithProfile = async (profile?: { nickName?: string; avatarUrl?
   try {
     const isWeapp = Taro.getEnv() === Taro.ENV_TYPE.WEAPP
     console.log('loginWithProfile env:', isWeapp ? 'weapp' : 'h5')
-    
-    // 微信小程序隐私检查
-    if (isWeapp) {
-      const { needAuthorization } = await getPrivacySetting()
-      if (needAuthorization) {
-        const agreed = await openPrivacyContract()
-        if (!agreed) {
-          console.warn('User rejected privacy agreement for login')
-          return { success: false, message: '需要同意隐私协议才能登录' }
-        }
-      }
-    }
     
     let loginCode = 'h5_login'
     

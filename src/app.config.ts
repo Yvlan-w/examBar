@@ -46,8 +46,4 @@ export default defineAppConfig({
       },
     ],
   },
-  // 微信小程序隐私协议配置
-  // 参考文档: https://developers.weixin.qq.com/doc/oplatform/Third-party_Platforms/2.0/product/privacy_setting.html
-  // 注意：当开发权限托管给第三方平台时，需要在第三方平台后台配置隐私协议内容
-  __usePrivacyCheck__: true,
 })

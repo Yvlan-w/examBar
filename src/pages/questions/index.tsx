@@ -82,14 +82,8 @@ const QuestionsPage = () => {
   }, [selectedSubject, selectedType])
 
   const initPage = async () => {
-    if (!isLoggedIn) {
-      setShowLoginDialog(true)
-    } else {
-      loadSubjects()
-    }
+    loadSubjects()
   }
-
-  
 
   const loadSubjects = async () => {
     try {
@@ -122,31 +116,24 @@ const QuestionsPage = () => {
   }
 
   const handleQuestionClick = (questionId: string) => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     Taro.navigateTo({
       url: '/pages/practice/index?mode=practice&questionId=' + questionId + '&subjectId=' + selectedSubject,
     })
   }
 
   const handleStartPractice = () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true)
+      return
+    }
     if (!selectedSubject) return
     Taro.navigateTo({
       url: '/pages/practice/index?mode=practice&subjectId=' + selectedSubject + (selectedType !== 'all' ? '&type=' + selectedType : ''),
     })
-  }
-
-  if (showLoginDialog) {
-    return (
-      <View className="min-h-full bg-slate-100 flex items-center justify-center">
-        <LoginDialog
-          open={showLoginDialog}
-          onOpenChange={setShowLoginDialog}
-          title="请先登录"
-          description="需要登录后才能查看题库"
-          allowSkip={false}
-          onLoginSuccess={loadSubjects}
-        />
-      </View>
-    )
   }
 
   return (
@@ -253,6 +240,14 @@ const QuestionsPage = () => {
           </View>
         )}
       </View>
+
+      <LoginDialog
+        open={showLoginDialog}
+        onOpenChange={setShowLoginDialog}
+        title="请先登录"
+        description="需要登录后才能开始做题"
+        allowSkip={false}
+      />
     </View>
   )
 }

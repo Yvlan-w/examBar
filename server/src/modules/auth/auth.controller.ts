@@ -45,18 +45,4 @@ export class AuthController {
     return result;
   }
 
-  @Post('setup-privacy')
-  async setupPrivacy() {
-    console.log('Setting up privacy config...');
-    const result = await this.authService.setupPrivacySetting();
-    console.log('Privacy setup result:', result);
-    return result;
-  }
-
-  @Post('get-privacy')
-  async getPrivacy() {
-    const result = await this.authService.getPrivacySetting();
-    console.log('Privacy config:', result);
-    return result;
-  }
 }

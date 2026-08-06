@@ -116,6 +116,9 @@ const ProfilePage = () => {
         <LoginDialog
           open={showLoginDialog}
           onOpenChange={setShowLoginDialog}
+          title="请先登录"
+          description="需要登录后查看个人资料"
+          allowSkip={false}
           onLoginSuccess={loadStats}
         />
       </View>
