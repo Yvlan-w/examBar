@@ -109,7 +109,7 @@ const DialogContent = React.forwardRef<
 
     const content = (
         <>
-            {/* 遮罩层 */}
+            {/* 遮罩层 (先渲染 → z-50) */}
             <View
               className={cn(
                 "fixed inset-0 z-50 bg-black bg-opacity-10 transition-opacity duration-100",
@@ -121,12 +121,12 @@ const DialogContent = React.forwardRef<
                     }
                 }}
             />
-            {/* 弹窗内容（与遮罩同级，原生 openType 按钮不被遮罩层包裹） */}
+            {/* 弹窗内容 (后渲染 → 同 z-index 但 DOM 顺序靠后，自然在遮罩之上) */}
             <View
               ref={ref}
               data-state={state}
               className={cn(
-                  "fixed left-[50%] top-[50%] z-[60] grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-xl",
+                  "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-xl",
                   className
               )}
               style={{
@@ -158,12 +158,9 @@ const DialogContent = React.forwardRef<
         </>
     )
 
-    // WeChat: render directly in component tree (no RootPortal)
-    // H5: use Portal (React DOM portal to body)
-    if (isWeapp()) {
-        return content
-    }
-
+    // 两端都用 Portal:
+    // H5 → createPortal to body (隔离 DOM)
+    // WeChat → RootPortal (渲染到页面根节点，独立渲染层)
     return <Portal>{content}</Portal>
 })
 DialogContent.displayName = "DialogContent"
