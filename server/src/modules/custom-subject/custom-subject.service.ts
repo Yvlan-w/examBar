@@ -249,6 +249,175 @@ export class CustomSubjectService {
     return subjectsWithCount;
   }
 
+  /**
+   * 清理预签名 URL：去除尾部逗号、空格等意外字符
+   */
+  private cleanUrl(url: string): string {
+    if (!url) return url;
+    return url.trim().replace(/[,，\s]+$/, '');
+  }
+
+  /**
+   * 对一组图片 URL 全部执行清理
+   */
+  private cleanUrls(urls: string[]): string[] {
+    return urls.map((u) => this.cleanUrl(u));
+  }
+
+  /**
+   * 多步骤 JSON 清理 + 解析
+   *
+   * 针对 LLM 可能返回的非标准 JSON（尾随逗号、未转义换行/引号、
+   * 代码块标记、解释性前缀、缺失闭合括号等）逐步修复后再解析。
+   * 若整体数组解析仍失败，会尝试用正则逐个抽取题目对象做兜底。
+   */
+  private cleanAndParseJSON(content: string, tag: string = 'JSON'): any[] {
+    let text = (content || '').trim();
+
+    // 1. 去除 markdown 代码块标记
+    text = text.replace(/```(?:json|JSON)?\s*/gi, '').replace(/```\s*/g, '');
+
+    // 2. 去除可能存在的解释性前缀（截取第一个 [ 到最后一个 ] 之间的内容）
+    const firstBracket = text.indexOf('[');
+    const lastBracket = text.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      text = text.substring(firstBracket, lastBracket + 1);
+    } else {
+      // 可能不是数组，尝试截取第一个 { 到最后一个 }
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        text = text.substring(firstBrace, lastBrace + 1);
+      }
+    }
+
+    // 3. 移除所有尾随逗号（对象尾、数组尾）
+    text = text.replace(/,\s*([}\]])/g, '$1');
+
+    // 4. 处理字符串内部未转义的裸换行符
+    text = text.replace(/"((?:\\.|[^"\\])*)"\s*:\s*"((?:\\.|[^"\\])*)"/g, (match, key, val) => {
+      const escapedVal = val
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+      return `"${key}":"${escapedVal}"`;
+    });
+
+    // 5. 修复对象字符串值里的未转义双引号
+    text = text.replace(/"((?:\\.|[^"\\])*)"\s*:\s*"((?:\\.|[^"\\])*)"/g, (match, key, val) => {
+      const safeVal = val.replace(/(?<!\\)"/g, '\\"');
+      return `"${key}":"${safeVal}"`;
+    });
+
+    // 6. 尝试补齐缺失的闭合括号
+    const openCount = (text.match(/\[/g) || []).length;
+    const closeCount = (text.match(/\]/g) || []).length;
+    if (openCount > closeCount) {
+      text = text + ']'.repeat(openCount - closeCount);
+    }
+
+    const openBrace = (text.match(/\{/g) || []).length;
+    const closeBrace = (text.match(/\}/g) || []).length;
+    if (openBrace > closeBrace) {
+      text = text + '}'.repeat(openBrace - closeBrace);
+    }
+
+    // 7. 整体解析
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        console.log(`[${tag}] 标准 JSON 解析成功，共 ${parsed.length} 项`);
+        return parsed;
+      }
+      // 单个对象：包装成数组
+      if (parsed && typeof parsed === 'object' && parsed.content) {
+        console.log(`[${tag}] 解析到单个对象，包装为数组`);
+        return [parsed];
+      }
+    } catch (primaryErr) {
+      console.warn(`[${tag}] 标准 JSON 解析失败: ${primaryErr.message}`);
+      console.warn(`[${tag}] 待解析文本长度: ${text.length}`);
+      console.warn(`[${tag}] 文本尾部 300 字符: ...${text.substring(Math.max(0, text.length - 300))}`);
+    }
+
+    // 8. 兜底：用正则逐个抽取题目对象 { ... }
+    console.warn(`[${tag}] 尝试正则兜底提取单题对象...`);
+    const extracted = this.extractSingleQuestionObjects(text);
+    if (extracted.length > 0) {
+      console.log(`[${tag}] 兜底提取成功，共 ${extracted.length} 题`);
+      return extracted;
+    }
+
+    console.warn(`[${tag}] 所有解析策略均失败，返回空数组`);
+    return [];
+  }
+
+  /**
+   * 从一段 JSON 文本中用正则逐个抽取看起来像题目对象的片段。
+   * 每个片段都会再走一次独立的 JSON.parse。
+   */
+  private extractSingleQuestionObjects(text: string): any[] {
+    const results: any[] = [];
+    // 匹配形如 {"content": ..., "type": ..., ...} 的对象（非贪婪）
+    const objectRegex = /\{[^{}]*"content"[^{}]*\}/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = objectRegex.exec(text)) !== null) {
+      let candidate = match[0];
+      // 清理这个对象内部可能的尾随逗号
+      candidate = candidate.replace(/,\s*([}\]])/g, '$1');
+      try {
+        const parsed = JSON.parse(candidate);
+        if (parsed && parsed.content && parsed.type) {
+          results.push(parsed);
+        }
+      } catch {
+        // 再做一次换行清理后尝试
+        candidate = candidate
+          .replace(/"((?:\\.|[^"\\])*)"\s*:\s*"((?:\\.|[^"\\])*)"/g, (m, k, v) => {
+            return `"${k}":"${v.replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`;
+          });
+        try {
+          const parsed = JSON.parse(candidate);
+          if (parsed && parsed.content && parsed.type) {
+            results.push(parsed);
+          }
+        } catch {
+          // 忽略
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 带重试的异步执行器
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 2000,
+    label: string = 'task'
+  ): Promise<T> {
+    let lastErr: any;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[重试] ${label} 第 ${attempt}/${maxRetries} 次失败: ${err?.message || err}`);
+        if (attempt < maxRetries) {
+          const delay = baseDelay * attempt;
+          console.warn(`[重试] ${label} ${delay}ms 后重试...`);
+          await new Promise((r) => setTimeout(r, delay));
+        }
+      }
+    }
+    throw lastErr;
+  }
+
   private mergeQuestion(existing: any, newQ: any): any {
     const merged = { ...existing };
     
@@ -571,25 +740,21 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
 
         console.log('[LLM请求] 消息数量:', messages.length);
 
-        const response = await this.llmClient.invoke(messages, {
-          model: 'doubao-seed-2-0-lite-260215',
-        });
-        const content = response.content || '';
+        const content = await this.withRetry(
+          async () => {
+            const response = await this.llmClient.invoke(messages, {
+              model: 'doubao-seed-2-0-lite-260215',
+            });
+            return response.content || '';
+          },
+          3,
+          3000,
+          '文本模式 LLM 调用'
+        );
 
         console.log('\n[LLM响应] 原始内容长度:', content.length);
-        console.log('[LLM响应] 原始内容:', content);
 
-        try {
-          const jsonMatch = content.match(/\[.*\]/s);
-          console.log('[JSON解析] 找到JSON匹配:', !!jsonMatch);
-          
-          if (jsonMatch) {
-            console.log('[JSON解析] 匹配内容:', jsonMatch[0]);
-            parsedQuestions = JSON.parse(jsonMatch[0]);
-          }
-        } catch (e) {
-          console.error('[JSON解析] 解析失败:', e);
-        }
+        parsedQuestions = this.cleanAndParseJSON(content, '文本模式');
       }
 
       console.log('[解析结果] 解析出题目数量:', parsedQuestions.length);
@@ -719,10 +884,10 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
    * 返回不完整页面的索引数组（作为拆分点）
    */
   private async analyzeImageBoundaries(imageUrls: string[]): Promise<number[]> {
-    console.log(`[智能分页] 开始分析 ${imageUrls.length} 张图片的题目边界...`);
+    const cleanedUrls = this.cleanUrls(imageUrls);
+    console.log(`[智能分页] 开始分析 ${cleanedUrls.length} 张图片的题目边界...`);
 
     try {
-      // 使用LLM快速分析每页的内容和边界
       const messages = [
         {
           role: 'system' as const,
@@ -739,33 +904,35 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
         },
         {
           role: 'user' as const,
-          content: imageUrls.map((url) => ({
+          content: cleanedUrls.map((url) => ({
             type: 'image_url' as const,
             image_url: { url, detail: 'low' as const },
           })),
         },
       ];
 
-      const response = await this.llmClient.invoke(messages, {
-        model: 'doubao-seed-2-0-lite-260215',
-      });
+      const content = await this.withRetry(
+        async () => {
+          const response = await this.llmClient.invoke(messages, {
+            model: 'doubao-seed-2-0-lite-260215',
+          });
+          return response.content || '';
+        },
+        2,
+        3000,
+        '智能分页 LLM 调用'
+      );
 
-      let content = response.content || '';
-      console.log('[智能分页] LLM响应:', content.substring(0, 500));
+      const text = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const boundaries = this.cleanAndParseJSON(text, '智能分页');
 
-      // 清理并解析JSON
-      content = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      
-      if (!jsonMatch) {
+      if (!boundaries || boundaries.length === 0) {
         console.warn('[智能分页] 无法解析LLM响应，默认均匀分页');
-        return this.getDefaultSplitPoints(imageUrls.length, []);
+        return this.getDefaultSplitPoints(cleanedUrls.length, []);
       }
 
-      const boundaries = JSON.parse(jsonMatch[0]);
       console.log('[智能分页] 每页边界状态:', boundaries.map((b: any, i: number) => `页${i}:${b.complete}`));
 
-      // 找出所有不完整页面的索引（作为拆分点）
       const incompletePages: number[] = [];
       for (let i = 0; i < boundaries.length; i++) {
         if (boundaries[i]?.complete === false) {
@@ -774,9 +941,7 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
       }
 
       console.log(`[智能分页] 发现 ${incompletePages.length} 个不完整页面:`, incompletePages);
-      
-      // 根据不完整页面计算最优拆分点
-      return this.getDefaultSplitPoints(imageUrls.length, incompletePages);
+      return this.getDefaultSplitPoints(cleanedUrls.length, incompletePages);
     } catch (error) {
       console.error('[智能分页] 分析失败，使用默认分页:', error);
       return this.getDefaultSplitPoints(imageUrls.length, []);
@@ -959,7 +1124,11 @@ hard：综合知识点、计算、易混淆辨析、拓展应用类题目
     batchIndex: number,
     totalBatches: number
   ): Promise<any[]> {
-    console.log(`[批次解析] 开始解析第 ${batchIndex + 1}/${totalBatches} 批，共 ${batchImages.length} 张图片`);
+    const cleanedImages = this.cleanUrls(batchImages);
+    console.log(`[批次解析] 开始解析第 ${batchIndex + 1}/${totalBatches} 批，共 ${cleanedImages.length} 张图片`);
+    cleanedImages.forEach((u, i) => {
+      console.log(`[批次解析] 图片${i + 1}: ${u.substring(0, 120)}`);
+    });
 
     const systemPrompt = totalBatches > 1
       ? `你是一个专业的题目解析助手。请将以下图片内容解析为结构化的题目数据。
@@ -1036,7 +1205,7 @@ ${batchIndex < totalBatches - 1 ? '注意：最后一个题目可能不完整，
       },
       {
         role: 'user' as const,
-        content: batchImages.map((url) => ({
+        content: cleanedImages.map((url) => ({
           type: 'image_url' as const,
           image_url: { url, detail: 'high' as const },
         })),
@@ -1044,42 +1213,30 @@ ${batchIndex < totalBatches - 1 ? '注意：最后一个题目可能不完整，
     ];
 
     try {
-      const response = await this.llmClient.invoke(messages, {
-        model: 'doubao-seed-2-0-lite-260215',
-      });
+      const content = await this.withRetry(
+        async () => {
+          const response = await this.llmClient.invoke(messages, {
+            model: 'doubao-seed-2-0-lite-260215',
+          });
+          return response.content || '';
+        },
+        3,
+        3000,
+        `第${batchIndex + 1}/${totalBatches}批 LLM 调用`
+      );
 
-      let content = response.content || '';
       console.log(`[批次解析] 第${batchIndex + 1}批 LLM响应长度: ${content.length}`);
 
-      // 清理并解析JSON
-      content = content.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-      
-      // 移除尾随逗号
-      content = content.replace(/,\s*([}\]])/g, '$1');
-      
-      // 修复字符串内未转义的换行符
-      content = content.replace(/"([^"]*?)":\s*"([^"]*?)(\n)([^"]*?)"/g, (match) => {
-        return match.replace(/\n/g, '\\n');
-      });
+      const parsed = this.cleanAndParseJSON(content, `第${batchIndex + 1}批`);
 
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      
-      if (!jsonMatch) {
-        console.warn(`[批次解析] 第${batchIndex + 1}批 无法解析JSON`);
-        return [];
-      }
-
-      let parsed = JSON.parse(jsonMatch[0]);
-      
-      // 过滤掉不完整的题目（缺少必要字段）
-      const validQuestions = parsed.filter((q: any) => 
+      const validQuestions = parsed.filter((q: any) =>
         q && q.content && q.answer && q.type && q.content.trim().length > 10
       );
 
       console.log(`[批次解析] 第${batchIndex + 1}批 解析出 ${validQuestions.length} 道有效题目`);
       return validQuestions;
     } catch (error) {
-      console.error(`[批次解析] 第${batchIndex + 1}批 解析失败:`, error);
+      console.error(`[批次解析] 第${batchIndex + 1}批 全部重试后仍失败:`, error);
       return [];
     }
   }
