@@ -79,6 +79,21 @@ const IndexPage = () => {
 
   const initApp = async () => {
     loadData()
+    if (!isLoggedIn && !Taro.getStorageSync('examBar_skip_login')) {
+      setTimeout(() => setShowLoginDialog(true), 300)
+    }
+  }
+
+  const handleLoginDialogOpenChange = (open: boolean) => {
+    setShowLoginDialog(open)
+    if (!open) {
+      Taro.setStorageSync('examBar_skip_login', Date.now().toString())
+    }
+  }
+
+  const handleLoginSuccess = () => {
+    Taro.removeStorageSync('examBar_skip_login')
+    loadData()
   }
 
   const loadData = async () => {
@@ -294,8 +309,8 @@ const IndexPage = () => {
 
      <LoginDialog
        open={showLoginDialog}
-       onOpenChange={setShowLoginDialog}
-       onLoginSuccess={loadData}
+       onOpenChange={handleLoginDialogOpenChange}
+       onLoginSuccess={handleLoginSuccess}
      />
     </View>
   )
