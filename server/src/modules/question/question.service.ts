@@ -10,6 +10,7 @@ import { StatsService } from '../stats/stats.service';
 import { AnswerEvaluateService } from '../answer-evaluate/answer-evaluate.service';
 import { StorageService } from '../storage/storage.service';
 import { readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 
 export interface AnswerRecord {
@@ -27,12 +28,45 @@ export interface AnswerRecord {
 @Injectable()
 export class QuestionService implements OnModuleInit {
   private logger = new Logger(QuestionService.name);
+  private static resolvedDataDir: string | null | undefined = undefined;
 
   constructor(
     private readonly statsService: StatsService,
     private readonly answerEvaluateService: AnswerEvaluateService,
     private readonly storageService: StorageService,
   ) {}
+
+  /**
+   * 在多个候选路径中找到 data 目录（包含 image-mapping.json 和 images/）
+   * 兼容：开发模式（src/data）、生产 tsc 编译（dist/data）、webpack 打包（dist/data）
+   */
+  private resolveDataDir(): string | null {
+    if (QuestionService.resolvedDataDir !== undefined) {
+      return QuestionService.resolvedDataDir;
+    }
+
+    const candidates = [
+      join(__dirname, '..', '..', 'data'),
+      join(__dirname, '..', '..', '..', 'data'),
+      join(__dirname, '..', '..', 'src', 'data'),
+      join(process.cwd(), 'dist', 'data'),
+      join(process.cwd(), 'src', 'data'),
+      join(process.cwd(), 'data'),
+    ];
+
+    for (const dir of candidates) {
+      const mappingFile = join(dir, 'image-mapping.json');
+      if (existsSync(mappingFile)) {
+        this.logger.log(`[Seed] 定位到 data 目录: ${dir} (image-mapping.json 存在)`);
+        QuestionService.resolvedDataDir = dir;
+        return dir;
+      }
+    }
+
+    this.logger.error(`[Seed] 所有候选路径均未找到 image-mapping.json，已尝试:\n${candidates.map(c => '  ' + c).join('\n')}`);
+    QuestionService.resolvedDataDir = null;
+    return null;
+  }
 
   async onModuleInit() {
     await this.seedData();
@@ -123,7 +157,11 @@ export class QuestionService implements OnModuleInit {
    */
   private async uploadQuestionImages(): Promise<void> {
     try {
-      const dataDir = join(process.cwd(), 'src', 'data');
+      const dataDir = this.resolveDataDir();
+      if (!dataDir) {
+        this.logger.warn('[Seed] data 目录不存在，跳过图片上传');
+        return;
+      }
       const imageMappingPath = join(dataDir, 'image-mapping.json');
       let imageMapping: Record<string, any>;
       
@@ -299,7 +337,11 @@ export class QuestionService implements OnModuleInit {
    */
   private async checkAndUploadImagesIfNeeded(): Promise<void> {
     try {
-      const imageMappingPath = join(process.cwd(), 'src', 'data', 'image-mapping.json');
+      const dataDir = this.resolveDataDir();
+      if (!dataDir) {
+        return;
+      }
+      const imageMappingPath = join(dataDir, 'image-mapping.json');
       let imageMapping: Record<string, any>;
       
       try {
