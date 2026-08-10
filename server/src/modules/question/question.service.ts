@@ -63,7 +63,7 @@ export class QuestionService implements OnModuleInit {
       }
     }
 
-    this.logger.error(`[Seed] 所有候选路径均未找到 image-mapping.json，已尝试:\n${candidates.map(c => '  ' + c).join('\n')}`);
+    this.logger.error(`[Seed] 所有候选路径均未找到 image-mapping.json，已尝试:\n${candidates.map(c => '  ' + c).join(' ')}`);
     QuestionService.resolvedDataDir = null;
     return null;
   }
@@ -159,7 +159,7 @@ export class QuestionService implements OnModuleInit {
     try {
       const dataDir = this.resolveDataDir();
       if (!dataDir) {
-        this.logger.warn('[Seed] data 目录不存在，跳过图片上传');
+        this.logger.error('[Seed] data 目录不存在，跳过图片上传');
         return;
       }
       const imageMappingPath = join(dataDir, 'image-mapping.json');

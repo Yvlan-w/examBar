@@ -99,17 +99,27 @@ const IndexPage = () => {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [subjectsRes, dailyRes, statsRes] = await Promise.all([
-        Network.request({ url: '/api/subjects', data: { userId: useUserStore.getState().user?.id } }),
+      const currentUserId = useUserStore.getState().user?.id
+      const requests: Promise<any>[] = [
+        Network.request({ url: '/api/subjects', data: { userId: currentUserId } }),
         Network.request({ url: '/api/questions/daily' }),
-        Network.request({ url: '/api/stats/overview', data: { userId: user?.id } }),
-      ])
+      ]
+      // 只有登录用户才请求 stats
+      if (currentUserId) {
+        requests.push(Network.request({ url: '/api/stats/overview', data: { userId: currentUserId } }))
+      }
+      const results = await Promise.all(requests)
+      const subjectsRes = results[0]
+      const dailyRes = results[1]
+      const statsRes = results[2]
       console.log('subjects:', subjectsRes.data)
       console.log('daily:', dailyRes.data)
-      console.log('stats:', statsRes.data)
+      if (statsRes) console.log('stats:', statsRes.data)
       setSubjects(subjectsRes.data?.data || [])
       setDailyQuestion(dailyRes.data?.data || null)
-      setStats(statsRes.data?.data || { todayCount: 0, totalDays: 0, streak: 0 })
+      if (statsRes) {
+        setStats(statsRes.data?.data || { todayCount: 0, totalDays: 0, streak: 0 })
+      }
     } catch (e) {
       console.error('loadData error:', e)
     } finally {
