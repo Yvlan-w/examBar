@@ -45,6 +45,9 @@ export class QuestionService implements OnModuleInit {
       return QuestionService.resolvedDataDir;
     }
 
+    this.logger.log(`[Seed] __dirname = ${__dirname}`);
+    this.logger.log(`[Seed] process.cwd() = ${process.cwd()}`);
+
     const candidates = [
       join(__dirname, '..', '..', 'data'),
       join(__dirname, '..', '..', '..', 'data'),
@@ -56,14 +59,16 @@ export class QuestionService implements OnModuleInit {
 
     for (const dir of candidates) {
       const mappingFile = join(dir, 'image-mapping.json');
-      if (existsSync(mappingFile)) {
+      const exists = existsSync(mappingFile);
+      this.logger.log(`[Seed] 检查路径: ${mappingFile} -> ${exists ? '存在' : '不存在'}`);
+      if (exists) {
         this.logger.log(`[Seed] 定位到 data 目录: ${dir} (image-mapping.json 存在)`);
         QuestionService.resolvedDataDir = dir;
         return dir;
       }
     }
 
-    this.logger.error(`[Seed] 所有候选路径均未找到 image-mapping.json，已尝试:\n${candidates.map(c => '  ' + c).join(' ')}`);
+    this.logger.error(`[Seed] 所有候选路径均未找到 image-mapping.json，已尝试:\n${candidates.map(c => '  ' + c).join('\n')}`);
     QuestionService.resolvedDataDir = null;
     return null;
   }
