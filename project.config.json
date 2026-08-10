@@ -1,5 +1,5 @@
 {
-  "miniprogramRoot": "./dist",
+  "miniprogramRoot": "./dist/",
   "projectname": "coze-mini-program",
   "description": "ExamBar",
   "appid": "wx62db801c395fe911",
@@ -12,5 +12,12 @@
     "minified": false
   },
   "compileType": "miniprogram",
-  "packOptions": { "ignore": [{ "type": "folder", "value": "./assets" }] }
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "./assets"
+      }
+    ]
+  }
 }

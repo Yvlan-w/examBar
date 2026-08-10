@@ -66,7 +66,7 @@ const IndexPage = () => {
   const [stats, setStats] = useState<StudyStats>({ todayCount: 0, totalDays: 0, streak: 0 })
   const [loading, setLoading] = useState(true)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const { isLoggedIn, user } = useUserStore()
+  const { isLoggedIn } = useUserStore()
   
 
   useEffect(() => {
