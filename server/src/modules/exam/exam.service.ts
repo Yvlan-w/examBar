@@ -273,15 +273,16 @@ export class ExamService {
    */
   private compareMultiAnswers(userAnswer: string, correctAnswer: string): boolean {
     const parseAnswer = (ans: string): string[] => {
-      // 移除方括号和引号（如果存在）
-      let cleaned = ans.replace(/[\[\]"']/g, '');
-      // 尝试用逗号分隔
-      let parts = cleaned.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-      // 如果逗号分隔后只有一个元素，尝试用空格分隔
-      if (parts.length <= 1 && cleaned.includes(' ')) {
-        parts = cleaned.split(/\s+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+      let cleaned = ans.replace(/[\[\]"']/g, '').trim().toUpperCase();
+      if (!cleaned) return [];
+      if (cleaned.includes(',')) {
+        return cleaned.split(',').map(s => s.trim()).filter(Boolean).sort();
       }
-      return parts.sort();
+      if (cleaned.includes(' ')) {
+        return cleaned.split(/\s+/).map(s => s.trim()).filter(Boolean).sort();
+      }
+      // 无分隔符：按单字符拆分（"ACD" → ["A","C","D"]）
+      return cleaned.split('').filter(c => /[A-Z]/.test(c)).sort();
     };
 
     const userParts = parseAnswer(userAnswer);
