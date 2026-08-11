@@ -307,8 +307,13 @@ export class StatsService {
     
     if (wrongQuestionIds.length === 0) return [];
     
-    const questionConditions: any[] = wrongQuestionIds.map((id) => eq(questions.id, id));
-    if (subjectId) questionConditions.push(eq(questions.subjectId, subjectId));
+    // 基础条件：题目 ID 在错题 ID 列表中
+    const whereConditions: any[] = [or(...wrongQuestionIds.map((id) => eq(questions.id, id)))];
+    
+    // subjectId 作为 AND 条件，和 ID 列表条件组合
+    if (subjectId) {
+      whereConditions.push(eq(questions.subjectId, subjectId));
+    }
     
     const result = await db.select({
       id: questions.id,
@@ -318,7 +323,7 @@ export class StatsService {
       difficulty: questions.difficulty,
       subjectId: questions.subjectId,
       subjectName: questions.subjectName,
-    }).from(questions).where(or(...questionConditions));
+    }).from(questions).where(and(...whereConditions));
     
     return result;
   }
