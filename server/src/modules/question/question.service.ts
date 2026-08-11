@@ -9,6 +9,7 @@ import {
 import { StatsService } from '../stats/stats.service';
 import { AnswerEvaluateService } from '../answer-evaluate/answer-evaluate.service';
 import { StorageService } from '../storage/storage.service';
+import { WrongQuestionsService } from '../wrong-questions/wrong-questions.service';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
@@ -34,6 +35,7 @@ export class QuestionService implements OnModuleInit {
     private readonly statsService: StatsService,
     private readonly answerEvaluateService: AnswerEvaluateService,
     private readonly storageService: StorageService,
+    private readonly wrongQuestionsService: WrongQuestionsService,
   ) {}
 
   async onModuleInit() {
@@ -507,6 +509,7 @@ export class QuestionService implements OnModuleInit {
 
     if (userId) {
       await this.statsService.updateStats(userId, question.subjectId, isCorrect);
+      await this.wrongQuestionsService.recordAnswer(userId, questionId, question.subjectId, isCorrect);
     }
 
     if (sessionId) {

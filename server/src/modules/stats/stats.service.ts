@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '@/db/db.module';
-import { answerRecords, subjects, questions, userStats, subjectStats, examSessions, sessionQuestions } from '@/db/schema';
-import { eq, count, desc, and, or, sql, inArray } from 'drizzle-orm';
+import { answerRecords, subjects, questions, userStats, subjectStats, examSessions, sessionQuestions, wrongQuestions } from '@/db/schema';
+import { eq, count, desc, and, or, sql, inArray, isNull, isNotNull } from 'drizzle-orm';
 
 @Injectable()
 export class StatsService {
@@ -298,33 +298,51 @@ export class StatsService {
     };
   }
 
-  async getWrongQuestions(subjectId?: string, userId?: number) {
-    const conditions: any[] = [eq(answerRecords.isCorrect, false)];
-    if (userId) conditions.push(eq(answerRecords.userId, userId));
-    
-    const wrongResult = await db.select({ questionId: answerRecords.questionId }).from(answerRecords).where(and(...conditions));
-    const wrongQuestionIds = [...new Set(wrongResult.map((r) => r.questionId))];
-    
-    if (wrongQuestionIds.length === 0) return [];
-    
-    // 基础条件：题目 ID 在错题 ID 列表中
-    const whereConditions: any[] = [or(...wrongQuestionIds.map((id) => eq(questions.id, id)))];
-    
-    // subjectId 作为 AND 条件，和 ID 列表条件组合
-    if (subjectId) {
-      whereConditions.push(eq(questions.subjectId, subjectId));
+  async getWrongQuestions(subjectId?: string, userId?: number, includeMastered: boolean = false) {
+    if (!userId) return [];
+
+    const conditions: any[] = [eq(wrongQuestions.userId, userId)];
+    if (!includeMastered) {
+      conditions.push(eq(wrongQuestions.mastered, false));
     }
-    
-    const result = await db.select({
-      id: questions.id,
-      content: questions.content,
-      type: questions.type,
-      options: questions.options,
-      difficulty: questions.difficulty,
-      subjectId: questions.subjectId,
-      subjectName: questions.subjectName,
-    }).from(questions).where(and(...whereConditions));
-    
-    return result;
+    if (subjectId) {
+      conditions.push(eq(wrongQuestions.subjectId, subjectId));
+    }
+
+    const wrongRows = await db
+      .select()
+      .from(wrongQuestions)
+      .where(and(...conditions))
+      .orderBy(desc(wrongQuestions.lastWrongAt));
+
+    if (wrongRows.length === 0) return [];
+
+    const questionIds = wrongRows.map((r) => r.questionId);
+    const questionConditions = questionIds.map((id) => eq(questions.id, id));
+
+    const questionRows = await db
+      .select()
+      .from(questions)
+      .where(or(...questionConditions));
+
+    const qMap = new Map(questionRows.map((q) => [q.id, q]));
+
+    return wrongRows.map((w) => {
+      const q = qMap.get(w.questionId);
+      if (!q) return null;
+      return {
+        id: q.id,
+        content: q.content,
+        type: q.type,
+        options: q.options,
+        difficulty: q.difficulty,
+        subjectId: q.subjectId,
+        subjectName: q.subjectName,
+        wrongCount: w.wrongCount,
+        consecutiveCorrect: w.consecutiveCorrect,
+        mastered: w.mastered,
+        lastWrongAt: w.lastWrongAt ? this.formatToShanghaiTime(w.lastWrongAt) : '-',
+      };
+    }).filter(Boolean);
   }
 }

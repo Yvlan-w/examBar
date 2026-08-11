@@ -127,6 +127,22 @@ export class DbInitService implements OnModuleInit {
           updated_at TIMESTAMP DEFAULT NOW()
         )`,
       },
+      {
+        name: 'wrong_questions',
+        sql: `CREATE TABLE IF NOT EXISTS wrong_questions (
+          id VARCHAR(64) PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          question_id VARCHAR(32) NOT NULL REFERENCES questions(id),
+          subject_id VARCHAR(32),
+          wrong_count INTEGER DEFAULT 1,
+          consecutive_correct INTEGER DEFAULT 0,
+          last_wrong_at TIMESTAMP DEFAULT NOW(),
+          mastered BOOLEAN DEFAULT FALSE,
+          mastered_at TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT NOW(),
+          UNIQUE (user_id, question_id)
+        )`,
+      },
     ];
 
     for (const table of tables) {

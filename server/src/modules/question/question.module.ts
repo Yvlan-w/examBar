@@ -5,9 +5,10 @@ import { DbModule } from '@/db/db.module';
 import { StatsModule } from '../stats/stats.module';
 import { AnswerEvaluateModule } from '../answer-evaluate/answer-evaluate.module';
 import { StorageModule } from '../storage/storage.module';
+import { WrongQuestionsModule } from '../wrong-questions/wrong-questions.module';
 
 @Module({
-  imports: [DbModule, StatsModule, AnswerEvaluateModule, StorageModule],
+  imports: [DbModule, StatsModule, AnswerEvaluateModule, StorageModule, WrongQuestionsModule],
   controllers: [QuestionController],
   providers: [QuestionService],
   exports: [QuestionService],

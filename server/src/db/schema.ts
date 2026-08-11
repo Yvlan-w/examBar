@@ -9,6 +9,7 @@ import {
   timestamp,
   json,
   primaryKey,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -108,6 +109,21 @@ export const subjectStats = pgTable('subject_stats', {
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({
   pk: primaryKey({ columns: [table.userId, table.subjectId] }),
+}));
+
+export const wrongQuestions = pgTable('wrong_questions', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id),
+  questionId: varchar('question_id', { length: 32 }).notNull().references(() => questions.id),
+  subjectId: varchar('subject_id', { length: 32 }),
+  wrongCount: integer('wrong_count').default(1),
+  consecutiveCorrect: integer('consecutive_correct').default(0),
+  lastWrongAt: timestamp('last_wrong_at').defaultNow(),
+  mastered: boolean('mastered').default(false),
+  masteredAt: timestamp('mastered_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  uniqueUserQuestion: uniqueIndex('uq_wrong_questions_user_question').on(table.userId, table.questionId),
 }));
 
 export const customSubjects = pgTable('custom_subjects', {

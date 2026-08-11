@@ -23,6 +23,10 @@ interface Question {
   subjectId: string
   subjectName: string
   difficulty: string
+  wrongCount?: number
+  consecutiveCorrect?: number
+  mastered?: boolean
+  lastWrongAt?: string
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -218,9 +222,21 @@ const WrongPage = () => {
                     <Badge className={`text-xs ${DIFFICULTY_COLORS[q.difficulty] || 'bg-slate-100 text-slate-600'}`}>
                       {DIFFICULTY_LABELS[q.difficulty] || q.difficulty}
                     </Badge>
+                    {q.mastered && (
+                      <Badge className="text-xs bg-emerald-50 text-emerald-700">已掌握</Badge>
+                    )}
                   </View>
                   <Text className="block text-sm text-slate-700 leading-relaxed line-clamp-2">{q.content}</Text>
-                  <View className="flex items-center justify-end mt-2">
+                  <View className="flex items-center justify-between mt-2">
+                    <View className="flex items-center gap-3">
+                      <Text className="text-xs text-red-400">错 {q.wrongCount ?? 1} 次</Text>
+                      {q.lastWrongAt && q.lastWrongAt !== '-' && (
+                        <Text className="text-xs text-slate-400">{q.lastWrongAt}</Text>
+                      )}
+                      {q.consecutiveCorrect && q.consecutiveCorrect > 0 && !q.mastered && (
+                        <Text className="text-xs text-amber-500">连对 {q.consecutiveCorrect}/2</Text>
+                      )}
+                    </View>
                     <ChevronRight size={14} color="#94A3B8" />
                   </View>
                 </CardContent>

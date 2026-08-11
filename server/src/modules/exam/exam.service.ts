@@ -4,12 +4,14 @@ import { questions, answerRecords, examSessions, sessionQuestions } from '@/db/s
 import { eq, and, count, sql } from 'drizzle-orm';
 import { StatsService } from '../stats/stats.service';
 import { ExamSessionService } from '../exam-session/exam-session.service';
+import { WrongQuestionsService } from '../wrong-questions/wrong-questions.service';
 
 @Injectable()
 export class ExamService {
   constructor(
     private readonly statsService: StatsService,
     private readonly examSessionService: ExamSessionService,
+    private readonly wrongQuestionsService: WrongQuestionsService,
   ) {}
 
   private generateSessionId() {
@@ -150,6 +152,7 @@ export class ExamService {
 
       if (userId) {
         await this.statsService.updateStats(userId, question.subjectId, isCorrect);
+        await this.wrongQuestionsService.recordAnswer(userId, ans.questionId, question.subjectId, isCorrect);
       }
 
       // 标记题目为已答
@@ -254,6 +257,10 @@ export class ExamService {
       await db.update(examSessions)
         .set({ correctCount })
         .where(eq(examSessions.id, sessionId));
+    }
+
+    if (userId) {
+      await this.wrongQuestionsService.recordAnswer(userId, questionId, question.subjectId, isCorrect);
     }
 
     return { success: true, isCorrect };

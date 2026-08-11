@@ -12,6 +12,7 @@ import { DbModule } from '@/db/db.module';
 import { StorageModule } from '@/modules/storage/storage.module';
 import { CustomSubjectModule } from '@/modules/custom-subject/custom-subject.module';
 import { ExamSessionModule } from '@/modules/exam-session/exam-session.module';
+import { WrongQuestionsModule } from '@/modules/wrong-questions/wrong-questions.module';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ dotenv.config();
     StorageModule,
     CustomSubjectModule,
     ExamSessionModule,
+    WrongQuestionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
