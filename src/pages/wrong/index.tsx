@@ -233,7 +233,7 @@ const WrongPage = () => {
                       {q.lastWrongAt && q.lastWrongAt !== '-' && (
                         <Text className="text-xs text-slate-400">{q.lastWrongAt}</Text>
                       )}
-                      {q.consecutiveCorrect && q.consecutiveCorrect > 0 && !q.mastered && (
+                      {q.consecutiveCorrect !== undefined && q.consecutiveCorrect > 0 && !q.mastered && (
                         <Text className="text-xs text-amber-500">连对 {q.consecutiveCorrect}/2</Text>
                       )}
                     </View>
